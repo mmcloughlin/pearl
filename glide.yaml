@@ -13,3 +13,4 @@ import:
   subpackages:
   - require
   - assert
+- package: github.com/jarcoal/httpmock
