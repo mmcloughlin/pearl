@@ -25,3 +25,7 @@ Alternative Golang SSL libraries:
 
 * https://github.com/spacemonkeygo/openssl
 * [ztls](https://github.com/zmap/zgrab/tree/master/ztools/ztls)
+
+# Etymology
+
+[Pearl onion](https://en.wikipedia.org/wiki/Pearl_onion)
