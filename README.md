@@ -2,6 +2,13 @@
 
 Golang TOR Router
 
+## Spec
+
+Working from the [torspec](https://gitweb.torproject.org/torspec.git):
+
+* [Tor Protocol Specification](https://gitweb.torproject.org/torspec.git/tree/tor-spec.txt)
+* [Tor directory protocol](https://gitweb.torproject.org/torspec.git/tree/dir-spec.txt)
+
 ## Resources
 
 This has been done before:
