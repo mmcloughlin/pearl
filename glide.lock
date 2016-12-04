@@ -1,8 +1,13 @@
-hash: f9853111dfb9e345e4932ea7d9618bfb39904b4de12bb2a5a4b352897305087b
-updated: 2016-12-04T14:06:27.843084267-08:00
+hash: 5f07ab4a3a540601e675314a37cdda5db59ba017d4acee462aa12b4417f83c2d
+updated: 2016-12-04T14:17:40.214910709-08:00
 imports:
 - name: github.com/erans/gonionoo
   version: 870942f67e087fb308cd84f3f4b6e88960863ce3
 - name: github.com/spacemonkeygo/openssl
   version: d63025916bcf9eb1c059d00465fe9de7ca84fff5
+- name: github.com/stretchr/testify
+  version: 69483b4bd14f5845b5a1e55bca19e954e827f1d0
+  subpackages:
+  - assert
+  - require
 testImports: []
