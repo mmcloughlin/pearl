@@ -1,0 +1,480 @@
+{
+    "bridges": [],
+    "bridges_published": "2016-12-04 20:41:03",
+    "relays": [
+        {
+            "advertised_bandwidth": 76800,
+            "alleged_family": [
+                "$01C5B10C5C6B1DEB47612E66EBF315B7C64DE803",
+                "$03FF94D9E5001DD2290BC3B19FA7F59CE1E30279",
+                "$6BD2FF175484CD7925A81DC42D89B3953252DBAD",
+                "$995D0FE5A89563D79A383CCC2444D0E26C6BE625",
+                "$CA1DDA678A477BD2F19714F88A3C0613C7AD3C10"
+            ],
+            "as_name": "Tele2 Telecommunication GmbH",
+            "as_number": "AS8437",
+            "bandwidth_burst": 1073741824,
+            "bandwidth_rate": 76800,
+            "consensus_weight": 20,
+            "consensus_weight_fraction": 4.2394396e-07,
+            "contact": "Peter Palfrader",
+            "country": "at",
+            "country_name": "Austria",
+            "dir_address": "86.59.21.38:80",
+            "exit_policy": [
+                "reject *:*"
+            ],
+            "exit_policy_summary": {
+                "reject": [
+                    "1-65535"
+                ]
+            },
+            "exit_probability": 0.0,
+            "fingerprint": "847B1F850344D7876491A54892F904934E4EB85D",
+            "first_seen": "2007-10-27 12:00:00",
+            "flags": [
+                "Authority",
+                "Running",
+                "Stable",
+                "V2Dir",
+                "Valid"
+            ],
+            "guard_probability": 0.0,
+            "host_name": "tor.noreply.org",
+            "last_changed_address_or_port": "2016-07-04 01:00:00",
+            "last_restarted": "2016-12-03 09:20:12",
+            "last_seen": "2016-12-04 22:00:00",
+            "latitude": 48.2,
+            "longitude": 16.3667,
+            "measured": false,
+            "middle_probability": 1.1026766e-06,
+            "nickname": "tor26",
+            "observed_bandwidth": 2415616,
+            "or_addresses": [
+                "86.59.21.38:443",
+                "[2001:858:2:2:aabb:0:563b:1526]:443"
+            ],
+            "platform": "Tor 0.2.8.10 on Linux",
+            "recommended_version": true,
+            "running": true
+        },
+        {
+            "advertised_bandwidth": 1048576,
+            "as_name": "Rethem Hosting LLC",
+            "as_number": "AS14987",
+            "bandwidth_burst": 1048576,
+            "bandwidth_rate": 1048576,
+            "consensus_weight": 20,
+            "consensus_weight_fraction": 4.2394396e-07,
+            "contact": "0x0B47D56D Sina Rabbani (inf0) <sina redteam net>",
+            "country": "us",
+            "country_name": "United States",
+            "dir_address": "154.35.175.225:80",
+            "exit_policy": [
+                "reject *:*"
+            ],
+            "exit_policy_summary": {
+                "reject": [
+                    "1-65535"
+                ]
+            },
+            "exit_probability": 0.0,
+            "fingerprint": "CF6D0AAFB385BE71B8E111FC5CFF4B47923733BC",
+            "first_seen": "2012-03-05 23:00:00",
+            "flags": [
+                "Authority",
+                "Running",
+                "Stable",
+                "V2Dir",
+                "Valid"
+            ],
+            "guard_probability": 0.0,
+            "host_name": "faravahar.redteam.net",
+            "last_changed_address_or_port": "2015-02-20 22:00:00",
+            "last_restarted": "2016-12-04 02:30:52",
+            "last_seen": "2016-12-04 22:00:00",
+            "latitude": 37.751,
+            "longitude": -97.822,
+            "measured": false,
+            "middle_probability": 1.1026766e-06,
+            "nickname": "Faravahar",
+            "observed_bandwidth": 1089992,
+            "or_addresses": [
+                "154.35.175.225:443"
+            ],
+            "platform": "Tor 0.2.8.9 on Linux",
+            "recommended_version": true,
+            "running": true
+        },
+        {
+            "advertised_bandwidth": 2297781,
+            "as_name": "Chaos Computer Club e.V.",
+            "as_number": "AS50472",
+            "bandwidth_burst": 25600000,
+            "bandwidth_rate": 12800000,
+            "consensus_weight": 20,
+            "consensus_weight_fraction": 4.2394396e-07,
+            "contact": "Andreas Lehner",
+            "country": "de",
+            "country_name": "Germany",
+            "dir_address": "193.23.244.244:80",
+            "exit_policy": [
+                "reject *:*"
+            ],
+            "exit_policy_summary": {
+                "reject": [
+                    "1-65535"
+                ]
+            },
+            "exit_probability": 0.0,
+            "fingerprint": "7BE683E65D48141321C5ED92F075C55364AC7123",
+            "first_seen": "2007-11-22 21:00:00",
+            "flags": [
+                "Authority",
+                "Running",
+                "Stable",
+                "V2Dir",
+                "Valid"
+            ],
+            "guard_probability": 0.0,
+            "host_name": "dannenberg.torauth.de",
+            "last_changed_address_or_port": "2010-02-02 20:00:00",
+            "last_restarted": "2016-11-03 20:29:02",
+            "last_seen": "2016-12-04 22:00:00",
+            "latitude": 51.0,
+            "longitude": 9.0,
+            "measured": false,
+            "middle_probability": 1.1026766e-06,
+            "nickname": "dannenberg",
+            "observed_bandwidth": 2297781,
+            "or_addresses": [
+                "193.23.244.244:443"
+            ],
+            "platform": "Tor 0.2.8.9 on FreeBSD",
+            "recommended_version": true,
+            "running": true
+        },
+        {
+            "advertised_bandwidth": 472168,
+            "as_name": "Greenhost BV",
+            "as_number": "AS47172",
+            "bandwidth_burst": 1073741824,
+            "bandwidth_rate": 1073741824,
+            "consensus_weight": 20,
+            "consensus_weight_fraction": 4.2394396e-07,
+            "contact": "4096R/0A6A58A14B5946ABDE18E207A3ADB67A2CDB8B35 isis agora lovecruft <isis@patternsinthevoid.net>",
+            "country": "nl",
+            "country_name": "Netherlands",
+            "dir_address": "37.218.247.217:80",
+            "exit_policy": [
+                "reject *:*"
+            ],
+            "exit_policy_summary": {
+                "reject": [
+                    "1-65535"
+                ]
+            },
+            "exit_probability": 0.0,
+            "fingerprint": "1D8F3A91C37C5D1C4C19B1AD1D0CFBE8BF72D8E1",
+            "first_seen": "2016-08-23 19:00:00",
+            "flags": [
+                "Authority",
+                "Running",
+                "Stable",
+                "V2Dir",
+                "Valid"
+            ],
+            "guard_probability": 0.0,
+            "host_name": "37.218.247.217",
+            "last_changed_address_or_port": "2016-08-23 19:00:00",
+            "last_restarted": "2016-10-18 15:41:02",
+            "last_seen": "2016-12-04 22:00:00",
+            "latitude": 52.3824,
+            "longitude": 4.8995,
+            "measured": false,
+            "middle_probability": 1.1026766e-06,
+            "nickname": "Bifroest",
+            "observed_bandwidth": 472168,
+            "or_addresses": [
+                "37.218.247.217:443"
+            ],
+            "platform": "Tor 0.2.8.9 on Linux",
+            "recommended_version": true,
+            "running": true
+        },
+        {
+            "advertised_bandwidth": 512000,
+            "as_name": "Massachusetts Institute of Technology",
+            "as_number": "AS3",
+            "bandwidth_burst": 62914560,
+            "bandwidth_rate": 512000,
+            "city_name": "Cambridge",
+            "consensus_weight": 20,
+            "consensus_weight_fraction": 4.2394396e-07,
+            "contact": "1024D/28988BF5 arma mit edu",
+            "country": "us",
+            "country_name": "United States",
+            "dir_address": "128.31.0.34:9131",
+            "exit_policy": [
+                "reject *:*"
+            ],
+            "exit_policy_summary": {
+                "reject": [
+                    "1-65535"
+                ]
+            },
+            "exit_probability": 0.0,
+            "fingerprint": "9695DFC35FFEB861329B9F1AB04C46397020CE31",
+            "first_seen": "2010-01-18 23:00:00",
+            "flags": [
+                "Authority",
+                "Running",
+                "Stable",
+                "V2Dir",
+                "Valid"
+            ],
+            "guard_probability": 0.0,
+            "host_name": "moria.csail.mit.edu",
+            "last_changed_address_or_port": "2010-01-18 23:00:00",
+            "last_restarted": "2016-12-02 16:34:32",
+            "last_seen": "2016-12-04 22:00:00",
+            "latitude": 42.3646,
+            "longitude": -71.1028,
+            "measured": false,
+            "middle_probability": 1.1026766e-06,
+            "nickname": "moria1",
+            "observed_bandwidth": 2077500,
+            "or_addresses": [
+                "128.31.0.34:9101"
+            ],
+            "platform": "Tor 0.3.0.0-alpha-dev on Linux",
+            "recommended_version": false,
+            "region_name": "Massachusetts",
+            "running": true
+        },
+        {
+            "advertised_bandwidth": 51200,
+            "alleged_family": [
+                "$6D443156A22CD86BC41DF9D0E370AE9A7A8E55C7",
+                "$B4B6E5C09E5EDDBDD04AAC1355EE1FE269E00F40"
+            ],
+            "as_name": "Foreningen for digitala fri- och rattigheter",
+            "as_number": "AS198093",
+            "bandwidth_burst": 20971520,
+            "bandwidth_rate": 51200,
+            "consensus_weight": 20,
+            "consensus_weight_fraction": 4.2394396e-07,
+            "contact": "4096R/23291265 Linus Nordberg <linus@nordberg.se>",
+            "country": "se",
+            "country_name": "Sweden",
+            "dir_address": "171.25.193.9:443",
+            "effective_family": [
+                "$185663B7C12777F052B2C2D23D7A239D8DA88A0F",
+                "$32EE911D968BE3E016ECA572BB1ED0A9EE43FC2F",
+                "$79861CF8522FC637EF046F7688F5289E49D94576",
+                "$A10C4F666D27364036B562823E5830BC448E046A",
+                "$A478E421F83194C114F41E94F95999672AED51FE",
+                "$DD8BD7307017407FCC36F8D04A688F74A0774C02",
+                "$EC84E23249F74BFFBC82B4E63CDA295CCC0292A0",
+                "$FFA72BD683BC2FCF988356E6BEC1E490F313FB07"
+            ],
+            "exit_policy": [
+                "reject *:*"
+            ],
+            "exit_policy_summary": {
+                "reject": [
+                    "1-65535"
+                ]
+            },
+            "exit_probability": 0.0,
+            "fingerprint": "BD6A829255CB08E66FBE7D3748363586E46B3810",
+            "first_seen": "2010-02-17 18:00:00",
+            "flags": [
+                "Authority",
+                "Running",
+                "Stable",
+                "V2Dir",
+                "Valid"
+            ],
+            "guard_probability": 0.0,
+            "host_name": "ehlo.4711.se",
+            "indirect_family": [
+                "$2AFE920194ED5807377CB0BB696C5C870CED8BFD"
+            ],
+            "last_changed_address_or_port": "2015-02-07 16:00:00",
+            "last_restarted": "2016-10-17 21:07:28",
+            "last_seen": "2016-12-04 22:00:00",
+            "latitude": 59.3294,
+            "longitude": 18.0686,
+            "measured": false,
+            "middle_probability": 1.1026766e-06,
+            "nickname": "maatuska",
+            "observed_bandwidth": 1810782,
+            "or_addresses": [
+                "171.25.193.9:80",
+                "[2001:67c:289c::9]:80"
+            ],
+            "platform": "Tor 0.2.8.9 on FreeBSD",
+            "recommended_version": true,
+            "running": true
+        },
+        {
+            "advertised_bandwidth": 40960,
+            "as_name": "Verein zur Foerderung eines Deutschen Forschungsnetzes e.V.",
+            "as_number": "AS680",
+            "bandwidth_burst": 125829120,
+            "bandwidth_rate": 40960,
+            "city_name": "Erlangen",
+            "consensus_weight": 20,
+            "consensus_weight_fraction": 4.2394396e-07,
+            "contact": "4096R/261C5FBE77285F88FB0C343266C8C2D7C5AA446D Sebastian Hahn <tor@sebastianhahn.net> - 12NbRAjAG5U3LLWETSF7fSTcdaz32Mu5CN",
+            "country": "de",
+            "country_name": "Germany",
+            "dir_address": "131.188.40.189:80",
+            "exit_policy": [
+                "reject *:*"
+            ],
+            "exit_policy_summary": {
+                "reject": [
+                    "1-65535"
+                ]
+            },
+            "exit_probability": 0.0,
+            "fingerprint": "F2044413DAC2E02E3D6BCF4735A19BCA1DE97281",
+            "first_seen": "2010-01-19 15:00:00",
+            "flags": [
+                "Authority",
+                "Running",
+                "Stable",
+                "V2Dir",
+                "Valid"
+            ],
+            "guard_probability": 0.0,
+            "host_name": "despari.informatik.uni-erlangen.de",
+            "last_changed_address_or_port": "2016-12-01 06:00:00",
+            "last_restarted": "2016-11-27 06:29:30",
+            "last_seen": "2016-12-04 22:00:00",
+            "latitude": 49.5888,
+            "longitude": 11.0098,
+            "measured": false,
+            "middle_probability": 1.1026766e-06,
+            "nickname": "gabelmoo",
+            "observed_bandwidth": 2191018,
+            "or_addresses": [
+                "131.188.40.189:443",
+                "[2001:638:a000:4140::ffff:189]:443"
+            ],
+            "platform": "Tor 0.2.8.9 on Linux",
+            "recommended_version": true,
+            "region_name": "Bavaria",
+            "running": true
+        },
+        {
+            "advertised_bandwidth": 2529777,
+            "as_name": "XS4ALL Internet BV",
+            "as_number": "AS3265",
+            "bandwidth_burst": 52428800,
+            "bandwidth_rate": 20971520,
+            "consensus_weight": 20,
+            "consensus_weight_fraction": 4.2394396e-07,
+            "contact": "1024R/8D56913D Alex de Joode <adejoode@sabotage.org>",
+            "country": "nl",
+            "country_name": "Netherlands",
+            "dir_address": "194.109.206.212:80",
+            "effective_family": [
+                "$863D45319121DE1BB4F50DE7931FEC422FBFD76E"
+            ],
+            "exit_policy": [
+                "reject *:*"
+            ],
+            "exit_policy_summary": {
+                "reject": [
+                    "1-65535"
+                ]
+            },
+            "exit_probability": 0.0,
+            "fingerprint": "7EA6EAD6FD83083C538F44038BBFA077587DD755",
+            "first_seen": "2007-10-27 12:00:00",
+            "flags": [
+                "Authority",
+                "Running",
+                "Stable",
+                "V2Dir",
+                "Valid"
+            ],
+            "guard_probability": 0.0,
+            "host_name": "tor.dizum.com",
+            "last_changed_address_or_port": "2008-03-19 09:00:00",
+            "last_restarted": "2016-11-24 20:58:05",
+            "last_seen": "2016-12-04 22:00:00",
+            "latitude": 52.3824,
+            "longitude": 4.8995,
+            "measured": false,
+            "middle_probability": 1.1026766e-06,
+            "nickname": "dizum",
+            "observed_bandwidth": 2529777,
+            "or_addresses": [
+                "194.109.206.212:443"
+            ],
+            "platform": "Tor 0.2.8.9 on Linux",
+            "recommended_version": true,
+            "running": true
+        },
+        {
+            "advertised_bandwidth": 38912,
+            "alleged_family": [
+                "$131B60B9AFE6AEA60042132D648798534ABEA07E",
+                "$7661E748639A0A31FFC49380AC19BFD53AD2A8AE"
+            ],
+            "as_name": "Riseup Networks",
+            "as_number": "AS16652",
+            "bandwidth_burst": 125829120,
+            "bandwidth_rate": 38912,
+            "consensus_weight": 20,
+            "consensus_weight_fraction": 4.2394396e-07,
+            "contact": "Riseup Networks <collective at riseup dot net> - 1nNzekuHGGzBYRzyjfjFEfeisNvxkn4RT",
+            "country": "us",
+            "country_name": "United States",
+            "dir_address": "199.254.238.53:80",
+            "exit_policy": [
+                "reject *:*"
+            ],
+            "exit_policy_summary": {
+                "reject": [
+                    "1-65535"
+                ]
+            },
+            "exit_probability": 0.0,
+            "fingerprint": "74A910646BCEEFBCD2E874FC1DC997430F968145",
+            "first_seen": "2014-10-18 14:00:00",
+            "flags": [
+                "Authority",
+                "Running",
+                "Stable",
+                "V2Dir",
+                "Valid"
+            ],
+            "guard_probability": 0.0,
+            "host_name": "longclaw.riseup.net",
+            "last_changed_address_or_port": "2016-09-06 18:00:00",
+            "last_restarted": "2016-12-02 18:30:13",
+            "last_seen": "2016-12-04 22:00:00",
+            "latitude": 42.3584,
+            "longitude": -71.0598,
+            "measured": false,
+            "middle_probability": 1.1026766e-06,
+            "nickname": "longclaw",
+            "observed_bandwidth": 5093270,
+            "or_addresses": [
+                "199.254.238.53:443",
+                "[2620:13:4000:8000:60:f3ff:fea1:7cff]:443"
+            ],
+            "platform": "Tor 0.2.8.9 on Linux",
+            "recommended_version": true,
+            "region_name": "Massachusetts",
+            "running": true
+        }
+    ],
+    "relays_published": "2016-12-04 22:00:00",
+    "version": "3.1"
+}
