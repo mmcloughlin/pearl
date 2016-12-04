@@ -1,0 +1,8 @@
+package: github.com/mmcloughlin/pearl
+license: MIT
+homepage: https://github.com/mmcloughlin/pearl
+description: Tor Router
+owners:
+- name: Michael McLoughlin
+  email: mmcloughlin@gmail.com
+import: []
