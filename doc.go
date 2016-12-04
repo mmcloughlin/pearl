@@ -1,2 +1,2 @@
-// Package pearl partially implements the Tor protocol.
+// Package pearl implements parts of the Tor protocol.
 package pearl

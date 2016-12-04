@@ -1,5 +1,4 @@
 package: github.com/mmcloughlin/pearl
-description: Tor Router
 homepage: https://github.com/mmcloughlin/pearl
 license: MIT
 owners:

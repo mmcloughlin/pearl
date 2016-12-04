@@ -1,6 +1,6 @@
 # pearl
 
-Golang TOR Router
+Bits and pieces of Tor in Golang.
 
 ## Spec
 
