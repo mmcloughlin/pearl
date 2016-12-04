@@ -7,3 +7,4 @@ owners:
   email: mmcloughlin@gmail.com
 import:
 - package: github.com/spacemonkeygo/openssl
+- package: github.com/erans/gonionoo
