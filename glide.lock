@@ -1,0 +1,6 @@
+hash: 236356eba1ec113c1819eb02e3bb4779bc64b4ae57968315ba55fed065411e04
+updated: 2016-12-04T10:43:47.739034715-08:00
+imports:
+- name: github.com/spacemonkeygo/openssl
+  version: d63025916bcf9eb1c059d00465fe9de7ca84fff5
+testImports: []
