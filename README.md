@@ -1,6 +1,6 @@
 # pearl
 
-Bits and pieces of Tor in Golang.
+Tor experiments in Golang.
 
 ## Spec
 
@@ -11,7 +11,7 @@ Working from the [torspec](https://gitweb.torproject.org/torspec.git):
 
 ## Resources
 
-This has been done before:
+Somebody wrote a whole relay before:
 
 * [blog post](https://tvdw.eu/blog/2015/01/24/implementing-a-tor-relay-from-scratch/)
 * [code](https://github.com/tvdw/gotor)
