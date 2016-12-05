@@ -1,4 +1,4 @@
-package dir
+package tordir
 
 import "github.com/erans/gonionoo"
 

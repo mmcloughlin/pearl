@@ -1,4 +1,4 @@
-package dir
+package tordir
 
 import (
 	"io/ioutil"
