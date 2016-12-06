@@ -8,4 +8,4 @@ install:
   - go get github.com/Masterminds/glide
 script:
   - $GOPATH/bin/glide install
-  - go test $($GOPATH/bin/glide novendor)
+  - go test -v $($GOPATH/bin/glide novendor)
