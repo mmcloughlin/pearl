@@ -13,6 +13,11 @@ import (
 var ErrRandomShortRead = errors.New("torkeys: could not read enough random bytes")
 
 // Curve25519KeyPair represents a public/private curve25519 keys.
+//
+// curve25519 keys are used in the ntor handshake.
+//
+// Insert: https://github.com/torproject/torspec/blob/master/tor-spec.txt#L82
+// Insert: https://github.com/torproject/torspec/blob/master/tor-spec.txt#L157-L163
 type Curve25519KeyPair struct {
 	Private [32]byte
 	Public  [32]byte
