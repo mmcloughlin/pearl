@@ -18,7 +18,7 @@ type Curve25519KeyPair struct {
 	Public  [32]byte
 }
 
-// GenerateCurve25519KeyPair generates a Curve25519KeyPair using crypo/rand as
+// GenerateCurve25519KeyPair generates a Curve25519KeyPair using crypto/rand as
 // the random source.
 func GenerateCurve25519KeyPair() (*Curve25519KeyPair, error) {
 	return generateCurve25519KeyPairFromRandom(rand.Reader)
