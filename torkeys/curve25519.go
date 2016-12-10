@@ -8,17 +8,24 @@ import (
 	"golang.org/x/crypto/curve25519"
 )
 
+// ErrRandomShortRead is returned when we could not read enough random bytes
+// from a provided source.
 var ErrRandomShortRead = errors.New("torkeys: could not read enough random bytes")
 
+// Curve25519KeyPair represents a public/private curve25519 keys.
 type Curve25519KeyPair struct {
 	Private [32]byte
 	Public  [32]byte
 }
 
-func GenerateCurve25519() (*Curve25519KeyPair, error) {
+// GenerateCurve25519KeyPair generates a Curve25519KeyPair using crypo/rand as
+// the random source.
+func GenerateCurve25519KeyPair() (*Curve25519KeyPair, error) {
 	return generateCurve25519KeyPairFromRandom(rand.Reader)
 }
 
+// generateCurve25519KeyPairFromRandom generates a Curve25519KeyPair using the
+// provided reader to generate the private key.
 func generateCurve25519KeyPairFromRandom(r io.Reader) (*Curve25519KeyPair, error) {
 	kp := &Curve25519KeyPair{}
 
