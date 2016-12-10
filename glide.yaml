@@ -13,3 +13,6 @@ import:
   - require
   - assert
 - package: github.com/jarcoal/httpmock
+- package: golang.org/x/crypto
+  subpackages:
+  - curve25519

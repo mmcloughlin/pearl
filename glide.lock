@@ -1,5 +1,5 @@
-hash: afc4222a9eb9fc0e9434aeac37375bcccb909860844dbb4a9c65af4b06f0fa3f
-updated: 2016-12-04T15:16:24.037504209-08:00
+hash: 4fcebd2aaab0b46124f1b8347ca6dc573dbf832b36c4ab0479118d98fc6c4777
+updated: 2016-12-10T00:01:42.010498591-08:00
 imports:
 - name: github.com/erans/gonionoo
   version: 870942f67e087fb308cd84f3f4b6e88960863ce3
@@ -7,11 +7,19 @@ imports:
   version: 145b10d659265440f062c31ea15326166bae56ee
 - name: github.com/spacemonkeygo/openssl
   version: d63025916bcf9eb1c059d00465fe9de7ca84fff5
+  subpackages:
+  - utils
+- name: github.com/spacemonkeygo/spacelog
+  version: 267ef9ea5540f76d997c723a98b0d413f5b20bfb
 - name: github.com/stretchr/testify
   version: 69483b4bd14f5845b5a1e55bca19e954e827f1d0
   subpackages:
   - assert
   - require
+- name: golang.org/x/crypto
+  version: 8a549a1948fc5271eb24f36dcb0d3b47dec75a16
+  subpackages:
+  - curve25519
 testImports:
 - name: github.com/davecgh/go-spew
   version: 6d212800a42e8ab5c146b8ace3490ee17e5225f9
