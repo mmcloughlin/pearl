@@ -1,0 +1,79 @@
+router BabylonNetwork10 193.111.136.162 443 0 80
+identity-ed25519
+-----BEGIN ED25519 CERT-----
+AQQABknNAeITimC5C1e+kCWraJWSYPbVJv+9ZIELOFdpgcqi4yeoAQAgBACVy5Ek
+YLnWA0usJsyG6lIo2OzmpruT9FBInqHOJxWeWqPG5YD7haFjMlQbVR1nbHMX56n/
+x12P7nvvk/hAUSTNtwOSoSJbUB9Lz6frawHXvaaLVTpWXD2sKYwVTW4bMAY=
+-----END ED25519 CERT-----
+master-key-ed25519 lcuRJGC51gNLrCbMhupSKNjs5qa7k/RQSJ6hzicVnlo
+or-address [2001:4ba0:cafe:10d0::1]:443
+platform Tor 0.3.0.0-alpha-dev on Linux
+proto Cons=1-2 Desc=1-2 DirCache=1 HSDir=1 HSIntro=3 HSRend=1-2 Link=1-4 LinkAuth=1 Microdesc=1-2 Relay=1-2
+published 2016-12-11 23:12:21
+fingerprint C795 5227 5DFC D486 B942 510E F663 ED36 ACA1 A84B
+uptime 1203012
+bandwidth 1073741824 1073741824 15132687
+extra-info-digest 4DA0D9A77468C6CF592819A8AFDCF196CD59429F m8vK/T7bn2CvQt6q2iKFCNyYB44dUzfquTgJTcoyDhc
+onion-key
+-----BEGIN RSA PUBLIC KEY-----
+MIGJAoGBANkh4B2wsjXTDN/jF7Kyfi0ZjoO5ODE8ossSWv7dO8N5beu4qAaUV/z8
+20fnaHmRhwjxXG7RYsrMAwrRWnYXYZimyrWx1bSLpAUI1afx/FL0HEPYQEaJWSIp
+uc1QUVaQGLI0/p02BLUdVGROhlTBqcCuRJWsH+SKSvNT5Jtju/JbAgMBAAE=
+-----END RSA PUBLIC KEY-----
+signing-key
+-----BEGIN RSA PUBLIC KEY-----
+MIGJAoGBAMk84S7T4v3Z0mjiDrXvLzY0LXMFUBPa4KFI7EyQv/jyjCc9sWO53yJI
+ZJ6LP9LJhy2RcnlxTqCMDbGU+EcQxHacbipdanw0OZU//Kqx6V40DobDzIstvw36
+h3Kqer428a6YFfYRqMJbOQkaEw0A94Xtq/G5YOWNWNsTXx1LsTDPAgMBAAE=
+-----END RSA PUBLIC KEY-----
+onion-key-crosscert
+-----BEGIN CROSSCERT-----
+Wo2ER+rjwJ20a4ntUzics5KoRMDFkTV2mEz+43KDLHa45ttwZF9dZ6iWmZkrM5xc
+b1vcsALJLf2qeb6eXMWcYrH790hYBuqecgmNLUJou89zkFyhxRrz8juae3SLWtWi
+yLXVJhupAv4Q68yH6PtvYspbjEtcZzWILWV2tT0k2tQ=
+-----END CROSSCERT-----
+ntor-onion-key-crosscert 1
+-----BEGIN ED25519 CERT-----
+AQoABkgwAZXLkSRgudYDS6wmzIbqUijY7Oamu5P0UEieoc4nFZ5aAHM5BKldHiyt
+JFRwYPkwZlAF8l3lG8vcoxASh7KeFVgssQN/G/aYOiKT0Pf9NBxoVHxnulWdOBSt
+m1AJTb+q8wM=
+-----END ED25519 CERT-----
+family $2D49BA84E74E373CD73CDEB09227FDF116155A07 $9E0B9F902F83E96C352E3B9ECEA4B60B1301A7A1 $A3004FA39946239FB2A445AA5DAE996E9CEC633F $B210DF76804619395044D139E826D4AAC939CADB $EF65A4EFF948EA429430FDB834AB9C5F992E81F6 $EF887B1997DD786E47CBCAA3F445212467356EBE $FC64CD763F8C1A319BFBBF62551684F4E1E42332
+hidden-service-dir
+contact Babylon Network | noc <AT> babylon <DOT> network | PGP 0x2A540FA5 | 1HiSG8pia5DdDLUMyYNkF9sicGozojZLnH
+ntor-onion-key QRrMe/fPDhoMM8lNgPgqbGwGN+0dWBps/TQW2Cr3N3c=
+reject 0.0.0.0/8:*
+reject 169.254.0.0/16:*
+reject 127.0.0.0/8:*
+reject 192.168.0.0/16:*
+reject 10.0.0.0/8:*
+reject 172.16.0.0/12:*
+reject 193.111.136.162:*
+reject 93.93.69.14:*
+reject 195.78.228.177:*
+reject 209.191.187.115:*
+reject 91.192.110.40:*
+reject 193.138.225.242:*
+reject 72.55.186.49:*
+reject 129.194.98.250:*
+reject 184.107.100.63:*
+reject 211.234.112.4:*
+reject 72.52.150.218:*
+reject *:22
+reject *:25
+reject *:109
+reject *:110
+reject *:119
+reject *:143
+reject *:563
+reject *:4899
+reject *:6881-6889
+accept *:*
+tunnelled-dir-server
+router-sig-ed25519 HBwnC+XdWjJ84wIndERpa11ZIK1RlFXXknv/VneMdIUVrcnb8ajatDugmr39T9eI0A/udQDCbOGyhlLeaelLDA
+router-signature
+-----BEGIN SIGNATURE-----
+oqEyIVC1wnx+3kvLa/OQ6N4AO1dGrcfECD3n1bCRS1XF8WnNU00R3+KxDB0FjIDw
+0sOdb3E0j7QwScf4ofuIWq+c5jivcQGdrJH9/Qv2TPf80BL/3Phpg/RxJY8ebRku
+RC3rWW2nThgYmIlYQM/4QFAJOzT/ELhPIKRcKpb7O7s=
+-----END SIGNATURE-----

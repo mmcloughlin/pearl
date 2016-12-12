@@ -1,0 +1,51 @@
+router hacktheplanet 148.251.186.203 9001 0 0
+identity-ed25519
+-----BEGIN ED25519 CERT-----
+AQQABkn7AfWtnZJrgGqPmcHwzfQnrpFtXcQLktMKC817FH5DsOrUAQAgBAC/pM2j
+KidzmnYAKmBuFdeESywOGjlBOWkKpguHKQ4xKFGs75lv88Pq6uwV5WfHUmc5W+2z
+Ikf0pMJ4W3JGaMfBC4OUUT1yyj8zk2nl9Rw7GFMX4gJhABp5a+CeZua57Qo=
+-----END ED25519 CERT-----
+master-key-ed25519 v6TNoyonc5p2ACpgbhXXhEssDho5QTlpCqYLhykOMSg
+platform Tor 0.2.8.9 on Linux
+protocols Link 1 2 Circuit 1
+published 2016-12-11 10:57:18
+fingerprint 0EE0 29A0 A33F 1E22 7716 84DE A2FD 8D6F 6AE2 0C4B
+uptime 244502
+bandwidth 1073741824 1073741824 2470669
+extra-info-digest F3CF6E509D21A99E646C096C0A153D02F05A48E5 8tkJ03a5vz1Mt6pjAbNV9ud/v1lxww2mH8Daka19I9I
+onion-key
+-----BEGIN RSA PUBLIC KEY-----
+MIGJAoGBANK6fKmF67dn1xFfFiuvpPBbP872S4cFTbBUhczqDN9InPZLH+faKueD
+lMQxxKKL+Zv9SUom+bzN594Wq3kCAHra182Rb0T/epqC6aVTHmCT0DU/y9h02RBc
+D6j5xfthF6BHNZfgDqsG72+9gUy6dmZPttcJe+rvMunFad3t1OHRAgMBAAE=
+-----END RSA PUBLIC KEY-----
+signing-key
+-----BEGIN RSA PUBLIC KEY-----
+MIGJAoGBAO993/z993W9RjPTh/3q9HdpcXmmbGEL39d0ZJFscC0cTTdsYKjKnAj0
+oZi6X9CzF/J/7Mv2ePL51eorjkrP3W3i1gf8XKf4JqHeYxgQEs8Zg2qviWacKfm1
+zRtpNj02ad1wVf6EbunnlI1aK4yWXZ4CtVgu6V9SDRS7uvG8beI5AgMBAAE=
+-----END RSA PUBLIC KEY-----
+onion-key-crosscert
+-----BEGIN CROSSCERT-----
+mIw4rfaX1xPvZLMCEkSTtsScs3E3QTOeMLWmMIj+NPcs1uUWb8pym2B1to50QfnD
+HHO8YsA5jcRdMaZIlhuc1XiKlSu+32Oej+Zpaf6cO9u7+Y5krTXl2fM4L6YRZ/SR
+N9T74hdh6bVLZ6HPGJbUl+tFOtzH+exLa4InV1kH0bo=
+-----END CROSSCERT-----
+ntor-onion-key-crosscert 0
+-----BEGIN ED25519 CERT-----
+AQoABkgjAb+kzaMqJ3OadgAqYG4V14RLLA4aOUE5aQqmC4cpDjEoAKJ7oTzzlktL
+htyqeAGKM379PnHPXLFgNB52JqzDxs+zWPvnie38Zkysme6yXzLAPJD3h8n20Hha
+uCp/iABJLQw=
+-----END ED25519 CERT-----
+hidden-service-dir
+contact ${CONTACT_GPG_FINGERPRINT} ${CONTACT_NAME} ${CONTACT_EMAIL}
+ntor-onion-key TUJ+AQixCxYoOqBhUVVsE0RDFCIzSyiuQ1a6GfKQLlg=
+reject *:*
+tunnelled-dir-server
+router-sig-ed25519 ueI+jpe8NCdNukth5vvdJIXiNW7t7U5yX92GnVYtH2oo5x7cSSshNxkWJPR3LoWhMR295EwjouNS63nCgUWRBg
+router-signature
+-----BEGIN SIGNATURE-----
+YicnRWi2FQ3+CJo/ecuWKpCwzMJQhpdSvjfed1WFtd9Psbsf0W9K5qzrNXg9PsWS
+IDPPDZkykBjdBLEgJNc635xp9OI/4YiX/t74IErL6H9FwRAbbzBK7FqZn9H0OyUh
+u9sAoTwmtBeofx8MmsXpVN9zwnETMNEfnJ+iy9boLXg=
+-----END SIGNATURE-----

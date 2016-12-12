@@ -1,0 +1,72 @@
+router MilesPrower 62.210.129.246 443 0 80
+identity-ed25519
+-----BEGIN ED25519 CERT-----
+AQQABkevAe8TM9ODRpalpuP48CI3DVFDGvwrrPdISTNjBsdtdlAcAQAgBADlB5lo
+C28eXudPNJKSSRmInedLnauMUdHbZu6daqGyOi9i6Aynxx4/4bap9VNsGiYyEhXQ
+xmjF9O1LqNpBUtOEXgAHAa8FZ5pO7AuRWM4xI8C/WQxJv97rAg7vTs8p4Qs=
+-----END ED25519 CERT-----
+master-key-ed25519 5QeZaAtvHl7nTzSSkkkZiJ3nS52rjFHR22bunWqhsjo
+platform Tor 0.2.8.10 on Linux
+protocols Link 1 2 Circuit 1
+published 2016-12-11 22:18:15
+fingerprint 79E1 69B2 5E4C 7CE9 9584 F6ED 06F3 7947 8F23 E2B8
+uptime 790204
+bandwidth 19660800 26214400 23895206
+extra-info-digest 122A8D7CBA2C96E5270FF90CC21B078C53C0C95D xftoI2N2WgpTnk2sst796AgjEOfptsPVpKkkICFTJag
+onion-key
+-----BEGIN RSA PUBLIC KEY-----
+MIGJAoGBAMe1RFNxr3yHhLigZr4oNlvqgyldE6fdHQgWwV/w9E0RGTiatSD4+Mu6
+RO3OJhVg8MNooPcPO4wS/zPbjfCZ3sJIk+rKKKCKnlyk1KWpXGgbat4ZloyGXs1c
+ZexdoiqI6TFP1kSHrKK5hDvsdWQllSW4Y4WdRcCIzcEdRDTCDMo5AgMBAAE=
+-----END RSA PUBLIC KEY-----
+signing-key
+-----BEGIN RSA PUBLIC KEY-----
+MIGJAoGBAMX8r0RFoXr7etUrzJqOAQx1hAeqLwMyMU3xbkBBlLXn+8wTcOvyOAKP
+3+MP3pQZyI/+oK2D0N3PLQk4CyrigF8AjR91QVAHcVxC1DOouA54seki5JoTWbZ2
+z45XOAsoekZM1K0Mb2LF6Z+7gjdtdl5D5Cdp5THpcekJDqhjuBo3AgMBAAE=
+-----END RSA PUBLIC KEY-----
+onion-key-crosscert
+-----BEGIN CROSSCERT-----
+dIDaAmCVRz9jxiMY/6L8NKwKHymRXCGmrBLCwOMzCrP+EjHXHfB+4XggyGi7iJgk
+ZfI3OWK4tWD9iV1Ax5YmRs/xyZl1N6HDDW0X3HZP4AAux0yNuCqjmMzNc8GRixue
+Wq1aD4nRtB29058sLC0488KWPS75LrB/BGjUryPOquw=
+-----END CROSSCERT-----
+ntor-onion-key-crosscert 1
+-----BEGIN ED25519 CERT-----
+AQoABkgvAeUHmWgLbx5e5080kpJJGYid50udq4xR0dtm7p1qobI6AAHr3+AT0lIr
+AlKIpt83yrERvUD+PhkkM3VhRJ/dU+IsmuAsEqRCegUWtNiivg2aJhCVoV5z/IPN
++B1gkoLvgAc=
+-----END ED25519 CERT-----
+family $383B7179FEE38D6773D4327F4B5856798BD85202 $BC924D50078666A0208F9D75F29CA73645FB604D $BE953C95C98D207742A66DDC05B0A476FF2225C9 $FE32CAC855ABC707ED7FEDAF720046FE914EB491
+hidden-service-dir
+contact sysop[at]openinternet.io BTC: 1N1s2BmWqbRH4Af5jjrNkm8XChnsRmPgA5
+ntor-onion-key d5AWSRfHj8G6N0sycetSUJT+GO0GR7nILsWbgAI95Qo=
+reject 0.0.0.0/8:*
+reject 169.254.0.0/16:*
+reject 127.0.0.0/8:*
+reject 192.168.0.0/16:*
+reject 10.0.0.0/8:*
+reject 172.16.0.0/12:*
+reject 62.210.129.246:*
+accept *:43
+accept *:53
+accept *:80
+accept *:443
+accept *:6660-6669
+accept *:6679
+accept *:6697
+accept *:8008
+accept *:8080
+accept *:8332-8333
+accept *:8888
+accept *:11371
+accept *:19294
+reject *:*
+tunnelled-dir-server
+router-sig-ed25519 TuIoF3bhIHnzBCaZfB/Uws+FSiX5w8HPQHigcs6e5RO0tJGKIAzW2uJxMXMwG1fBkNPz2ofb+m3rk0x093IlBg
+router-signature
+-----BEGIN SIGNATURE-----
+F1+X0r/MPVtch34qxUCfjen/hX+mbHcuDIds2Nc+s7DRBasOElGX80zfZC9cuvdz
+38WcNtDuukc7BtrHoB8kX5HK+wS6Xqmp7bSPptjP8i7vb/q56h7fvEShfjz3RqKE
+h7lxG3/L/nJWbY4rz2naDy73WcYHJ7CCRvbG2fn0Zd0=
+-----END SIGNATURE-----

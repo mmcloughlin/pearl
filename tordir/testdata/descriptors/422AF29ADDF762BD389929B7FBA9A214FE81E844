@@ -1,0 +1,30 @@
+router toranon 52.29.242.45 443 0 0
+platform Tor 0.2.4.27 on Linux
+protocols Link 1 2 Circuit 1
+published 2016-12-11 22:26:36
+fingerprint 422A F29A DDF7 62BD 3899 29B7 FBA9 A214 FE81 E844
+uptime 890796
+bandwidth 512000 10485760 0
+extra-info-digest E442F5EF4845C3966D4E952D1ECF23A54A168483
+onion-key
+-----BEGIN RSA PUBLIC KEY-----
+MIGJAoGBAMrfg9YkCF8pav5GoK1VYIvUTvN/kfFMeZIWPlkwuRaoJuCk2ufp/Mjw
+3JM9Cu6rL9LNQpaCUnz6/f5TzeBZS6501ND/O3IqG3VIoO3ulkCn7cAkFe3dJo5k
+cq6IbMptyVrzQmjcPbf05bAVJZ0BNqicrZC8NDKi25MfjVMOL9ORAgMBAAE=
+-----END RSA PUBLIC KEY-----
+signing-key
+-----BEGIN RSA PUBLIC KEY-----
+MIGJAoGBAO7offektHyZSvUdigofLm4ph/oGLz+qXoMWgi/kC8jt5imIB1qpQK0S
+Wf0mMBsjKVqkdDAJ64X0C7YOxqdjwDkw92CiG9rhvTXEbih+0lGG/RPIMY6g/rjf
+6ExkGwH5cs4/WZs8wBhptJu/GEFlQ2PxXUYWWWaV/LJOeuSlP+9vAgMBAAE=
+-----END RSA PUBLIC KEY-----
+hibernating 1
+hidden-service-dir
+ntor-onion-key 34v3u26x3dYwd7JcbstBIveJd5ovgvnSyDpTHjuVkzU=
+reject *:*
+router-signature
+-----BEGIN SIGNATURE-----
+54esmKNOWXKBk19HgTtP4jQcTXIVI4TibLGmxLoSThSlbYiiQl6c7WC96f1sLkuy
+l4Sfr4/aLAPfI+DTdnoj9e3KeMzaGNjMEjAUeklxpfCqibTcMypU1Bz9JfedbRKE
+u8zdfXo2sNYFPOSMygfe9BDJAP3zG9XRrzhe8UF/0QQ=
+-----END SIGNATURE-----
