@@ -1,0 +1,112 @@
+router Dhalgren 46.165.230.5 443 0 80
+platform Tor 0.2.6.10 on Linux
+protocols Link 1 2 Circuit 1
+published 2016-12-11 11:17:48
+fingerprint A0F0 6C2F ADF8 8D3A 39AA 3072 B406 F09D 7095 AC9E
+uptime 4091941
+bandwidth 1073741824 1073741824 25495599
+extra-info-digest 04709EDD0E1AAAD516B0FFBBE83B12194696C61C
+caches-extra-info
+onion-key
+-----BEGIN RSA PUBLIC KEY-----
+MIGJAoGBAOjppBgCnlI7A51kHVbzSkep9UTptAEpR6YICHospzGlkvcHkIUJdSlT
+H4YB72V6WvmjrfdYYctoDVCLD9Tihv8ZddZUawasFm5Rd4FkuWt+gIn0Q8MT0LvJ
+VwOT+wq3JmdlR3BaSZ9DkOw83a1Ya2OPRVvhjRtNsK7Po8cX2uNRAgMBAAE=
+-----END RSA PUBLIC KEY-----
+signing-key
+-----BEGIN RSA PUBLIC KEY-----
+MIGJAoGBALXB6Qgopd9eXWUHQUDoOjncqGbxwjejHDrRjyrwwg5UaotyBPV962Uz
+C5gjW8Kn07Iz87k6mLSv0i0gP8UPkrpmSzCDJRZa+B4IyhURl+hOi2gCl+1uoIpY
+PE5QDA8ZrFwR8cVcJ/DXjHPfXzcs7/mHL/8NvY/Lm6f7Tndky5u/AgMBAAE=
+-----END RSA PUBLIC KEY-----
+hidden-service-dir
+contact dhalgren.tor@gmail.com
+ntor-onion-key ToItMlrUe63xS9OU9mxonZVhumLfXmx9DE/RUCSzfG4=
+reject 0.0.0.0/8:*
+reject 169.254.0.0/16:*
+reject 127.0.0.0/8:*
+reject 192.168.0.0/16:*
+reject 10.0.0.0/8:*
+reject 172.16.0.0/12:*
+reject 46.165.230.5:*
+accept *:20-23
+accept *:43
+accept *:53
+accept *:79-81
+accept *:88
+accept *:110
+accept *:143
+accept *:194
+accept *:220
+accept *:389
+accept *:443
+accept *:464
+accept *:465
+accept *:531
+accept *:543-544
+accept *:554
+accept *:563
+accept *:587
+accept *:636
+accept *:706
+accept *:749
+accept *:873
+accept *:902-904
+accept *:981
+accept *:989-990
+accept *:991
+accept *:992
+accept *:993
+accept *:994
+accept *:995
+accept *:1194
+accept *:1220
+accept *:1293
+accept *:1500
+accept *:1533
+accept *:1677
+accept *:1723
+accept *:1755
+accept *:1863
+accept *:2082
+accept *:2083
+accept *:2086-2087
+accept *:2095-2096
+accept *:2102-2104
+accept *:3128
+accept *:3389
+accept *:3690
+accept *:4321
+accept *:4643
+accept *:5050
+accept *:5190
+accept *:5222-5223
+accept *:5228
+accept *:5900
+accept *:6660-6669
+accept *:6679
+accept *:6697
+accept *:8000
+accept *:8008
+accept *:8074
+accept *:8080
+accept *:8082
+accept *:8087-8088
+accept *:8332-8333
+accept *:8443
+accept *:8888
+accept *:9418
+accept *:9999
+accept *:10000
+accept *:11371
+accept *:19294
+accept *:19638
+accept *:50002
+accept *:64738
+reject *:*
+router-signature
+-----BEGIN SIGNATURE-----
+aHpTmJWvm2Jx+dtR5mZDJganojPVFYrRRzsuoDE4Y8kMQVk7hEEFaEuN4mJXJmbt
+jY1YYJbLdP3fs0RL+l3Zexnf3h6wncpSkN0cRRTXZe5dfQuJoxLzu3lHzROXRPGk
+DgfdFYnwa0/s0iteDVLHi8YLLeESZsflygNEjLxxbXE=
+-----END SIGNATURE-----

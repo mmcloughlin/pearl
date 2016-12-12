@@ -1,0 +1,28 @@
+router ordb2 37.59.47.27 8005 0 0
+platform node-Tor 0.1.0 on Linux x86_64
+opt protocols Link 1 2 Circuit 1
+published 2016-12-11 20:42:15
+opt fingerprint 2679 B51C 9061 58F3 DF4C 59AF D73E 2B1F DA65 35E1
+uptime 3625
+bandwidth 65536 131072 56148
+onion-key
+-----BEGIN RSA PUBLIC KEY-----
+MIGJAoGBAIvQqBKGhYsR8oVqwvPv2KXlOLL4UaTALMcXyU6lJBjFh8xpUV5GtTgd
+F80imctMWfrjglCJjqsxybis/PAhEKlvDwNELs008b77BgTh/7uYGEhTTanz8jeV
+7X3wR3MMudq3EXIq1lBLiTzr2i3ktBEj1mdHShZuuj6tffgmfdoVAgMBAAE=
+-----END RSA PUBLIC KEY-----
+signing-key
+-----BEGIN RSA PUBLIC KEY-----
+MIGJAoGBANQlVHWqFlfwTxrpdXrA/9Ks3c8Ysl5p5pzC/uxQngSZMESBv4FHq6t4
+Ft/8ipVJWBOVdzgHJOOOvv7P9OTUorL22eyRV+uPmgQgMcjw5Onftmfuw69JqYJb
+X50nB2bUvZ6FHpMnrQCM3OU9jVWPIehdD+A0WCpyHp+xEnbWFzRBAgMBAAE=
+-----END RSA PUBLIC KEY-----
+opt hidden-service-dir
+contact contact at peersm.com
+reject *:*
+router-signature
+-----BEGIN SIGNATURE-----
+MdK8H1FPEVkZyIeM0Ax3XrphXPVsrJswrCGHiPl3EYgABtDQFBVZAfKqYH8RwclP
+Ug3x7KBBlkmXGAv//mJcQSBksBSVtw3GdQyrteRkcIqmEsSpNeZAs5FZ3c7CLZr0
+bwYvYJ1h7SJsvk9JtqvV0mqT6Ab6fioqhKk/qA/xizI=
+-----END SIGNATURE-----

@@ -1,0 +1,140 @@
+router NeelTorExitUSWest 107.181.174.84 443 0 80
+identity-ed25519
+-----BEGIN ED25519 CERT-----
+AQQABkjpAZjaqg7hfxee2ZimMh5/OgJI3fTgrmqEfC/sQQvXexySAQAgBAAASUwO
+RUVzkcJ3XQe7qqP6vF4mWBtetnot8zS3k04lNE/HKtTLsm13SydLaxAe3e+XhndF
+cFZxNlMpykXEsRj3xe+bcL09ILsMDIvXOlhhEnbrbsnnq/7eHYk0L2yOMwg=
+-----END ED25519 CERT-----
+master-key-ed25519 AElMDkVFc5HCd10Hu6qj+rxeJlgbXrZ6LfM0t5NOJTQ
+or-address [2607:f7a0:3:4::12]:443
+platform Tor 0.2.9.5-alpha on FreeBSD
+proto Cons=1-2 Desc=1-2 DirCache=1 HSDir=1 HSIntro=3 HSRend=1-2 Link=1-4 LinkAuth=1 Microdesc=1-2 Relay=1-2
+published 2016-12-11 08:49:49
+fingerprint D461 7548 7C33 2CC6 02F7 D1A4 4D7B A733 48C6 C49E
+uptime 2136172
+bandwidth 8192000 10240000 9759099
+extra-info-digest DF6A76EF7F3F4B46DE4F363AD9CC6F6E7D5A220B EhiY5d71lX3lp4U8nHMf1Ij5ky35yFxlXUcQfuveaDU
+onion-key
+-----BEGIN RSA PUBLIC KEY-----
+MIGJAoGBAJ/LQKqBR52oSQI2970pAyhWGQai3qloznWaCNn130AYg9ueOW4G38w5
+ah0+ZAfqOC2FavfwgmSBJw6UpXqyfGcSYJdYtglZf8vZ0/LKeoYGCALlN2+broVx
+CT7fCY7phkS5SEp2tg3WrKdNw4pyIDC0ZOTLRYiCL4vX3mjs4V/XAgMBAAE=
+-----END RSA PUBLIC KEY-----
+signing-key
+-----BEGIN RSA PUBLIC KEY-----
+MIGJAoGBAL11eHtcYIRe7rRp8vDv/uolostWXIEBfgb/UzDGSzA/NMOsrl/U2Gi8
+WoOiTuAQY3tZh6SO6XojxYZleiHJKgWoRgLXVwaLHdWXB3hx8cwnV0EII4CjtSxZ
+fHqJGYGXMkVsrVhdwWIRRXF3TYdmpkrHS9s5rR7uvHO12okA4MPBAgMBAAE=
+-----END RSA PUBLIC KEY-----
+onion-key-crosscert
+-----BEGIN CROSSCERT-----
+QRBk3SDD90UHlZNYXAWfYb9ZCjSzkaUc0UP/LTbxHisTM9sQM+kutGeqIt7hpZnH
+3hGrM6JKdfoRILuMMu1bQ4uD+90fYYikZWnK+sB7W3ao70FyZKPyy8gJl0OpB6c0
+mOJ9oBmGB1fea5nCY19ZkvxLS+ucGFIv3W94zAFCunU=
+-----END CROSSCERT-----
+ntor-onion-key-crosscert 0
+-----BEGIN ED25519 CERT-----
+AQoABkghAQBJTA5FRXORwnddB7uqo/q8XiZYG162ei3zNLeTTiU0AC15s51luiQ6
+Ev7sTAP4xK5HYoykkdrr3apSB0zUY/t5A6xwWzXCRC+Acmx2ntQxbnA2+z9NBi+q
++rW+AdoRhw4=
+-----END ED25519 CERT-----
+family $1602E42D1DE3C7B3EF042F357F906DE55FA6C7C6 $AED76373324653A0522DF30550BA31902B2CFA44 $D5B8C38539C509380767D4DE20DE84CF84EE8299
+hidden-service-dir
+contact Neel Chauhan <neel AT neelc DOT org> | BTC: 1KogNvxdcXydDUNrPgqgtgV3AWktKPqXpS
+ntor-onion-key mJ+EYZsnc9jjKu9BpaLQ+x6cxGxuAfzwBrWKXVGakmQ=
+reject 0.0.0.0/8:*
+reject 169.254.0.0/16:*
+reject 127.0.0.0/8:*
+reject 192.168.0.0/16:*
+reject 10.0.0.0/8:*
+reject 172.16.0.0/12:*
+reject 107.181.174.84:*
+reject 93.93.69.135:*
+reject 91.192.111.163:*
+reject 184.107.100.63:*
+reject 23.193.113.168:*
+reject 23.193.115.156:*
+reject 23.193.115.183:*
+reject 23.193.112.218:*
+accept *:20-21
+accept *:23
+accept *:43
+accept *:53
+accept *:79-81
+accept *:88
+accept *:110
+accept *:143
+accept *:194
+accept *:220
+accept *:389
+accept *:443
+accept *:464
+accept *:531
+accept *:543-544
+accept *:554
+accept *:563
+accept *:636
+accept *:706
+accept *:749
+accept *:873
+accept *:902-904
+accept *:981
+accept *:989-990
+accept *:991
+accept *:992
+accept *:993
+accept *:994
+accept *:995
+accept *:1194
+accept *:1220
+accept *:1293
+accept *:1500
+accept *:1533
+accept *:1677
+accept *:1723
+accept *:1755
+accept *:1863
+accept *:2082
+accept *:2083
+accept *:2086-2087
+accept *:2095-2096
+accept *:2102-2104
+accept *:3128
+accept *:3389
+accept *:3690
+accept *:4321
+accept *:4643
+accept *:5050
+accept *:5190
+accept *:5222-5223
+accept *:5228
+accept *:5900
+accept *:6660-6669
+accept *:6679
+accept *:6697
+accept *:8000
+accept *:8008
+accept *:8074
+accept *:8080
+accept *:8082
+accept *:8087-8088
+accept *:8332-8333
+accept *:8443
+accept *:8888
+accept *:9418
+accept *:9999
+accept *:10000
+accept *:11371
+accept *:19294
+accept *:19638
+accept *:50002
+accept *:64738
+reject *:*
+tunnelled-dir-server
+router-sig-ed25519 PQKfU301vWipxysbb36uFkx+Bu+3LqCZD6BrlbFQm1hUnRNhFbawQ6K5rJauR26SrizJcR0y54qOlILFvPTECw
+router-signature
+-----BEGIN SIGNATURE-----
+KnV0jk2yAq0h+JurMiuPEVhY0iws/fub9dhu+LjGUR/H3D2ausrs6uNASvn8ICPN
+gYIfDkhEKEQj31jbccMoG/08T4eUg2Z/wudCuhGx+sEtYq/R5HYau35xIELwyA0G
+lLsPxE8Xd/CvtAyiL2WcSNmMrBAZA01ROExurVyUrT4=
+-----END SIGNATURE-----
