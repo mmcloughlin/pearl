@@ -2,6 +2,10 @@
 
 Tor experiments in Golang.
 
+[![GoDoc Reference](http://img.shields.io/badge/godoc-reference-5272B4.svg?style=flat-square)](http://godoc.org/github.com/mmcloughlin/pearl)
+[![Build status](https://img.shields.io/travis/mmcloughlin/pearl.svg?style=flat-square)](https://travis-ci.org/mmcloughlin/pearl)
+[![Coverage](https://img.shields.io/coveralls/mmcloughlin/pearl.svg?style=flat-square)](https://coveralls.io/r/mmcloughlin/pearl)
+
 ## Spec
 
 Working from the [torspec](https://gitweb.torproject.org/torspec.git):
