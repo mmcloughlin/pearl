@@ -2,15 +2,10 @@ package torkeys
 
 import (
 	"crypto/rand"
-	"errors"
 	"io"
 
 	"golang.org/x/crypto/curve25519"
 )
-
-// ErrRandomShortRead is returned when we could not read enough random bytes
-// from a provided source.
-var ErrRandomShortRead = errors.New("torkeys: could not read enough random bytes")
 
 // Curve25519KeyPair represents a public/private curve25519 keys.
 //
@@ -23,7 +18,7 @@ var ErrRandomShortRead = errors.New("torkeys: could not read enough random bytes
 // Reference: https://github.com/torproject/torspec/blob/master/tor-spec.txt#L157-L163
 //
 //	   This is Curve25519 key:
-//	
+//
 //	    - A medium-term ntor "Onion key" used to handle onion key handshakes when
 //	      accepting incoming circuit extend requests.  As with TAP onion keys,
 //	      old ntor keys MUST be accepted for at least one week after they are no
@@ -46,12 +41,9 @@ func GenerateCurve25519KeyPair() (*Curve25519KeyPair, error) {
 func generateCurve25519KeyPairFromRandom(r io.Reader) (*Curve25519KeyPair, error) {
 	kp := &Curve25519KeyPair{}
 
-	n, err := r.Read(kp.Private[:])
+	_, err := io.ReadFull(r, kp.Private[:])
 	if err != nil {
 		return nil, err
-	}
-	if n != 32 {
-		return nil, ErrRandomShortRead
 	}
 
 	// Note that the curve25519 library ensures required bits are clamped in

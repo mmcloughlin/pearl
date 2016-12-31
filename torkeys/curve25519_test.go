@@ -9,6 +9,24 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// TestGenerateCurve25519KeyPair calls GenerateCurve25519KeyPair and confirms
+// no error. Difficult to do much more. Real tests are done against the
+// private function where we control the random source. This theoretically
+// could error, but that would mean the crypto/rand source had dried up.
+func TestGenerateCurve25519KeyPair(t *testing.T) {
+	_, err := GenerateCurve25519KeyPair()
+	assert.NoError(t, err)
+}
+
+// TestGenerateCurve25519KeyPairFromRandomShortRead confirms error when not
+// enough random bytes can be read from the source.
+func TestGenerateCurve25519KeyPairFromRandomShortRead(t *testing.T) {
+	r := bytes.NewReader([]byte("not long enough"))
+	kp, err := generateCurve25519KeyPairFromRandom(r)
+	assert.Nil(t, kp)
+	assert.Error(t, err)
+}
+
 // Reference: https://tools.ietf.org/id/draft-josefsson-tls-curve25519-04.txt (508-538)
 //
 //	Appendix A.  Test vectors
