@@ -16,8 +16,20 @@ var ErrRandomShortRead = errors.New("torkeys: could not read enough random bytes
 //
 // curve25519 keys are used in the ntor handshake.
 //
-// Insert: https://github.com/torproject/torspec/blob/master/tor-spec.txt#L82
-// Insert: https://github.com/torproject/torspec/blob/master/tor-spec.txt#L157-L163
+// Reference: https://github.com/torproject/torspec/blob/master/tor-spec.txt#L82
+//
+//	   For the "ntor" handshake, we also use the Curve25519 elliptic curve group.
+//
+// Reference: https://github.com/torproject/torspec/blob/master/tor-spec.txt#L157-L163
+//
+//	   This is Curve25519 key:
+//	
+//	    - A medium-term ntor "Onion key" used to handle onion key handshakes when
+//	      accepting incoming circuit extend requests.  As with TAP onion keys,
+//	      old ntor keys MUST be accepted for at least one week after they are no
+//	      longer advertised.  Because of this, relays MUST retain old keys for a
+//	      while after they're rotated.
+//
 type Curve25519KeyPair struct {
 	Private [32]byte
 	Public  [32]byte
