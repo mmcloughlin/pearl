@@ -2,30 +2,56 @@ package tordir
 
 import (
 	"errors"
+	"fmt"
 	"net"
 	"regexp"
 	"strconv"
+	"time"
 )
+
+const (
+	routerKeyword    = "router"
+	bandwidthKeyword = "bandwidth"
+	publishedKeyword = "published"
+)
+
+var requiredKeywords = []string{
+	routerKeyword,
+	bandwidthKeyword,
+	publishedKeyword,
+}
 
 // Potential errors when constructing a server descriptor.
 var (
-	ErrServerDescriptorBadNickname   = errors.New("invalid nickname")
-	ErrServerDescriptorNotIPv4       = errors.New("require ipv4 address")
-	ErrServerDescriptorMissingRouter = errors.New("missing router keyword")
+	ErrServerDescriptorBadNickname = errors.New("invalid nickname")
+	ErrServerDescriptorNotIPv4     = errors.New("require ipv4 address")
 )
+
+type ServerDescriptorMissingFieldError string
+
+func (e ServerDescriptorMissingFieldError) Error() string {
+	return fmt.Sprintf("missing field '%s'", string(e))
+}
 
 // ServerDescriptor is a builder for a server descriptor to be published to
 // directory servers.
 type ServerDescriptor struct {
-	router *Item
-	items  []*Item
+	router   *Item
+	items    []*Item
+	keywords map[string]bool
 }
 
 // NewServerDescriptor constructs an empty server descriptor.
 func NewServerDescriptor() *ServerDescriptor {
 	return &ServerDescriptor{
-		items: make([]*Item, 0),
+		items:    make([]*Item, 0),
+		keywords: make(map[string]bool),
 	}
+}
+
+func (s *ServerDescriptor) addItem(item *Item) {
+	s.items = append(s.items, item)
+	s.keywords[item.Keyword] = true
 }
 
 // XXX cite
@@ -50,14 +76,40 @@ func (d *ServerDescriptor) SetRouter(nickname string, addr net.IP, orPort, dirPo
 		"0", // SOCKSPort
 		strconv.FormatUint(uint64(dirPort), 10),
 	}
-	d.router = NewItem("router", args)
+	d.router = NewItem(routerKeyword, args)
+	d.keywords[routerKeyword] = true
+	return nil
+}
+
+// SetBandwidth sets the bandwidth of the server.
+// XXX cite
+func (d *ServerDescriptor) SetBandwidth(avg, burst, observed int) error {
+	args := []string{
+		strconv.Itoa(avg),
+		strconv.Itoa(burst),
+		strconv.Itoa(observed),
+	}
+	d.addItem(NewItem(bandwidthKeyword, args))
+	return nil
+}
+
+// SetPublishedTime sets the time the descriptor was published.
+// XXX cite
+func (d *ServerDescriptor) SetPublishedTime(t time.Time) error {
+	args := []string{
+		t.In(time.UTC).Format("2006-01-02 15:04:05"),
+	}
+	d.addItem(NewItem(publishedKeyword, args))
 	return nil
 }
 
 // Validate checks whether the descriptor is valid.
 func (d *ServerDescriptor) Validate() error {
-	if d.router == nil {
-		return ErrServerDescriptorMissingRouter
+	for _, keyword := range requiredKeywords {
+		_, ok := d.keywords[keyword]
+		if !ok {
+			return ServerDescriptorMissingFieldError(keyword)
+		}
 	}
 	return nil
 }
