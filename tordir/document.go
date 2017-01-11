@@ -8,6 +8,12 @@ import (
 	"strings"
 )
 
+// Parsing errors.
+var (
+	ErrParseBadPEMBlock      = errors.New("bad pem block")
+	ErrParseUnrecognizedData = errors.New("document contained unrecognized data")
+)
+
 type Document struct {
 	Items []Item
 }
@@ -79,7 +85,7 @@ func Parse(b []byte) (*Document, error) {
 	for _, match := range matches {
 		block, _ := pem.Decode(match[5])
 		if len(match[5]) > 0 && block == nil {
-			return nil, errors.New("bad pem block")
+			return nil, ErrParseBadPEMBlock
 		}
 
 		args := strings.Split(string(match[4]), " ")
@@ -96,7 +102,7 @@ func Parse(b []byte) (*Document, error) {
 	}
 
 	if n != len(b) {
-		return nil, errors.New("incomplete match")
+		return nil, ErrParseUnrecognizedData
 	}
 
 	return doc, nil

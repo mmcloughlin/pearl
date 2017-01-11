@@ -23,3 +23,21 @@ func TestParse(t *testing.T) {
 		})
 	}
 }
+
+func TestParseErrors(t *testing.T) {
+	documents := map[string]string{
+		"badpem": `keyword
+-----BEGIN SOMETHING-----
+===============
+-----END SOMETHING-----
+`,
+		"garbage": "keyword\n*$%$*^%$%\nkeyword2\n",
+	}
+
+	for name, body := range documents {
+		t.Run(name, func(t *testing.T) {
+			_, err := Parse([]byte(body))
+			assert.Error(t, err)
+		})
+	}
+}
