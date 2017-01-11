@@ -14,10 +14,12 @@ var (
 	ErrParseUnrecognizedData = errors.New("document contained unrecognized data")
 )
 
+// Document represents a Tor directory document.
 type Document struct {
 	Items []Item
 }
 
+// Encode converts the document to bytes.
 func (d Document) Encode() []byte {
 	buf := bytes.NewBuffer(nil)
 	for _, item := range d.Items {
@@ -26,6 +28,7 @@ func (d Document) Encode() []byte {
 	return buf.Bytes()
 }
 
+// Item is an entry in a Tor directory document.
 type Item struct {
 	Keyword    string
 	Whitespace string
@@ -33,6 +36,7 @@ type Item struct {
 	Object     *pem.Block
 }
 
+// Encode converts the item to bytes.
 func (it Item) Encode() []byte {
 	s := it.Keyword + it.Whitespace + strings.Join(it.Arguments, " ") + "\n"
 	if it.Object != nil {
@@ -76,6 +80,7 @@ func init() {
 	itemRx.Longest()
 }
 
+// Parse parses a Tor directory document.
 func Parse(b []byte) (*Document, error) {
 	matches := itemRx.FindAllSubmatch(b, -1)
 
