@@ -16,13 +16,18 @@ var (
 
 // Document represents a Tor directory document.
 type Document struct {
-	Items []Item
+	items []*Item
+}
+
+// AddItem adds the item to the Document.
+func (d *Document) AddItem(item *Item) {
+	d.items = append(d.items, item)
 }
 
 // Encode converts the document to bytes.
 func (d Document) Encode() []byte {
 	buf := bytes.NewBuffer(nil)
-	for _, item := range d.Items {
+	for _, item := range d.items {
 		buf.Write(item.Encode())
 	}
 	return buf.Bytes()
@@ -34,6 +39,22 @@ type Item struct {
 	Whitespace string
 	Arguments  []string
 	Object     *pem.Block
+}
+
+// NewItemWithObject constructs an item with the given arguments with an
+// associated object.
+func NewItemWithObject(keyword string, args []string, obj *pem.Block) *Item {
+	return &Item{
+		Keyword:    keyword,
+		Whitespace: " ",
+		Arguments:  args,
+		Object:     obj,
+	}
+}
+
+// NewItem constructs an item without an object.
+func NewItem(keyword string, args []string) *Item {
+	return NewItemWithObject(keyword, args, nil)
 }
 
 // Encode converts the item to bytes.
@@ -94,14 +115,14 @@ func Parse(b []byte) (*Document, error) {
 		}
 
 		args := strings.Split(string(match[4]), " ")
-		item := Item{
+		item := &Item{
 			Keyword:    string(match[1]),
 			Whitespace: string(match[3]),
 			Arguments:  args,
 			Object:     block,
 		}
 
-		doc.Items = append(doc.Items, item)
+		doc.AddItem(item)
 
 		n += len(match[0])
 	}
