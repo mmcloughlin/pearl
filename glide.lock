@@ -1,16 +1,18 @@
-hash: 4fcebd2aaab0b46124f1b8347ca6dc573dbf832b36c4ab0479118d98fc6c4777
-updated: 2016-12-10T00:01:42.010498591-08:00
+hash: 7ff05cd70bc0e5f0bd6d5c4fee1e87ddcd309507e04e26ef8caccb91617d38cd
+updated: 2017-01-12T12:29:51.53567187Z
 imports:
 - name: github.com/erans/gonionoo
   version: 870942f67e087fb308cd84f3f4b6e88960863ce3
 - name: github.com/jarcoal/httpmock
   version: 145b10d659265440f062c31ea15326166bae56ee
+- name: github.com/mmcloughlin/openssl
+  version: d63025916bcf9eb1c059d00465fe9de7ca84fff5
 - name: github.com/spacemonkeygo/openssl
   version: d63025916bcf9eb1c059d00465fe9de7ca84fff5
   subpackages:
   - utils
 - name: github.com/spacemonkeygo/spacelog
-  version: 267ef9ea5540f76d997c723a98b0d413f5b20bfb
+  version: 16604ed16156d8634877b208e8acc9279f399777
 - name: github.com/stretchr/testify
   version: 69483b4bd14f5845b5a1e55bca19e954e827f1d0
   subpackages:

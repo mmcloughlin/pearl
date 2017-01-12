@@ -5,7 +5,6 @@ owners:
 - name: Michael McLoughlin
   email: mmcloughlin@gmail.com
 import:
-- package: github.com/spacemonkeygo/openssl
 - package: github.com/erans/gonionoo
 - package: github.com/stretchr/testify
   version: ^1.1.4
@@ -16,3 +15,4 @@ import:
 - package: golang.org/x/crypto
   subpackages:
   - curve25519
+- package: github.com/mmcloughlin/openssl

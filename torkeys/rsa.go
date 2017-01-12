@@ -1,6 +1,10 @@
 package torkeys
 
-import "github.com/spacemonkeygo/openssl"
+import (
+	"crypto/sha1"
+
+	"github.com/mmcloughlin/openssl"
+)
 
 // GenerateRSA generates an RSA key pair according to the Tor requirements.
 //
@@ -13,4 +17,16 @@ import "github.com/spacemonkeygo/openssl"
 //
 func GenerateRSA() (openssl.PrivateKey, error) {
 	return openssl.GenerateRSAKeyWithExponent(1024, 65537)
+}
+
+// XXX cite
+func PublicKeyHash(k openssl.PublicKey) ([]byte, error) {
+	der, err := k.MarshalPKIXPublicKeyDER()
+	if err != nil {
+		return nil, err
+	}
+
+	h := sha1.Sum(der)
+
+	return h[:], nil
 }
