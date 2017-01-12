@@ -9,5 +9,5 @@ install:
   - go get github.com/mattn/goveralls
 script:
   - $GOPATH/bin/glide install
-  - overalls -project=github.com/mmcloughlin/pearl
+  - overalls -project=github.com/mmcloughlin/pearl -- -v
   - goveralls -coverprofile=overalls.coverprofile -service=travis-ci
