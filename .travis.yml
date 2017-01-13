@@ -7,9 +7,10 @@ install:
   - go get github.com/Masterminds/glide
   - go get github.com/go-playground/overalls
   - go get github.com/mattn/goveralls
-  - go get github.com/golang/lint/golint
+  - go get github.com/alecthomas/gometalinter
+  - gometalinter --install
 script:
-  - golint -set_exit_status
+  - gometalinter --vendor --config=gometalinter.json ./...
   - $GOPATH/bin/glide install
   - overalls -project=github.com/mmcloughlin/pearl -- -v
   - goveralls -coverprofile=overalls.coverprofile -service=travis-ci
