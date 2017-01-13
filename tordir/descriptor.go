@@ -27,6 +27,8 @@ var (
 	ErrServerDescriptorNotIPv4     = errors.New("require ipv4 address")
 )
 
+// ServerDescriptorMissingFieldError indicates that a required field is
+// missing from a server descriptor.
 type ServerDescriptorMissingFieldError string
 
 func (e ServerDescriptorMissingFieldError) Error() string {
@@ -49,9 +51,9 @@ func NewServerDescriptor() *ServerDescriptor {
 	}
 }
 
-func (s *ServerDescriptor) addItem(item *Item) {
-	s.items = append(s.items, item)
-	s.keywords[item.Keyword] = true
+func (d *ServerDescriptor) addItem(item *Item) {
+	d.items = append(d.items, item)
+	d.keywords[item.Keyword] = true
 }
 
 // XXX cite
