@@ -19,9 +19,16 @@ func GenerateRSA() (openssl.PrivateKey, error) {
 	return openssl.GenerateRSAKeyWithExponent(1024, 65537)
 }
 
-// XXX cite
+// PublicKeyHash computes the hash of a public key as defined in the spec
+// below.
+//
+// Reference: https://github.com/torproject/torspec/blob/master/tor-spec.txt#L109-L110
+//
+//	   When we refer to "the hash of a public key", we mean the SHA-1 hash of the
+//	   DER encoding of an ASN.1 RSA public key (as specified in PKCS.1).
+//
 func PublicKeyHash(k openssl.PublicKey) ([]byte, error) {
-	der, err := k.MarshalPKIXPublicKeyDER()
+	der, err := k.MarshalPKCS1PublicKeyDER()
 	if err != nil {
 		return nil, err
 	}

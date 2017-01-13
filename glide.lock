@@ -1,12 +1,12 @@
 hash: 7ff05cd70bc0e5f0bd6d5c4fee1e87ddcd309507e04e26ef8caccb91617d38cd
-updated: 2017-01-12T12:29:51.53567187Z
+updated: 2017-01-12T22:47:03.311010354-08:00
 imports:
 - name: github.com/erans/gonionoo
   version: 870942f67e087fb308cd84f3f4b6e88960863ce3
 - name: github.com/jarcoal/httpmock
   version: 145b10d659265440f062c31ea15326166bae56ee
 - name: github.com/mmcloughlin/openssl
-  version: d63025916bcf9eb1c059d00465fe9de7ca84fff5
+  version: 8d04780f3005e7729b1a117d89506b4376dc7497
 - name: github.com/spacemonkeygo/openssl
   version: d63025916bcf9eb1c059d00465fe9de7ca84fff5
   subpackages:
