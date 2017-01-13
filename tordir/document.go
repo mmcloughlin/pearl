@@ -1,7 +1,6 @@
 package tordir
 
 import (
-	"bytes"
 	"encoding/pem"
 	"errors"
 	"regexp"
@@ -26,11 +25,11 @@ func (d *Document) AddItem(item *Item) {
 
 // Encode converts the document to bytes.
 func (d Document) Encode() []byte {
-	buf := bytes.NewBuffer(nil)
+	doc := []byte{}
 	for _, item := range d.items {
-		buf.Write(item.Encode())
+		doc = append(doc, item.Encode()...)
 	}
-	return buf.Bytes()
+	return doc
 }
 
 // Item is an entry in a Tor directory document.

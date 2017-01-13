@@ -34,6 +34,7 @@ func TestServerDescriptor(t *testing.T) {
 	require.NoError(t, err)
 
 	expect, err := ioutil.ReadFile("./testdata/descriptors/example")
+	require.NoError(t, err)
 	assert.Equal(t, expect, doc.Encode())
 }
 

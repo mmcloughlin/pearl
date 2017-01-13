@@ -13,5 +13,6 @@
     "lll",
     "misspell",
     "goconst"
-  ]
+  ],
+  "LineLength": 100
 }
