@@ -1,6 +1,25 @@
 {
   "DisableAll": true,
   "Enable": [
-    "golint"
+    "goimports",
+    "gotype",
+    "errcheck",
+    "golint",
+    "ineffassign",
+    "unused",
+    "varcheck",
+    "deadcode",
+    "dupl",
+    "gas",
+    "gocyclo",
+    "gosimple",
+    "interfacer",
+    "staticcheck",
+    "structcheck",
+    "aligncheck",
+    "unconvert",
+    "lll",
+    "misspell",
+    "goconst"
   ]
 }
