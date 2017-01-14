@@ -14,5 +14,8 @@
     "misspell",
     "goconst"
   ],
+  "Skip": [
+    "mocks"
+  ],
   "LineLength": 100
 }
