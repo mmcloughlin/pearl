@@ -11,10 +11,14 @@ type PublicKey interface {
 	openssl.PublicKey
 }
 
+//go:generate mockery -name=PublicKey -case=underscore
+
 // PrivateKey is an RSA private key.
 type PrivateKey interface {
 	openssl.PrivateKey
 }
+
+//go:generate mockery -name=PrivateKey -case=underscore
 
 // GenerateRSA generates an RSA key pair according to the Tor requirements.
 //
