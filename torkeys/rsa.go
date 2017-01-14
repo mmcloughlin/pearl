@@ -6,6 +6,16 @@ import (
 	"github.com/mmcloughlin/openssl"
 )
 
+// PublicKey is an RSA public key.
+type PublicKey interface {
+	openssl.PublicKey
+}
+
+// PrivateKey is an RSA private key.
+type PrivateKey interface {
+	openssl.PrivateKey
+}
+
 // GenerateRSA generates an RSA key pair according to the Tor requirements.
 //
 // Reference: https://github.com/torproject/torspec/blob/master/tor-spec.txt#L77-L80
@@ -15,7 +25,7 @@ import (
 //	   function.  We leave the optional "Label" parameter unset. (For OAEP
 //	   padding, see ftp://ftp.rsasecurity.com/pub/pkcs/pkcs-1/pkcs-1v2-1.pdf)
 //
-func GenerateRSA() (openssl.PrivateKey, error) {
+func GenerateRSA() (PrivateKey, error) {
 	return openssl.GenerateRSAKeyWithExponent(1024, 65537)
 }
 
@@ -27,7 +37,7 @@ func GenerateRSA() (openssl.PrivateKey, error) {
 //	   When we refer to "the hash of a public key", we mean the SHA-1 hash of the
 //	   DER encoding of an ASN.1 RSA public key (as specified in PKCS.1).
 //
-func PublicKeyHash(k openssl.PublicKey) ([]byte, error) {
+func PublicKeyHash(k PublicKey) ([]byte, error) {
 	der, err := k.MarshalPKCS1PublicKeyDER()
 	if err != nil {
 		return nil, err
