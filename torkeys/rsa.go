@@ -8,14 +8,20 @@ import (
 
 // PublicKey is an RSA public key.
 type PublicKey interface {
-	openssl.PublicKey
+	// MarshalPKCS1PublicKeyDER converts the public key to DER-encoded PKCS#1
+	// format
+	MarshalPKCS1PublicKeyDER() ([]byte, error)
+
+	// MarshalPKCS1PublicKeyPEM converts the public key to PEM-encoded PKCS#1
+	// format
+	MarshalPKCS1PublicKeyPEM() ([]byte, error)
 }
 
 //go:generate mockery -name=PublicKey -case=underscore
 
 // PrivateKey is an RSA private key.
 type PrivateKey interface {
-	openssl.PrivateKey
+	PublicKey
 }
 
 //go:generate mockery -name=PrivateKey -case=underscore
