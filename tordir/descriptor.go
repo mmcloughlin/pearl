@@ -34,9 +34,8 @@ var requiredKeywords = []string{
 
 // Potential errors when constructing a server descriptor.
 var (
-	ErrServerDescriptorBadNickname  = errors.New("invalid nickname")
-	ErrServerDescriptorNotIPv4      = errors.New("require ipv4 address")
-	ErrServerDescriptorNoSigningKey = errors.New("no signing key")
+	ErrServerDescriptorBadNickname = errors.New("invalid nickname")
+	ErrServerDescriptorNotIPv4     = errors.New("require ipv4 address")
 )
 
 // ServerDescriptorMissingFieldError indicates that a required field is
@@ -294,10 +293,10 @@ func (d *ServerDescriptor) Document() (*Document, error) {
 // Reference: https://github.com/torproject/torspec/blob/master/dir-spec.txt#L593-L602
 //
 //	    "router-signature" NL Signature NL
-//	
+//
 //	       [At end, exactly once]
 //	       [No extra arguments]
-//	
+//
 //	       The "SIGNATURE" object contains a signature of the PKCS1-padded
 //	       hash of the entire server descriptor, taken from the beginning of the
 //	       "router" line, through the newline after the "router-signature" line.
@@ -305,10 +304,6 @@ func (d *ServerDescriptor) Document() (*Document, error) {
 //	       with the router's identity key.
 //
 func (d *ServerDescriptor) sign(doc *Document) error {
-	if d.signingKey == nil {
-		return ErrServerDescriptorNoSigningKey
-	}
-
 	item := NewItemKeywordOnly(routerSignatureKeyword)
 	doc.AddItem(item)
 
@@ -316,7 +311,7 @@ func (d *ServerDescriptor) sign(doc *Document) error {
 
 	sig, err := d.signingKey.SignPKCS1v15(openssl.SHA1_Method, data)
 	if err != nil {
-		return nil
+		return err
 	}
 
 	item.Object = &pem.Block{
