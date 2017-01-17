@@ -58,7 +58,11 @@ func NewItem(keyword string, args []string) *Item {
 
 // Encode converts the item to bytes.
 func (it Item) Encode() []byte {
-	s := it.Keyword + it.Whitespace + strings.Join(it.Arguments, " ") + "\n"
+	s := it.Keyword
+	if len(it.Arguments) > 0 {
+		s += it.Whitespace + strings.Join(it.Arguments, " ")
+	}
+	s += "\n"
 	if it.Object != nil {
 		s += string(pem.EncodeToMemory(it.Object))
 	}
