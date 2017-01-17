@@ -2,6 +2,7 @@ package torkeys
 
 import (
 	"encoding/hex"
+	"encoding/pem"
 	"strings"
 	"testing"
 
@@ -33,4 +34,25 @@ qr9jcmN5zD7BBUua+kHYSEx40uId2T8e4ztpQSeNB32i6p4pWlcbAgMBAAE=
 
 	fingerprint := strings.ToUpper(hex.EncodeToString(h))
 	assert.Equal(t, expectedFingerprint, fingerprint)
+}
+
+// TestExpectedBehaviorDERAndPEM really just confirms my understanding that
+// the data in the PEM block is just the DER encoded public key.
+func TestExpectedBehaviorDERAndPEM(t *testing.T) {
+	k, err := GenerateRSA()
+	require.NoError(t, err)
+
+	der, err := k.MarshalPKCS1PublicKeyDER()
+	require.NoError(t, err)
+
+	block := &pem.Block{
+		Type:  "RSA PUBLIC KEY",
+		Bytes: der,
+	}
+	data := pem.EncodeToMemory(block)
+
+	expect, err := k.MarshalPKCS1PublicKeyPEM()
+	require.NoError(t, err)
+
+	assert.Equal(t, expect, data)
 }
