@@ -288,6 +288,22 @@ func (d *ServerDescriptor) Document() (*Document, error) {
 	return doc, nil
 }
 
+// sign appends a signature to the document using this descriptors signing
+// key.
+//
+// Reference: https://github.com/torproject/torspec/blob/master/dir-spec.txt#L593-L602
+//
+//	    "router-signature" NL Signature NL
+//	
+//	       [At end, exactly once]
+//	       [No extra arguments]
+//	
+//	       The "SIGNATURE" object contains a signature of the PKCS1-padded
+//	       hash of the entire server descriptor, taken from the beginning of the
+//	       "router" line, through the newline after the "router-signature" line.
+//	       The server descriptor is invalid unless the signature is performed
+//	       with the router's identity key.
+//
 func (d *ServerDescriptor) sign(doc *Document) error {
 	if d.signingKey == nil {
 		return ErrServerDescriptorNoSigningKey
