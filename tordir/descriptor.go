@@ -56,11 +56,34 @@ func (d *ServerDescriptor) addItem(item *Item) {
 	d.keywords[item.Keyword] = true
 }
 
-// XXX cite
+// Reference: https://github.com/torproject/torspec/blob/master/dir-spec.txt#L1180-L1181
+//
+//	   nickname ::= between 1 and 19 alphanumeric characters ([A-Za-z0-9]),
+//	      case-insensitive.
+//
 var nicknameRx = regexp.MustCompile(`^[[:alnum:]]{1,19}$`)
 
 // SetRouter sets the router description. This is required.
-// XXX cite
+//
+// Reference: https://github.com/torproject/torspec/blob/master/dir-spec.txt#L379-L394
+//
+//	     "router" nickname address ORPort SOCKSPort DirPort NL
+//
+//	       [At start, exactly once.]
+//
+//	       Indicates the beginning of a server descriptor.  "nickname" must be a
+//	       valid router nickname as specified in section 2.1.3.  "address" must
+//	       be an IPv4
+//	       address in dotted-quad format.  The last three numbers indicate the
+//	       TCP ports at which this OR exposes functionality. ORPort is a port at
+//	       which this OR accepts TLS connections for the main OR protocol;
+//	       SOCKSPort is deprecated and should always be 0; and DirPort is the
+//	       port at which this OR accepts directory-related HTTP connections.  If
+//	       any port is not supported, the value 0 is given instead of a port
+//	       number.  (At least one of DirPort and ORPort SHOULD be set;
+//	       authorities MAY reject any descriptor with both DirPort and ORPort of
+//	       0.)
+//
 func (d *ServerDescriptor) SetRouter(nickname string, addr net.IP, orPort, dirPort uint16) error {
 	if !nicknameRx.MatchString(nickname) {
 		return ErrServerDescriptorBadNickname
@@ -84,7 +107,22 @@ func (d *ServerDescriptor) SetRouter(nickname string, addr net.IP, orPort, dirPo
 }
 
 // SetBandwidth sets the bandwidth of the server.
-// XXX cite
+//
+// Reference: https://github.com/torproject/torspec/blob/master/dir-spec.txt#L419-L430
+//
+//	    "bandwidth" bandwidth-avg bandwidth-burst bandwidth-observed NL
+//
+//	       [Exactly once]
+//
+//	       Estimated bandwidth for this router, in bytes per second.  The
+//	       "average" bandwidth is the volume per second that the OR is willing to
+//	       sustain over long periods; the "burst" bandwidth is the volume that
+//	       the OR is willing to sustain in very short intervals.  The "observed"
+//	       value is an estimate of the capacity this relay can handle.  The
+//	       relay remembers the max bandwidth sustained output over any ten
+//	       second period in the past day, and another sustained input.  The
+//	       "observed" value is the lesser of these two numbers.
+//
 func (d *ServerDescriptor) SetBandwidth(avg, burst, observed int) error {
 	args := []string{
 		strconv.Itoa(avg),
@@ -96,7 +134,16 @@ func (d *ServerDescriptor) SetBandwidth(avg, burst, observed int) error {
 }
 
 // SetPublishedTime sets the time the descriptor was published.
-// XXX cite
+//
+// Reference: https://github.com/torproject/torspec/blob/master/dir-spec.txt#L440-L445
+//
+//	    "published" YYYY-MM-DD HH:MM:SS NL
+//
+//	       [Exactly once]
+//
+//	       The time, in UTC, when this descriptor (and its corresponding
+//	       extra-info document if any)  was generated.
+//
 func (d *ServerDescriptor) SetPublishedTime(t time.Time) error {
 	args := []string{
 		t.In(time.UTC).Format("2006-01-02 15:04:05"),
