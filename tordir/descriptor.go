@@ -9,16 +9,18 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/mmcloughlin/openssl"
 	"github.com/mmcloughlin/pearl/torkeys"
 )
 
 const (
-	routerKeyword      = "router"
-	bandwidthKeyword   = "bandwidth"
-	publishedKeyword   = "published"
-	onionKeyKeyword    = "onion-key"
-	signingKeyKeyword  = "signing-key"
-	fingerprintKeyword = "fingerprint"
+	routerKeyword          = "router"
+	bandwidthKeyword       = "bandwidth"
+	publishedKeyword       = "published"
+	onionKeyKeyword        = "onion-key"
+	signingKeyKeyword      = "signing-key"
+	fingerprintKeyword     = "fingerprint"
+	routerSignatureKeyword = "router-signature"
 )
 
 var requiredKeywords = []string{
@@ -32,8 +34,9 @@ var requiredKeywords = []string{
 
 // Potential errors when constructing a server descriptor.
 var (
-	ErrServerDescriptorBadNickname = errors.New("invalid nickname")
-	ErrServerDescriptorNotIPv4     = errors.New("require ipv4 address")
+	ErrServerDescriptorBadNickname  = errors.New("invalid nickname")
+	ErrServerDescriptorNotIPv4      = errors.New("require ipv4 address")
+	ErrServerDescriptorNoSigningKey = errors.New("no signing key")
 )
 
 // ServerDescriptorMissingFieldError indicates that a required field is
@@ -47,9 +50,10 @@ func (e ServerDescriptorMissingFieldError) Error() string {
 // ServerDescriptor is a builder for a server descriptor to be published to
 // directory servers.
 type ServerDescriptor struct {
-	router   *Item
-	items    []*Item
-	keywords map[string]bool
+	router     *Item
+	items      []*Item
+	keywords   map[string]bool
+	signingKey torkeys.PrivateKey
 }
 
 // NewServerDescriptor constructs an empty server descriptor.
@@ -225,7 +229,14 @@ func (d *ServerDescriptor) SetSigningKey(k torkeys.PrivateKey) error {
 
 	d.addItem(item)
 
-	return d.setFingerprint(k)
+	err = d.setFingerprint(k)
+	if err != nil {
+		return err
+	}
+
+	d.signingKey = k
+
+	return nil
 }
 
 func (d *ServerDescriptor) setFingerprint(k torkeys.PublicKey) error {
@@ -268,7 +279,36 @@ func (d *ServerDescriptor) Document() (*Document, error) {
 	for _, item := range d.items {
 		doc.AddItem(item)
 	}
+
+	err = d.sign(doc)
+	if err != nil {
+		return nil, err
+	}
+
 	return doc, nil
+}
+
+func (d *ServerDescriptor) sign(doc *Document) error {
+	if d.signingKey == nil {
+		return ErrServerDescriptorNoSigningKey
+	}
+
+	item := NewItemKeywordOnly(routerSignatureKeyword)
+	doc.AddItem(item)
+
+	data := doc.Encode()
+
+	sig, err := d.signingKey.SignPKCS1v15(openssl.SHA1_Method, data)
+	if err != nil {
+		return nil
+	}
+
+	item.Object = &pem.Block{
+		Type:  "SIGNATURE",
+		Bytes: sig,
+	}
+
+	return nil
 }
 
 func newItemWithKey(keyword string, k torkeys.PublicKey) (*Item, error) {

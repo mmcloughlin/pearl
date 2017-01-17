@@ -12,17 +12,27 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-var keyPEM = []byte(`-----BEGIN RSA PUBLIC KEY-----
-MIGJAoGBAMX8r0RFoXr7etUrzJqOAQx1hAeqLwMyMU3xbkBBlLXn+8wTcOvyOAKP
-3+MP3pQZyI/+oK2D0N3PLQk4CyrigF8AjR91QVAHcVxC1DOouA54seki5JoTWbZ2
-z45XOAsoekZM1K0Mb2LF6Z+7gjdtdl5D5Cdp5THpcekJDqhjuBo3AgMBAAE=
------END RSA PUBLIC KEY-----
+var keyPEM = []byte(`-----BEGIN RSA PRIVATE KEY-----
+MIICXAIBAAKBgQDAoNQlDZK5WhkHSJJ2qZShvINGrtywyfsMC9aeiyxehmtqoMsl
+t1WlbMoA9wR84rDdb7D+DW6Z1UrBPgwlbm27D3mVOQ+brnilyE5+KbIjg1K5e6m4
+6MKTOzs7G1nM4A70dd0zBPwHSYBwP0S9JiFRVqtKG36NynSpYZKissIMywIDAQAB
+AoGAEvbCa/NuInlQRXtLkAsZ6uJYOjk02OLJqGHx+yHQeG3bXV//H/NwpxySto2b
+D4Bx0RsR3bEM1nA9L9Ef+P9qJfieLrFRQ0KWFov7ZAh6sDJpFyojifu1jfo+hvqy
+g76ku/798wb7fxtU+bsPyXMOyQdKaKw4miEwX7D2rahO6gECQQDkYbF2Hk0x0gK+
+HLuN3fb/5/303XgskQ2qMER/Vwe7+WysgsPSfW6HqL+Sqh6bD6mJUpBC2DXbk0TC
+5obzGT1BAkEA1+xFjAfSEFtc92PA3jhzuxK+kpgIQ5eBcrWHTgZS0s4qKICafP0B
+jXb+SD0eWdwCBqnUFn8MeX57Qyk6GkKrCwJAOcxnpycgDj3CJ+8JoGvOeRFzeica
+pNzJAotYqomSEYacdERb3seT041nfmzDdibOl0xn6iLh7oIk4taIzLlUgQJBAK8l
+6BA7s8ky40mFsEhSEIaaIN421tVFS2rqF1RSStLXC1mJYEesz5qaAJBGi50mmroe
+/nw1GMBgucnz4j60/5sCQBsQm1M1Hf+wYeIXrY0punjjTfFV6gD8gA1GT5XgP0aF
+0MmPBrRS47B0WRDTNhQUtjtOZFAWbo5BEUQRukJwyIM=
+-----END RSA PRIVATE KEY-----
 `)
 
 func TestServerDescriptor(t *testing.T) {
 	s := NewServerDescriptor()
 
-	k, err := openssl.LoadPublicKeyFromPKCS1PEM(keyPEM)
+	k, err := openssl.LoadPrivateKeyFromPEM(keyPEM)
 	require.NoError(t, err)
 
 	// router (required)
@@ -56,6 +66,9 @@ func TestServerDescriptor(t *testing.T) {
 	expect, err := ioutil.ReadFile("./testdata/descriptors/example")
 	require.NoError(t, err)
 	assert.Equal(t, expect, doc.Encode())
+
+	ioutil.WriteFile("a", expect, 0600)
+	ioutil.WriteFile("b", doc.Encode(), 0600)
 }
 
 func TestServerDescriptorCreateInvalid(t *testing.T) {
@@ -76,7 +89,7 @@ func TestServerDescriptorSetRouterErrors(t *testing.T) {
 }
 
 func TestServerDescriptorSetKeysError(t *testing.T) {
-	m := &mocks.PublicKey{}
+	m := &mocks.PrivateKey{}
 	m.On("MarshalPKCS1PublicKeyDER").Return(nil, assert.AnError).Times(3)
 
 	s := NewServerDescriptor()

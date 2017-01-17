@@ -56,6 +56,11 @@ func NewItem(keyword string, args []string) *Item {
 	return NewItemWithObject(keyword, args, nil)
 }
 
+// NewItemKeywordOnly constructs an item that only has a keyword.
+func NewItemKeywordOnly(keyword string) *Item {
+	return NewItem(keyword, []string{})
+}
+
 // Encode converts the item to bytes.
 func (it Item) Encode() []byte {
 	s := it.Keyword
