@@ -1,3 +1,9 @@
 router nickname 1.2.3.4 9001 0 0
 bandwidth 1000 2000 500
 published 2016-12-25 15:33:17
+onion-key
+-----BEGIN RSA PUBLIC KEY-----
+MIGJAoGBAMe1RFNxr3yHhLigZr4oNlvqgyldE6fdHQgWwV/w9E0RGTiatSD4+Mu6
+RO3OJhVg8MNooPcPO4wS/zPbjfCZ3sJIk+rKKKCKnlyk1KWpXGgbat4ZloyGXs1c
+ZexdoiqI6TFP1kSHrKK5hDvsdWQllSW4Y4WdRcCIzcEdRDTCDMo5AgMBAAE=
+-----END RSA PUBLIC KEY-----

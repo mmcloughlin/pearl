@@ -1,24 +1,29 @@
 package tordir
 
 import (
+	"encoding/pem"
 	"errors"
 	"fmt"
 	"net"
 	"regexp"
 	"strconv"
 	"time"
+
+	"github.com/mmcloughlin/pearl/torkeys"
 )
 
 const (
 	routerKeyword    = "router"
 	bandwidthKeyword = "bandwidth"
 	publishedKeyword = "published"
+	onionKeyKeyword  = "onion-key"
 )
 
 var requiredKeywords = []string{
 	routerKeyword,
 	bandwidthKeyword,
 	publishedKeyword,
+	onionKeyKeyword,
 }
 
 // Potential errors when constructing a server descriptor.
@@ -149,6 +154,41 @@ func (d *ServerDescriptor) SetPublishedTime(t time.Time) error {
 		t.In(time.UTC).Format("2006-01-02 15:04:05"),
 	}
 	d.addItem(NewItem(publishedKeyword, args))
+	return nil
+}
+
+// SetOnionKey sets the "onion key" used to encrypt CREATE cells for this
+// router.
+//
+// Reference: https://github.com/torproject/torspec/blob/master/dir-spec.txt#L475-L486
+//
+//	    "onion-key" NL a public key in PEM format
+//
+//	       [Exactly once]
+//	       [No extra arguments]
+//
+//	       This key is used to encrypt CREATE cells for this OR.  The key MUST be
+//	       accepted for at least 1 week after any new key is published in a
+//	       subsequent descriptor. It MUST be 1024 bits.
+//
+//	       The key encoding is the encoding of the key as a PKCS#1 RSAPublicKey
+//	       structure, encoded in base64, and wrapped in "-----BEGIN RSA PUBLIC
+//	       KEY-----" and "-----END RSA PUBLIC KEY-----".
+//
+func (d *ServerDescriptor) SetOnionKey(k torkeys.PublicKey) error {
+	der, err := k.MarshalPKCS1PublicKeyDER()
+	if err != nil {
+		return err
+	}
+
+	obj := &pem.Block{
+		Type:  "RSA PUBLIC KEY",
+		Bytes: der,
+	}
+
+	item := NewItemWithObject(onionKeyKeyword, []string{}, obj)
+	d.addItem(item)
+
 	return nil
 }
 
