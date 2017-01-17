@@ -22,6 +22,9 @@ ZexdoiqI6TFP1kSHrKK5hDvsdWQllSW4Y4WdRcCIzcEdRDTCDMo5AgMBAAE=
 func TestServerDescriptor(t *testing.T) {
 	s := NewServerDescriptor()
 
+	k, err := openssl.LoadPublicKeyFromPKCS1PEM(keyPEM)
+	require.NoError(t, err)
+
 	// router (required)
 	assert.Error(t, s.Validate())
 	s.SetRouter("nickname", net.IPv4(1, 2, 3, 4), 9001, 0)
@@ -38,9 +41,11 @@ func TestServerDescriptor(t *testing.T) {
 
 	// onion-key (required)
 	assert.Error(t, s.Validate())
-	k, err := openssl.LoadPublicKeyFromPKCS1PEM(keyPEM)
-	require.NoError(t, err)
 	s.SetOnionKey(k)
+
+	// signing-key (required)
+	assert.Error(t, s.Validate())
+	s.SetSigningKey(k)
 
 	// should have all required fields
 	assert.NoError(t, s.Validate())

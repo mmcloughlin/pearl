@@ -13,10 +13,11 @@ import (
 )
 
 const (
-	routerKeyword    = "router"
-	bandwidthKeyword = "bandwidth"
-	publishedKeyword = "published"
-	onionKeyKeyword  = "onion-key"
+	routerKeyword     = "router"
+	bandwidthKeyword  = "bandwidth"
+	publishedKeyword  = "published"
+	onionKeyKeyword   = "onion-key"
+	signingKeyKeyword = "signing-key"
 )
 
 var requiredKeywords = []string{
@@ -24,6 +25,7 @@ var requiredKeywords = []string{
 	bandwidthKeyword,
 	publishedKeyword,
 	onionKeyKeyword,
+	signingKeyKeyword,
 }
 
 // Potential errors when constructing a server descriptor.
@@ -176,19 +178,50 @@ func (d *ServerDescriptor) SetPublishedTime(t time.Time) error {
 //	       KEY-----" and "-----END RSA PUBLIC KEY-----".
 //
 func (d *ServerDescriptor) SetOnionKey(k torkeys.PublicKey) error {
-	der, err := k.MarshalPKCS1PublicKeyDER()
+	item, err := newItemWithKey(onionKeyKeyword, k)
 	if err != nil {
 		return err
 	}
 
-	obj := &pem.Block{
-		Type:  "RSA PUBLIC KEY",
-		Bytes: der,
+	d.addItem(item)
+	return nil
+}
+
+// SetSigningKey sets the router's identity key, used to sign the descriptor
+// document.
+//
+// Reference: https://github.com/torproject/torspec/blob/master/dir-spec.txt#L545-L552
+//
+//	    "signing-key" NL a public key in PEM format
+//
+//	       [Exactly once]
+//	       [No extra arguments]
+//
+//	       The OR's long-term RSA identity key.  It MUST be 1024 bits.
+//
+//	       The encoding is as for "onion-key" above.
+//
+// Reference: https://github.com/torproject/torspec/blob/master/dir-spec.txt#L447-L457
+//
+//	    "fingerprint" fingerprint NL
+//	
+//	       [At most once]
+//	
+//	       A fingerprint (a HASH_LEN-byte of asn1 encoded public key, encoded in
+//	       hex, with a single space after every 4 characters) for this router's
+//	       identity key. A descriptor is considered invalid (and MUST be
+//	       rejected) if the fingerprint line does not match the public key.
+//	
+//	       [We didn't start parsing this line until Tor 0.1.0.6-rc; it should
+//	        be marked with "opt" until earlier versions of Tor are obsolete.]
+//
+func (d *ServerDescriptor) SetSigningKey(k torkeys.PrivateKey) error {
+	item, err := newItemWithKey(signingKeyKeyword, k)
+	if err != nil {
+		return err
 	}
 
-	item := NewItemWithObject(onionKeyKeyword, []string{}, obj)
 	d.addItem(item)
-
 	return nil
 }
 
@@ -216,4 +249,18 @@ func (d *ServerDescriptor) Document() (*Document, error) {
 		doc.AddItem(item)
 	}
 	return doc, nil
+}
+
+func newItemWithKey(keyword string, k torkeys.PublicKey) (*Item, error) {
+	der, err := k.MarshalPKCS1PublicKeyDER()
+	if err != nil {
+		return nil, err
+	}
+
+	obj := &pem.Block{
+		Type:  "RSA PUBLIC KEY",
+		Bytes: der,
+	}
+
+	return NewItemWithObject(keyword, []string{}, obj), nil
 }
