@@ -22,6 +22,13 @@ type PublicKey interface {
 // PrivateKey is an RSA private key.
 type PrivateKey interface {
 	PublicKey
+
+	// Signs the data using PKCS1.15
+	SignPKCS1v15(openssl.Method, []byte) ([]byte, error)
+
+	// MarshalPKCS1PrivateKeyPEM converts the private key to PEM-encoded PKCS1
+	// format
+	MarshalPKCS1PrivateKeyPEM() ([]byte, error)
 }
 
 //go:generate mockery -name=PrivateKey -case=underscore
