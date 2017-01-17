@@ -133,7 +133,11 @@ func TestServerDescriptorSetFingerprintError(t *testing.T) {
 func TestServerDescriptorSignatureError(t *testing.T) {
 	k := &mocks.PrivateKey{}
 	k.On("MarshalPKCS1PublicKeyDER").Return([]byte("pem"), nil)
-	k.On("SignPKCS1v15", openssl.SHA1_Method, mock.AnythingOfType("[]uint8")).Return(nil, assert.AnError)
+	k.On(
+		"SignPKCS1v15",
+		openssl.SHA1_Method,
+		mock.AnythingOfType("[]uint8"),
+	).Return(nil, assert.AnError)
 
 	s := BuildValidServerDescriptor(k)
 
