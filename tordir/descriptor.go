@@ -13,11 +13,12 @@ import (
 )
 
 const (
-	routerKeyword     = "router"
-	bandwidthKeyword  = "bandwidth"
-	publishedKeyword  = "published"
-	onionKeyKeyword   = "onion-key"
-	signingKeyKeyword = "signing-key"
+	routerKeyword      = "router"
+	bandwidthKeyword   = "bandwidth"
+	publishedKeyword   = "published"
+	onionKeyKeyword    = "onion-key"
+	signingKeyKeyword  = "signing-key"
+	fingerprintKeyword = "fingerprint"
 )
 
 var requiredKeywords = []string{
@@ -26,6 +27,7 @@ var requiredKeywords = []string{
 	publishedKeyword,
 	onionKeyKeyword,
 	signingKeyKeyword,
+	fingerprintKeyword,
 }
 
 // Potential errors when constructing a server descriptor.
@@ -204,14 +206,14 @@ func (d *ServerDescriptor) SetOnionKey(k torkeys.PublicKey) error {
 // Reference: https://github.com/torproject/torspec/blob/master/dir-spec.txt#L447-L457
 //
 //	    "fingerprint" fingerprint NL
-//	
+//
 //	       [At most once]
-//	
+//
 //	       A fingerprint (a HASH_LEN-byte of asn1 encoded public key, encoded in
 //	       hex, with a single space after every 4 characters) for this router's
 //	       identity key. A descriptor is considered invalid (and MUST be
 //	       rejected) if the fingerprint line does not match the public key.
-//	
+//
 //	       [We didn't start parsing this line until Tor 0.1.0.6-rc; it should
 //	        be marked with "opt" until earlier versions of Tor are obsolete.]
 //
@@ -221,6 +223,24 @@ func (d *ServerDescriptor) SetSigningKey(k torkeys.PrivateKey) error {
 		return err
 	}
 
+	d.addItem(item)
+
+	return d.setFingerprint(k)
+}
+
+func (d *ServerDescriptor) setFingerprint(k torkeys.PublicKey) error {
+	h, err := torkeys.PublicKeyHash(k)
+	if err != nil {
+		return err
+	}
+
+	args := []string{}
+	for i := 0; i < len(h); i += 2 {
+		chunk := fmt.Sprintf("%04X", h[i:i+2])
+		args = append(args, chunk)
+	}
+
+	item := NewItem(fingerprintKeyword, args)
 	d.addItem(item)
 	return nil
 }

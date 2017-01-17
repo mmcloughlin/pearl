@@ -13,9 +13,9 @@ import (
 )
 
 var keyPEM = []byte(`-----BEGIN RSA PUBLIC KEY-----
-MIGJAoGBAMe1RFNxr3yHhLigZr4oNlvqgyldE6fdHQgWwV/w9E0RGTiatSD4+Mu6
-RO3OJhVg8MNooPcPO4wS/zPbjfCZ3sJIk+rKKKCKnlyk1KWpXGgbat4ZloyGXs1c
-ZexdoiqI6TFP1kSHrKK5hDvsdWQllSW4Y4WdRcCIzcEdRDTCDMo5AgMBAAE=
+MIGJAoGBAMX8r0RFoXr7etUrzJqOAQx1hAeqLwMyMU3xbkBBlLXn+8wTcOvyOAKP
+3+MP3pQZyI/+oK2D0N3PLQk4CyrigF8AjR91QVAHcVxC1DOouA54seki5JoTWbZ2
+z45XOAsoekZM1K0Mb2LF6Z+7gjdtdl5D5Cdp5THpcekJDqhjuBo3AgMBAAE=
 -----END RSA PUBLIC KEY-----
 `)
 
@@ -75,12 +75,21 @@ func TestServerDescriptorSetRouterErrors(t *testing.T) {
 	assert.Error(t, err)
 }
 
-func TestServerDescriptorSetOnionKeyError(t *testing.T) {
+func TestServerDescriptorSetKeysError(t *testing.T) {
 	m := &mocks.PublicKey{}
-	m.On("MarshalPKCS1PublicKeyDER").Return(nil, assert.AnError).Once()
+	m.On("MarshalPKCS1PublicKeyDER").Return(nil, assert.AnError).Times(3)
+
 	s := NewServerDescriptor()
+
 	err := s.SetOnionKey(m)
 	assert.Error(t, err)
+
+	err = s.SetSigningKey(m)
+	assert.Error(t, err)
+
+	err = s.setFingerprint(m)
+	assert.Error(t, err)
+
 	m.AssertExpectations(t)
 }
 
