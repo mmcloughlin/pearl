@@ -53,6 +53,12 @@ func TestServerDescriptor(t *testing.T) {
 	assert.Equal(t, expect, doc.Encode())
 }
 
+func TestServerDescriptorCreateInvalid(t *testing.T) {
+	s := NewServerDescriptor()
+	_, err := s.Document()
+	assert.Error(t, err)
+}
+
 func TestServerDescriptorSetRouterErrors(t *testing.T) {
 	s := NewServerDescriptor()
 
@@ -71,4 +77,9 @@ func TestServerDescriptorSetOnionKeyError(t *testing.T) {
 	err := s.SetOnionKey(m)
 	assert.Error(t, err)
 	m.AssertExpectations(t)
+}
+
+func TestServerDescriptorMissingFieldError(t *testing.T) {
+	err := ServerDescriptorMissingFieldError("foo")
+	assert.EqualError(t, err, "missing field 'foo'")
 }
