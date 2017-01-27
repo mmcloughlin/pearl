@@ -26,11 +26,11 @@ func (a Action) Describe() string {
 //	   exitpattern ::= addrspec ":" portspec
 //	   portspec ::= "*" | port | port "-" port
 //	   port ::= an integer between 1 and 65535, inclusive.
-//	
+//
 //	      [Some implementations incorrectly generate ports with value 0.
 //	       Implementations SHOULD accept this, and SHOULD NOT generate it.
 //	       Connections to port 0 are never permitted.]
-//	
+//
 //	   addrspec ::= "*" | ip4spec | ip6spec
 //	   ipv4spec ::= ip4 | ip4 "/" num_ip4_bits | ip4 "/" ip4mask
 //	   ip4 ::= an IPv4 address in dotted-quad format
@@ -72,9 +72,9 @@ type Rule struct {
 //
 //	    "accept" exitpattern NL
 //	    "reject" exitpattern NL
-//	
+//
 //	       [Any number]
-//	
+//
 //	       These lines describe an "exit policy": the rules that an OR follows
 //	       when deciding whether to allow a new stream to a given address.  The
 //	       'exitpattern' syntax is described below.  There MUST be at least one
@@ -90,7 +90,7 @@ type Policy struct {
 // RejectAllPolicy does not allow any exit traffic.
 var RejectAllPolicy = NewPolicyWithDefault(Reject)
 
-// AcceptAllPolicy does not allow any exit traffic.
+// AcceptAllPolicy allows exit traffic to anywhere.
 var AcceptAllPolicy = NewPolicyWithDefault(Accept)
 
 // NewPolicy builds an empty policy. By default this will reject all
