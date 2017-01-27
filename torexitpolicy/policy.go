@@ -21,7 +21,25 @@ func (a Action) Describe() string {
 
 // Pattern specifies a set of addresses to apply an action to.
 //
-// Insert: https://github.com/torproject/torspec/blob/master/dir-spec.txt#L1186-L1201
+// Reference: https://github.com/torproject/torspec/blob/master/dir-spec.txt#L1186-L1201
+//
+//	   exitpattern ::= addrspec ":" portspec
+//	   portspec ::= "*" | port | port "-" port
+//	   port ::= an integer between 1 and 65535, inclusive.
+//	
+//	      [Some implementations incorrectly generate ports with value 0.
+//	       Implementations SHOULD accept this, and SHOULD NOT generate it.
+//	       Connections to port 0 are never permitted.]
+//	
+//	   addrspec ::= "*" | ip4spec | ip6spec
+//	   ipv4spec ::= ip4 | ip4 "/" num_ip4_bits | ip4 "/" ip4mask
+//	   ip4 ::= an IPv4 address in dotted-quad format
+//	   ip4mask ::= an IPv4 mask in dotted-quad format
+//	   num_ip4_bits ::= an integer between 0 and 32
+//	   ip6spec ::= ip6 | ip6 "/" num_ip6_bits
+//	   ip6 ::= an IPv6 address, surrounded by square brackets.
+//	   num_ip6_bits ::= an integer between 0 and 128
+//
 type Pattern interface {
 	Matches(net.IP, uint16) bool
 	Describe() string
@@ -50,7 +68,20 @@ type Rule struct {
 
 // Policy defines which addresses to allow traffic to.
 //
-// Insert: https://github.com/torproject/torspec/blob/master/dir-spec.txt#L554-L564
+// Reference: https://github.com/torproject/torspec/blob/master/dir-spec.txt#L554-L564
+//
+//	    "accept" exitpattern NL
+//	    "reject" exitpattern NL
+//	
+//	       [Any number]
+//	
+//	       These lines describe an "exit policy": the rules that an OR follows
+//	       when deciding whether to allow a new stream to a given address.  The
+//	       'exitpattern' syntax is described below.  There MUST be at least one
+//	       such entry.  The rules are considered in order; if no rule matches,
+//	       the address will be accepted.  For clarity, the last such entry SHOULD
+//	       be accept *:* or reject *:*.
+//
 type Policy struct {
 	rules         []Rule
 	defaultAction Action
