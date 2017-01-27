@@ -74,19 +74,37 @@ func (it Item) Encode() []byte {
 	return []byte(s)
 }
 
-// XXX cite ref
-// NL = The ascii LF character (hex value 0x0a).
-// Document ::= (Item | NL)+
-// Item ::= KeywordLine Object*
-// KeywordLine ::= Keyword NL | Keyword WS ArgumentChar+ NL
-// Keyword = KeywordChar+
-// KeywordChar ::= 'A' ... 'Z' | 'a' ... 'z' | '0' ... '9' | '-'
-// ArgumentChar ::= any printing ASCII character except NL.
-// WS = (SP | TAB)+
-// Object ::= BeginLine Base64-encoded-data EndLine
-// BeginLine ::= "-----BEGIN " Keyword "-----" NL
-// EndLine ::= "-----END " Keyword "-----" NL
-
+// Reference: https://github.com/torproject/torspec/blob/master/dir-spec.txt#L194-L221
+//
+//	1.2. Document meta-format
+//
+//	  Server descriptors, directories, and running-routers documents all obey the
+//	  following lightweight extensible information format.
+//
+//	  The highest level object is a Document, which consists of one or more
+//	  Items.  Every Item begins with a KeywordLine, followed by zero or more
+//	  Objects. A KeywordLine begins with a Keyword, optionally followed by
+//	  whitespace and more non-newline characters, and ends with a newline.  A
+//	  Keyword is a sequence of one or more characters in the set [A-Za-z0-9-].
+//	  An Object is a block of encoded data in pseudo-Open-PGP-style
+//	  armor. (cf. RFC 2440)
+//
+//	  More formally:
+//
+//	    NL = The ascii LF character (hex value 0x0a).
+//	    Document ::= (Item | NL)+
+//	    Item ::= KeywordLine Object*
+//	    KeywordLine ::= Keyword NL | Keyword WS ArgumentChar+ NL
+//	    Keyword = KeywordChar+
+//	    KeywordChar ::= 'A' ... 'Z' | 'a' ... 'z' | '0' ... '9' | '-'
+//	    ArgumentChar ::= any printing ASCII character except NL.
+//	    WS = (SP | TAB)+
+//	    Object ::= BeginLine Base64-encoded-data EndLine
+//	    BeginLine ::= "-----BEGIN " Keyword "-----" NL
+//	    EndLine ::= "-----END " Keyword "-----" NL
+//
+//	    The BeginLine and EndLine of an Object must use the same keyword.
+//
 const (
 	nlExpr          = `\n*`
 	keywordExpr     = `[[:alnum:]\-]+`
