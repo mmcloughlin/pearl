@@ -1,11 +1,15 @@
 package tordir
 
 import (
+	"fmt"
 	"io/ioutil"
+	"math/rand"
 	"net"
+	"net/http"
 	"testing"
 	"time"
 
+	"github.com/jarcoal/httpmock"
 	"github.com/mmcloughlin/openssl"
 	"github.com/mmcloughlin/pearl/torexitpolicy"
 	"github.com/mmcloughlin/pearl/torkeys"
@@ -32,7 +36,7 @@ pNzJAotYqomSEYacdERb3seT041nfmzDdibOl0xn6iLh7oIk4taIzLlUgQJBAK8l
 -----END RSA PRIVATE KEY-----
 `)
 
-func BuildValidServerDescriptor(k torkeys.PrivateKey) *ServerDescriptor {
+func BuildValidServerDescriptorWithKey(k torkeys.PrivateKey) *ServerDescriptor {
 	s := NewServerDescriptor()
 	s.SetRouter("nickname", net.IPv4(1, 2, 3, 4), 9001, 0)
 	s.SetBandwidth(1000, 2000, 500)
@@ -43,10 +47,16 @@ func BuildValidServerDescriptor(k torkeys.PrivateKey) *ServerDescriptor {
 	return s
 }
 
-func TestBuildValidServerDescriptor(t *testing.T) {
+func BuildValidServerDescriptor() *ServerDescriptor {
 	k, err := openssl.LoadPrivateKeyFromPEM(keyPEM)
-	require.NoError(t, err)
-	d := BuildValidServerDescriptor(k)
+	if err != nil {
+		panic(err)
+	}
+	return BuildValidServerDescriptorWithKey(k)
+}
+
+func TestBuildValidServerDescriptor(t *testing.T) {
+	d := BuildValidServerDescriptor()
 	assert.NoError(t, d.Validate())
 }
 
@@ -145,7 +155,7 @@ func TestServerDescriptorSignatureError(t *testing.T) {
 	k.On("MarshalPKCS1PublicKeyDER").Return([]byte("pem"), nil).Times(3)
 	k.On("PrivateEncrypt", mock.AnythingOfType("[]uint8")).Return(nil, assert.AnError).Once()
 
-	s := BuildValidServerDescriptor(k)
+	s := BuildValidServerDescriptorWithKey(k)
 
 	_, err := s.Document()
 	assert.Error(t, err)
@@ -155,4 +165,48 @@ func TestServerDescriptorSignatureError(t *testing.T) {
 func TestServerDescriptorMissingFieldError(t *testing.T) {
 	err := ServerDescriptorMissingFieldError("foo")
 	assert.EqualError(t, err, "missing field 'foo'")
+}
+
+func TestPublishPublic(t *testing.T) {
+	httpmock.Activate()
+	defer httpmock.DeactivateAndReset()
+
+	for _, addr := range Authorities {
+		httpmock.RegisterResponder(
+			http.MethodPost,
+			fmt.Sprintf("http://%s/tor/", addr),
+			httpmock.NewBytesResponder(200, nil),
+		)
+	}
+
+	d := BuildValidServerDescriptor()
+	err := d.PublishPublic()
+	assert.NoError(t, err)
+}
+
+func TestPublishInvalid(t *testing.T) {
+	d := NewServerDescriptor()
+	err := d.PublishPublic()
+	assert.Error(t, err)
+}
+
+func TestPublishHTTPErrors(t *testing.T) {
+	statusCodes := []int{303, 400, 404, 503}
+	for _, statusCode := range statusCodes {
+		t.Run(fmt.Sprintf("status%d", statusCode), func(t *testing.T) {
+			httpmock.Activate()
+			defer httpmock.DeactivateAndReset()
+
+			addr := Authorities[rand.Intn(len(Authorities))]
+			httpmock.RegisterResponder(
+				http.MethodPost,
+				fmt.Sprintf("http://%s/tor/", addr),
+				httpmock.NewBytesResponder(statusCode, nil),
+			)
+
+			d := BuildValidServerDescriptor()
+			err := d.PublishToAuthority(addr)
+			assert.Error(t, err)
+		})
+	}
 }
