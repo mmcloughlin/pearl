@@ -37,9 +37,17 @@ func BuildValidServerDescriptor(k torkeys.PrivateKey) *ServerDescriptor {
 	s.SetRouter("nickname", net.IPv4(1, 2, 3, 4), 9001, 0)
 	s.SetBandwidth(1000, 2000, 500)
 	s.SetPublishedTime(time.Unix(0, 0))
+	s.SetExitPolicy(torexitpolicy.RejectAllPolicy)
 	s.SetOnionKey(k)
 	s.SetSigningKey(k)
 	return s
+}
+
+func TestBuildValidServerDescriptor(t *testing.T) {
+	k, err := openssl.LoadPrivateKeyFromPEM(keyPEM)
+	require.NoError(t, err)
+	d := BuildValidServerDescriptor(k)
+	assert.NoError(t, d.Validate())
 }
 
 func TestServerDescriptor(t *testing.T) {
@@ -134,17 +142,14 @@ func TestServerDescriptorSetFingerprintError(t *testing.T) {
 
 func TestServerDescriptorSignatureError(t *testing.T) {
 	k := &mocks.PrivateKey{}
-	k.On("MarshalPKCS1PublicKeyDER").Return([]byte("pem"), nil)
-	k.On(
-		"SignPKCS1v15",
-		openssl.SHA1_Method,
-		mock.AnythingOfType("[]uint8"),
-	).Return(nil, assert.AnError)
+	k.On("MarshalPKCS1PublicKeyDER").Return([]byte("pem"), nil).Times(3)
+	k.On("PrivateEncrypt", mock.AnythingOfType("[]uint8")).Return(nil, assert.AnError).Once()
 
 	s := BuildValidServerDescriptor(k)
 
 	_, err := s.Document()
 	assert.Error(t, err)
+	k.AssertExpectations(t)
 }
 
 func TestServerDescriptorMissingFieldError(t *testing.T) {
