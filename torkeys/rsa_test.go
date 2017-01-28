@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/mmcloughlin/openssl"
+	"github.com/mmcloughlin/pearl/torkeys/mocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -34,6 +35,14 @@ qr9jcmN5zD7BBUua+kHYSEx40uId2T8e4ztpQSeNB32i6p4pWlcbAgMBAAE=
 
 	fingerprint := strings.ToUpper(hex.EncodeToString(h))
 	assert.Equal(t, expectedFingerprint, fingerprint)
+}
+
+func TestPublicKeyHashError(t *testing.T) {
+	k := &mocks.PublicKey{}
+	k.On("MarshalPKCS1PublicKeyDER").Return(nil, assert.AnError).Once()
+	_, err := PublicKeyHash(k)
+	assert.Error(t, err)
+	k.AssertExpectations(t)
 }
 
 // TestExpectedBehaviorDERAndPEM really just confirms my understanding that
