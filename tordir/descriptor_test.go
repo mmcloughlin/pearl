@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/mmcloughlin/openssl"
+	"github.com/mmcloughlin/pearl/torexitpolicy"
 	"github.com/mmcloughlin/pearl/torkeys"
 	"github.com/mmcloughlin/pearl/torkeys/mocks"
 	"github.com/stretchr/testify/assert"
@@ -69,6 +70,10 @@ func TestServerDescriptor(t *testing.T) {
 	assert.Error(t, s.Validate())
 	s.SetSigningKey(k)
 
+	// exit policy (required)
+	assert.Error(t, s.Validate())
+	s.SetExitPolicy(torexitpolicy.RejectAllPolicy)
+
 	// should have all required fields
 	assert.NoError(t, s.Validate())
 
@@ -78,9 +83,6 @@ func TestServerDescriptor(t *testing.T) {
 	expect, err := ioutil.ReadFile("./testdata/descriptors/example")
 	require.NoError(t, err)
 	assert.Equal(t, expect, doc.Encode())
-
-	ioutil.WriteFile("a", expect, 0600)
-	ioutil.WriteFile("b", doc.Encode(), 0600)
 }
 
 func TestServerDescriptorCreateInvalid(t *testing.T) {

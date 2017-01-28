@@ -16,3 +16,4 @@ import:
   subpackages:
   - curve25519
 - package: github.com/mmcloughlin/openssl
+  version: 686ecaafbf8f9adc2484f8869659fc6b78b3ec90

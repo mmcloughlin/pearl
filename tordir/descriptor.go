@@ -1,15 +1,19 @@
 package tordir
 
 import (
+	"bytes"
+	"crypto/sha1"
 	"encoding/pem"
 	"errors"
 	"fmt"
 	"net"
+	"net/http"
+	"net/url"
 	"regexp"
 	"strconv"
 	"time"
 
-	"github.com/mmcloughlin/openssl"
+	"github.com/mmcloughlin/pearl/torexitpolicy"
 	"github.com/mmcloughlin/pearl/torkeys"
 )
 
@@ -21,6 +25,8 @@ const (
 	signingKeyKeyword      = "signing-key"
 	fingerprintKeyword     = "fingerprint"
 	routerSignatureKeyword = "router-signature"
+	acceptKeyword          = "accept"
+	rejectKeyword          = "reject"
 )
 
 var requiredKeywords = []string{
@@ -34,9 +40,14 @@ var requiredKeywords = []string{
 
 // Potential errors when constructing a server descriptor.
 var (
-	ErrServerDescriptorBadNickname = errors.New("invalid nickname")
-	ErrServerDescriptorNotIPv4     = errors.New("require ipv4 address")
+	ErrServerDescriptorBadNickname  = errors.New("invalid nickname")
+	ErrServerDescriptorNotIPv4      = errors.New("require ipv4 address")
+	ErrServerDescriptorNoExitPolicy = errors.New("missing exit policy")
 )
+
+// ErrServerDescriptorPublishBadStatus is returned from a publish operation
+// when a non-200 HTTP response is received.
+var ErrServerDescriptorPublishBadStatus = errors.New("received non-200 on publish")
 
 // ServerDescriptorMissingFieldError indicates that a required field is
 // missing from a server descriptor.
@@ -164,6 +175,32 @@ func (d *ServerDescriptor) SetPublishedTime(t time.Time) error {
 	return nil
 }
 
+// SetExitPolicy adds a specification of the given exit policy to the
+// descriptor.
+//
+// Reference: https://github.com/torproject/torspec/blob/master/dir-spec.txt#L554-L564
+//
+//	    "accept" exitpattern NL
+//	    "reject" exitpattern NL
+//
+//	       [Any number]
+//
+//	       These lines describe an "exit policy": the rules that an OR follows
+//	       when deciding whether to allow a new stream to a given address.  The
+//	       'exitpattern' syntax is described below.  There MUST be at least one
+//	       such entry.  The rules are considered in order; if no rule matches,
+//	       the address will be accepted.  For clarity, the last such entry SHOULD
+//	       be accept *:* or reject *:*.
+//
+func (d *ServerDescriptor) SetExitPolicy(policy *torexitpolicy.Policy) error {
+	for _, rule := range policy.Rules() {
+		keyword := rule.Action.Describe()
+		args := []string{rule.Pattern.Describe()}
+		d.addItem(NewItem(keyword, args))
+	}
+	return nil
+}
+
 // SetOnionKey sets the "onion key" used to encrypt CREATE cells for this
 // router.
 //
@@ -258,12 +295,22 @@ func (d *ServerDescriptor) setFingerprint(k torkeys.PublicKey) error {
 // Validate checks whether the descriptor is valid.
 func (d *ServerDescriptor) Validate() error {
 	for _, keyword := range requiredKeywords {
-		_, ok := d.keywords[keyword]
-		if !ok {
+		if !d.hasKeyword(keyword) {
 			return ServerDescriptorMissingFieldError(keyword)
 		}
 	}
+
+	// confirm it has an exit policy (accept and/or reject keywords)
+	if !d.hasKeyword(acceptKeyword) && !d.hasKeyword(rejectKeyword) {
+		return ErrServerDescriptorNoExitPolicy
+	}
+
 	return nil
+}
+
+func (d *ServerDescriptor) hasKeyword(keyword string) bool {
+	_, ok := d.keywords[keyword]
+	return ok
 }
 
 // Document generates the Document for this descriptor.
@@ -308,8 +355,9 @@ func (d *ServerDescriptor) sign(doc *Document) error {
 	doc.AddItem(item)
 
 	data := doc.Encode()
+	digest := sha1.Sum(data)
 
-	sig, err := d.signingKey.SignPKCS1v15(openssl.SHA1_Method, data)
+	sig, err := d.signingKey.PrivateEncrypt(digest[:])
 	if err != nil {
 		return err
 	}
@@ -319,6 +367,76 @@ func (d *ServerDescriptor) sign(doc *Document) error {
 		Bytes: sig,
 	}
 
+	return nil
+}
+
+// PublishToAuthority publishes this server descriptor to the authority with
+// the given address (in host:port format).
+func (d *ServerDescriptor) PublishToAuthority(addr string) error {
+	doc, err := d.Document()
+	if err != nil {
+		return err
+	}
+
+	u := &url.URL{
+		Scheme: "http",
+		Host:   addr,
+		Path:   "/tor/",
+	}
+
+	body := bytes.NewReader(doc.Encode())
+
+	resp, err := http.Post(u.String(), "tor/descriptor", body)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	// Reference: https://github.com/torproject/torspec/blob/master/dir-spec.txt#L3434-L3458
+	//
+	//	6.2. HTTP status codes
+	//
+	//	  Tor delivers the following status codes.  Some were chosen without much
+	//	  thought; other code SHOULD NOT rely on specific status codes yet.
+	//
+	//	  200 -- the operation completed successfully
+	//	      -- the user requested statuses or serverdescs, and none of the ones we
+	//	         requested were found (0.2.0.4-alpha and earlier).
+	//
+	//	  304 -- the client specified an if-modified-since time, and none of the
+	//	         requested resources have changed since that time.
+	//
+	//	  400 -- the request is malformed, or
+	//	      -- the URL is for a malformed variation of one of the URLs we support,
+	//	          or
+	//	      -- the client tried to post to a non-authority, or
+	//	      -- the authority rejected a malformed posted document, or
+	//
+	//	  404 -- the requested document was not found.
+	//	      -- the user requested statuses or serverdescs, and none of the ones
+	//	         requested were found (0.2.0.5-alpha and later).
+	//
+	//	  503 -- we are declining the request in order to save bandwidth
+	//	      -- user requested some items that we ordinarily generate or store,
+	//	         but we do not have any available.
+	//
+
+	if resp.StatusCode != http.StatusOK {
+		return ErrServerDescriptorPublishBadStatus
+	}
+
+	return nil
+}
+
+// PublishPublic publishes the server descriptor to the known public Tor
+// directory authorities.
+func (d *ServerDescriptor) PublishPublic() error {
+	for _, addr := range Authorities {
+		err := d.PublishToAuthority(addr)
+		if err != nil {
+			return err
+		}
+	}
 	return nil
 }
 

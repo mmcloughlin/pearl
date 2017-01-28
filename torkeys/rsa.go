@@ -15,6 +15,10 @@ type PublicKey interface {
 	// MarshalPKCS1PublicKeyPEM converts the public key to PEM-encoded PKCS#1
 	// format
 	MarshalPKCS1PublicKeyPEM() ([]byte, error)
+
+	// PublicDecrypt decrypts the given data with the public key (for signature
+	// verification).
+	PublicDecrypt([]byte) ([]byte, error)
 }
 
 //go:generate mockery -name=PublicKey -case=underscore
@@ -23,12 +27,12 @@ type PublicKey interface {
 type PrivateKey interface {
 	PublicKey
 
-	// Signs the data using PKCS1.15
-	SignPKCS1v15(openssl.Method, []byte) ([]byte, error)
-
 	// MarshalPKCS1PrivateKeyPEM converts the private key to PEM-encoded PKCS1
 	// format
 	MarshalPKCS1PrivateKeyPEM() ([]byte, error)
+
+	// PrivateEncrypt encrypts the given data with the private key (for signing).
+	PrivateEncrypt([]byte) ([]byte, error)
 }
 
 //go:generate mockery -name=PrivateKey -case=underscore
