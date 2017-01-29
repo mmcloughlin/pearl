@@ -24,3 +24,6 @@ _testmain.go
 *.prof
 
 *.coverprofile
+
+# ignore vendor directory (managed by glide)
+vendor/
