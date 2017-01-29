@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"crypto/sha1"
 	"encoding/pem"
-	"errors"
 	"fmt"
 	"net"
 	"net/http"
@@ -12,6 +11,8 @@ import (
 	"regexp"
 	"strconv"
 	"time"
+
+	"github.com/pkg/errors"
 
 	"github.com/mmcloughlin/pearl/torexitpolicy"
 	"github.com/mmcloughlin/pearl/torkeys"

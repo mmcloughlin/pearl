@@ -2,9 +2,10 @@ package tordir
 
 import (
 	"encoding/pem"
-	"errors"
 	"regexp"
 	"strings"
+
+	"github.com/pkg/errors"
 )
 
 // Parsing errors.
