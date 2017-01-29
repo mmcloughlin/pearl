@@ -10,14 +10,21 @@ import (
 	"github.com/pkg/errors"
 )
 
+// ErrTorrcMissingArguments occurs if the parser finds a config line without
+// arguments. Expect to see a keyword followed by one or more arguments.
 var ErrTorrcMissingArguments = errors.New("expected arguments in torrc config line")
 
+// optionHandler is a function that can populate/modify the passed config
+// struct based on string argument(s).
 type optionHandler func(*Config, string) error
 
+// optionHandlers is a map from keywords (lowercased) to the associated
+// handler. Used by ParseTorrc.
 var optionHandlers = map[string]optionHandler{
 	"orport": orPortHandler,
 }
 
+// ParseTorrc parses Config from the given reader (in torrc format).
 func ParseTorrc(r io.Reader) (*Config, error) {
 	cfg := &Config{}
 	scanner := bufio.NewScanner(r)
@@ -59,6 +66,7 @@ func ParseTorrc(r io.Reader) (*Config, error) {
 	return cfg, nil
 }
 
+// ParseTorrcFile parses config from the given torrc file.
 func ParseTorrcFile(path string) (*Config, error) {
 	f, err := os.Open(path)
 	if err != nil {
@@ -69,6 +77,7 @@ func ParseTorrcFile(path string) (*Config, error) {
 	return ParseTorrc(f)
 }
 
+// orPortHandler parses the "OrPort" line.
 func orPortHandler(cfg *Config, args string) error {
 	port, err := strconv.ParseUint(args, 10, 16)
 	if err != nil {
