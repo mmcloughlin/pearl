@@ -19,3 +19,5 @@ import:
   version: 686ecaafbf8f9adc2484f8869659fc6b78b3ec90
 - package: github.com/pkg/errors
   version: ^0.8.0
+- package: github.com/inconshreveable/log15
+  version: ^2.11.0

@@ -1,5 +1,5 @@
-hash: 38abb8f54982df5119e0d5bfb7e31357686f4c174c4dcf95ace62de4b0b30e77
-updated: 2017-01-29T11:03:20.590513777-08:00
+hash: ec826b68968df87f1b21593e8aa95cabbb596b9839ab857ae009d54b1aae3cdf
+updated: 2017-01-29T15:51:04.258585204-08:00
 imports:
 - name: github.com/davecgh/go-spew
   version: 6d212800a42e8ab5c146b8ace3490ee17e5225f9
@@ -7,10 +7,16 @@ imports:
   - spew
 - name: github.com/erans/gonionoo
   version: 870942f67e087fb308cd84f3f4b6e88960863ce3
+- name: github.com/inconshreveable/log15
+  version: b105bd37f74e5d9dc7b6ad7806715c7a2b83fd3f
 - name: github.com/inconshreveable/mousetrap
   version: 76626ae9c91c4f2a10f34cad8ce83ea42c93bb75
 - name: github.com/jarcoal/httpmock
   version: 145b10d659265440f062c31ea15326166bae56ee
+- name: github.com/mattn/go-colorable
+  version: ed8eb9e318d7a84ce5915b495b7d35e0cfe7b5a8
+- name: github.com/mattn/go-isatty
+  version: 3a115632dcd687f9c8cd01679c83a06a0e21c1f3
 - name: github.com/mmcloughlin/openssl
   version: 686ecaafbf8f9adc2484f8869659fc6b78b3ec90
 - name: github.com/pkg/errors
@@ -41,4 +47,13 @@ imports:
   version: 8a549a1948fc5271eb24f36dcb0d3b47dec75a16
   subpackages:
   - curve25519
+- name: golang.org/x/sys
+  version: 8f0908ab3b2457e2e15403d3697c9ef5cb4b57a9
+  subpackages:
+  - unix
+- name: gopkg.in/inconshreveable/log15.v2
+  version: b105bd37f74e5d9dc7b6ad7806715c7a2b83fd3f
+  subpackages:
+  - stack
+  - term
 testImports: []
