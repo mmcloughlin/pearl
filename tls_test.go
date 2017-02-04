@@ -4,6 +4,7 @@ import (
 	"math/rand"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -38,5 +39,18 @@ func TestRandomHostnameProperties(t *testing.T) {
 		for j := len(prefix); j < len(hostname)-len(suffix); j++ {
 			assert.Contains(t, alpha, hostname[j])
 		}
+	}
+}
+
+func TestGenerateCertificateLifetime(t *testing.T) {
+	trials := 100
+	dayNs := 24 * int64(time.Hour)
+	secNs := int64(time.Second)
+	for i := 0; i < trials; i++ {
+		d := generateCertificateLifetime()
+		assert.True(t, d >= time.Duration(5*24)*time.Hour)
+		assert.True(t, d < time.Duration(365*24)*time.Hour)
+		dNs := int64(d)
+		assert.True(t, ((dNs%dayNs) == 0) || (((dNs+secNs)%dayNs) == 0))
 	}
 }
