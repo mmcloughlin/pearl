@@ -1,6 +1,8 @@
 package pearl
 
 import (
+	"bytes"
+	"fmt"
 	"math/rand"
 	"strings"
 	"testing"
@@ -53,4 +55,30 @@ func TestGenerateCertificateLifetime(t *testing.T) {
 		dNs := int64(d)
 		assert.True(t, ((dNs%dayNs) == 0) || (((dNs+secNs)%dayNs) == 0))
 	}
+}
+
+func TestGenerateCertificateSerial(t *testing.T) {
+	trials := 100
+	for i := 0; i < trials; i++ {
+		serial, err := generateCertificateSerial()
+		require.NoError(t, err)
+		bytes := serial.Bytes()
+		assert.True(t, len(bytes) <= 8)
+	}
+}
+
+func TestGenerateCertificateSerialKnownValue(t *testing.T) {
+	b := []byte{1, 2, 3, 4, 5, 6, 7, 8}
+	r := bytes.NewReader(b)
+	serial, err := generateCertificateSerialFromRandom(r)
+	require.NoError(t, err)
+	hx := fmt.Sprintf("%016x", serial)
+	assert.Equal(t, "0102030405060708", hx)
+}
+
+func TestGenerateCertificateSerialShortRead(t *testing.T) {
+	// should fail if it cannot read 8 bytes
+	r := strings.NewReader("1234567")
+	_, err := generateCertificateSerialFromRandom(r)
+	assert.Error(t, err)
 }

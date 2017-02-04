@@ -3,6 +3,7 @@ package pearl
 import (
 	cryptorand "crypto/rand"
 	"fmt"
+	"io"
 	"math/big"
 	"math/rand"
 	"time"
@@ -162,8 +163,12 @@ func generateCertificateLifetime() time.Duration {
 //	  }
 //
 func generateCertificateSerial() (*big.Int, error) {
+	return generateCertificateSerialFromRandom(cryptorand.Reader)
+}
+
+func generateCertificateSerialFromRandom(r io.Reader) (*big.Int, error) {
 	serialBytes := make([]byte, 8)
-	_, err := cryptorand.Read(serialBytes)
+	_, err := io.ReadFull(r, serialBytes)
 	if err != nil {
 		return nil, err
 	}
