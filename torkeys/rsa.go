@@ -21,6 +21,9 @@ type PublicKey interface {
 	PublicDecrypt([]byte) ([]byte, error)
 }
 
+// Confirm compatibility with openssl type.
+var _ PublicKey = (openssl.PublicKey)(nil)
+
 //go:generate mockery -name=PublicKey -case=underscore
 
 // PrivateKey is an RSA private key.
@@ -34,6 +37,9 @@ type PrivateKey interface {
 	// PrivateEncrypt encrypts the given data with the private key (for signing).
 	PrivateEncrypt([]byte) ([]byte, error)
 }
+
+// Confirm compatibility with openssl type.
+var _ PrivateKey = (openssl.PrivateKey)(nil)
 
 //go:generate mockery -name=PrivateKey -case=underscore
 
