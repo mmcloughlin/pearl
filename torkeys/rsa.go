@@ -46,7 +46,7 @@ type PrivateKey interface {
 //	   function.  We leave the optional "Label" parameter unset. (For OAEP
 //	   padding, see ftp://ftp.rsasecurity.com/pub/pkcs/pkcs-1/pkcs-1v2-1.pdf)
 //
-func GenerateRSA() (PrivateKey, error) {
+func GenerateRSA() (openssl.PrivateKey, error) {
 	return openssl.GenerateRSAKeyWithExponent(1024, 65537)
 }
 
