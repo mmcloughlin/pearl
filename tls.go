@@ -11,7 +11,10 @@ import (
 	"github.com/mmcloughlin/pearl/torkeys"
 )
 
+// TLSContext manages TLS parameters for a connection.
 type TLSContext struct {
+	ctx *openssl.Ctx
+
 	IDCert   *openssl.Certificate
 	LinkKey  openssl.PrivateKey
 	LinkCert *openssl.Certificate
@@ -19,8 +22,16 @@ type TLSContext struct {
 	AuthCert *openssl.Certificate
 }
 
+// NewTLSContext builds a TLS context for a new connection with the given
+// identity key.
 func NewTLSContext(idKey openssl.PrivateKey) (*TLSContext, error) {
+	var err error
+
 	ctx := &TLSContext{}
+	ctx.ctx, err = openssl.NewCtx()
+	if err != nil {
+		return nil, err
+	}
 
 	// Reference: https://github.com/torproject/torspec/blob/master/tor-spec.txt#L225-L245
 	//
@@ -75,7 +86,6 @@ func NewTLSContext(idKey openssl.PrivateKey) (*TLSContext, error) {
 
 	idLifetime := time.Duration(365*24) * time.Hour
 
-	var err error
 	ctx.IDCert, err = generateCertificate(idCN, idKey, idLifetime)
 	if err != nil {
 		return nil, err
