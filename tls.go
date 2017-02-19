@@ -2,19 +2,26 @@ package pearl
 
 import (
 	cryptorand "crypto/rand"
-	"fmt"
 	"io"
 	"math/big"
 	"math/rand"
 	"time"
 
+	"github.com/mmcloughlin/openssl"
 	"github.com/mmcloughlin/pearl/torkeys"
 )
 
-type ConnectionCertificates interface {
+type TLSContext struct {
+	IDCert   *openssl.Certificate
+	LinkKey  openssl.PrivateKey
+	LinkCert *openssl.Certificate
+	AuthKey  openssl.PrivateKey
+	AuthCert *openssl.Certificate
 }
 
-func GenerateConnectionCertificates(idKey torkeys.PrivateKey) (ConnectionCertificates, error) {
+func NewTLSContext(idKey openssl.PrivateKey) (*TLSContext, error) {
+	ctx := &TLSContext{}
+
 	// Reference: https://github.com/torproject/torspec/blob/master/tor-spec.txt#L225-L245
 	//
 	//	   In "in-protocol" (a.k.a. "the v3 handshake"), the initiator sends no
@@ -52,6 +59,33 @@ func GenerateConnectionCertificates(idKey torkeys.PrivateKey) (ConnectionCertifi
 	linkCN := randomHostname(8, 20, "www.", ".net")
 	idCN := randomHostname(8, 20, "www.", ".com")
 
+	// Generate identity certificate.
+	//
+	// Reference: https://github.com/torproject/tor/blob/master/src/common/tortls.c#L1083-L1085
+	//
+	//	    /* Create self-signed certificate for identity key. */
+	//	    idcert = tor_tls_create_certificate(identity, identity, nn2, nn2,
+	//	                                        IDENTITY_CERT_LIFETIME);
+	//
+	// Reference: https://github.com/torproject/tor/blob/master/src/common/tortls.c#L67-L68
+	//
+	//	/** How long do identity certificates live? (sec) */
+	//	#define IDENTITY_CERT_LIFETIME  (365*24*60*60)
+	//
+
+	idLifetime := time.Duration(365*24) * time.Hour
+
+	var err error
+	ctx.IDCert, err = generateCertificate(idCN, idKey, idLifetime)
+	if err != nil {
+		return nil, err
+	}
+
+	err = setIssuerAndSignCertificate(ctx.IDCert, ctx.IDCert, idKey)
+	if err != nil {
+		return nil, err
+	}
+
 	// Certificate lifetime is either set by the SSLKeyLifetime option or
 	// generated to a reasonable looking value.
 	//
@@ -59,8 +93,8 @@ func GenerateConnectionCertificates(idKey torkeys.PrivateKey) (ConnectionCertifi
 	// certificates.
 	lifetime := generateCertificateLifetime()
 
-	fmt.Println(linkCN, idCN, lifetime)
-
+	// Generate link certificate.
+	//
 	// Reference: https://github.com/torproject/tor/blob/master/src/common/tortls.c#L1080-L1082
 	//
 	//	    /* Create a link certificate signed by identity key. */
@@ -68,17 +102,71 @@ func GenerateConnectionCertificates(idKey torkeys.PrivateKey) (ConnectionCertifi
 	//	                                      key_lifetime);
 	//
 
-	//linkCert, err := openssl.NewCertificate(&openssl.CertificateInfo{
-	//	CommonName: linkCN,
-	//	Serial:     rand.Int63(),
-	//	Issued:     issued,
-	//	Expires:    expires,
-	//}, tmpPk)
-	//if err != nil {
-	//	return nil, err
-	//}
+	ctx.LinkKey, err = torkeys.GenerateRSA()
+	if err != nil {
+		return nil, err
+	}
 
-	return nil, nil
+	ctx.LinkCert, err = generateCertificate(linkCN, ctx.LinkKey, lifetime)
+	if err != nil {
+		return nil, err
+	}
+
+	err = setIssuerAndSignCertificate(ctx.LinkCert, ctx.IDCert, idKey)
+	if err != nil {
+		return nil, err
+	}
+
+	// Generate auth certificate.
+
+	ctx.AuthKey, err = torkeys.GenerateRSA()
+	if err != nil {
+		return nil, err
+	}
+
+	ctx.AuthCert, err = generateCertificate(linkCN, ctx.AuthKey, lifetime)
+	if err != nil {
+		return nil, err
+	}
+
+	err = setIssuerAndSignCertificate(ctx.AuthCert, ctx.IDCert, idKey)
+	if err != nil {
+		return nil, err
+	}
+
+	return ctx, nil
+}
+
+func generateCertificate(cn string, key openssl.PrivateKey, lifetime time.Duration) (*openssl.Certificate, error) {
+	serial, err := generateCertificateSerial()
+	if err != nil {
+		return nil, err
+	}
+
+	now := time.Now()
+	issued := generateCertificateIssued(now, lifetime)
+	issuedDuration := issued.Sub(now)
+
+	return openssl.NewCertificate(&openssl.CertificateInfo{
+		CommonName: cn,
+		Serial:     serial,
+		Issued:     issuedDuration,
+		Expires:    issuedDuration + lifetime,
+	}, key)
+}
+
+func setIssuerAndSignCertificate(cert, issuer *openssl.Certificate, key openssl.PrivateKey) error {
+	err := cert.SetIssuer(issuer)
+	if err != nil {
+		return err
+	}
+
+	err = cert.Sign(key, openssl.EVP_SHA256)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // randomHostname generates a hostname starting with prefix, ending with
@@ -139,6 +227,24 @@ func generateCertificateLifetime() time.Duration {
 	days := 5 + rand.Intn(360)
 	wobble := rand.Intn(2)
 	return time.Duration(days*24)*time.Hour - time.Duration(wobble)*time.Second
+}
+
+// generateCertificateIssued computes when we pretend a certificate was
+// issued, given the total lifetime of the certificate.
+func generateCertificateIssued(now time.Time, lifetime time.Duration) time.Time {
+	// Reference: https://github.com/torproject/tor/blob/master/src/common/tortls.c#L481-L487
+	//
+	//	  /* Make sure we're part-way through the certificate lifetime, rather
+	//	   * than having it start right now. Don't choose quite uniformly, since
+	//	   * then we might pick a time where we're about to expire. Lastly, be
+	//	   * sure to start on a day boundary. */
+	//	  time_t now = time(NULL);
+	//	  start_time = crypto_rand_time_range(now - cert_lifetime, now) + 2*24*3600;
+	//	  start_time -= start_time % (24*3600);
+	//
+
+	// BUG(mmcloughlin): certificate issued time not correctly computed
+	return now.Add(-lifetime / 2)
 }
 
 // generateCertificateSerial generates a serial number for a certificate. This
