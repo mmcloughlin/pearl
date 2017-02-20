@@ -159,34 +159,96 @@ func newSSLCtx() (*openssl.Ctx, error) {
 		return nil, err
 	}
 
-	// Insert: https://github.com/torproject/tor/blob/master/src/common/tortls.c#L1209-L1216
+	// Reference: https://github.com/torproject/tor/blob/master/src/common/tortls.c#L1209-L1216
+	//
+	//	    if (flags & TOR_TLS_CTX_USE_ECDHE_P224)
+	//	      nid = NID_secp224r1;
+	//	    else if (flags & TOR_TLS_CTX_USE_ECDHE_P256)
+	//	      nid = NID_X9_62_prime256v1;
+	//	    else
+	//	      nid = NID_tor_default_ecdhe_group;
+	//	    /* Use P-256 for ECDHE. */
+	//	    ec_key = EC_KEY_new_by_curve_name(nid);
+	//
 	ctx.SetEllipticCurve(openssl.Prime256v1)
 
-	// Insert: https://github.com/torproject/tor/blob/master/src/common/tortls.c#L1124-L1125
+	// Reference: https://github.com/torproject/tor/blob/master/src/common/tortls.c#L1124-L1125
+	//
+	//	  SSL_CTX_set_options(result->ctx, SSL_OP_NO_SSLv2);
+	//	  SSL_CTX_set_options(result->ctx, SSL_OP_NO_SSLv3);
+	//
 	ctx.SetOptions(openssl.NoSSLv2 | openssl.NoSSLv3)
 
-	// Insert: https://github.com/torproject/tor/blob/master/src/common/tortls.c#L1127-L1129
+	// Reference: https://github.com/torproject/tor/blob/master/src/common/tortls.c#L1127-L1129
+	//
+	//	  /* Prefer the server's ordering of ciphers: the client's ordering has
+	//	  * historically been chosen for fingerprinting resistance. */
+	//	  SSL_CTX_set_options(result->ctx, SSL_OP_CIPHER_SERVER_PREFERENCE);
+	//
 	ctx.SetOptions(openssl.CipherServerPreference)
 
-	// Insert: https://github.com/torproject/tor/blob/master/src/common/tortls.c#L1131-L1145
+	// Reference: https://github.com/torproject/tor/blob/master/src/common/tortls.c#L1131-L1145
+	//
+	//	  /* Disable TLS tickets if they're supported.  We never want to use them;
+	//	   * using them can make our perfect forward secrecy a little worse, *and*
+	//	   * create an opportunity to fingerprint us (since it's unusual to use them
+	//	   * with TLS sessions turned off).
+	//	   *
+	//	   * In 0.2.4, clients advertise support for them though, to avoid a TLS
+	//	   * distinguishability vector.  This can give us worse PFS, though, if we
+	//	   * get a server that doesn't set SSL_OP_NO_TICKET.  With luck, there will
+	//	   * be few such servers by the time 0.2.4 is more stable.
+	//	   */
+	//	#ifdef SSL_OP_NO_TICKET
+	//	  if (! is_client) {
+	//	    SSL_CTX_set_options(result->ctx, SSL_OP_NO_TICKET);
+	//	  }
+	//	#endif
+	//
 	ctx.SetOptions(openssl.NoTicket)
 
-	// Insert: https://github.com/torproject/tor/blob/master/src/common/tortls.c#L1172-L1174
+	// Reference: https://github.com/torproject/tor/blob/master/src/common/tortls.c#L1172-L1174
+	//
+	//	#ifdef SSL_MODE_RELEASE_BUFFERS
+	//	  SSL_CTX_set_mode(result->ctx, SSL_MODE_RELEASE_BUFFERS);
+	//	#endif
+	//
 	ctx.SetMode(openssl.ReleaseBuffers)
 
-	// Insert: https://github.com/torproject/tor/blob/master/src/common/tortls.c#L1147-L1148
+	// Reference: https://github.com/torproject/tor/blob/master/src/common/tortls.c#L1147-L1148
+	//
+	//	  SSL_CTX_set_options(result->ctx, SSL_OP_SINGLE_DH_USE);
+	//	  SSL_CTX_set_options(result->ctx, SSL_OP_SINGLE_ECDH_USE);
+	//
 	ctx.SetOptions(openssl.SingleDHUse | openssl.SingleECDHUse)
 
-	// Insert: https://github.com/torproject/torspec/blob/master/tor-spec.txt#L382-L384
+	// Reference: https://github.com/torproject/torspec/blob/master/tor-spec.txt#L382-L384
+	//
+	//	   Implementations MUST NOT allow TLS session resumption -- it can
+	//	   exacerbate some attacks (e.g. the "Triple Handshake" attack from
+	//	   Feb 2013), and it plays havoc with forward secrecy guarantees.
+	//
 	ctx.SetOptions(openssl.NoSessionResumptionOrRenegotiation)
 
-	// Insert: https://github.com/torproject/tor/blob/master/src/common/tortls.c#L1161-L1163
+	// Reference: https://github.com/torproject/tor/blob/master/src/common/tortls.c#L1161-L1163
+	//
+	//	#ifdef SSL_OP_NO_COMPRESSION
+	//	  SSL_CTX_set_options(result->ctx, SSL_OP_NO_COMPRESSION);
+	//	#endif
+	//
 	ctx.SetOptions(openssl.NoCompression)
 
-	// Insert: https://github.com/torproject/tor/blob/master/src/common/tortls.c#L1188
+	// Reference: https://github.com/torproject/tor/blob/master/src/common/tortls.c#L1188
+	//
+	//	  SSL_CTX_set_session_cache_mode(result->ctx, SSL_SESS_CACHE_OFF);
+	//
 	ctx.SetSessionCacheMode(openssl.SessionCacheOff)
 
-	// Insert: https://github.com/torproject/tor/blob/master/src/common/tortls.c#L1221-L1222
+	// Reference: https://github.com/torproject/tor/blob/master/src/common/tortls.c#L1221-L1222
+	//
+	//	  SSL_CTX_set_verify(result->ctx, SSL_VERIFY_PEER,
+	//	                     always_accept_verify_cb);
+	//
 	ctx.SetVerify(openssl.VerifyNone, nil)
 
 	return ctx, nil
