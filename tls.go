@@ -27,8 +27,8 @@ type TLSContext struct {
 func NewTLSContext(idKey openssl.PrivateKey) (*TLSContext, error) {
 	var err error
 
-	ctx := &TLSContext{}
-	ctx.ctx, err = openssl.NewCtx()
+	tls := &TLSContext{}
+	tls.ctx, err = newSSLCtx()
 	if err != nil {
 		return nil, err
 	}
@@ -86,12 +86,12 @@ func NewTLSContext(idKey openssl.PrivateKey) (*TLSContext, error) {
 
 	idLifetime := time.Duration(365*24) * time.Hour
 
-	ctx.IDCert, err = generateCertificate(idCN, idKey, idLifetime)
+	tls.IDCert, err = generateCertificate(idCN, idKey, idLifetime)
 	if err != nil {
 		return nil, err
 	}
 
-	err = setIssuerAndSignCertificate(ctx.IDCert, ctx.IDCert, idKey)
+	err = setIssuerAndSignCertificate(tls.IDCert, tls.IDCert, idKey)
 	if err != nil {
 		return nil, err
 	}
@@ -112,37 +112,82 @@ func NewTLSContext(idKey openssl.PrivateKey) (*TLSContext, error) {
 	//	                                      key_lifetime);
 	//
 
-	ctx.LinkKey, err = torkeys.GenerateRSA()
+	// BUG(mmcloughlin): link key should be 2048 bits
+	tls.LinkKey, err = torkeys.GenerateRSA()
 	if err != nil {
 		return nil, err
 	}
 
-	ctx.LinkCert, err = generateCertificate(linkCN, ctx.LinkKey, lifetime)
+	tls.LinkCert, err = generateCertificate(linkCN, tls.LinkKey, lifetime)
 	if err != nil {
 		return nil, err
 	}
 
-	err = setIssuerAndSignCertificate(ctx.LinkCert, ctx.IDCert, idKey)
+	err = setIssuerAndSignCertificate(tls.LinkCert, tls.IDCert, idKey)
 	if err != nil {
 		return nil, err
 	}
 
 	// Generate auth certificate.
 
-	ctx.AuthKey, err = torkeys.GenerateRSA()
+	tls.AuthKey, err = torkeys.GenerateRSA()
 	if err != nil {
 		return nil, err
 	}
 
-	ctx.AuthCert, err = generateCertificate(linkCN, ctx.AuthKey, lifetime)
+	tls.AuthCert, err = generateCertificate(linkCN, tls.AuthKey, lifetime)
 	if err != nil {
 		return nil, err
 	}
 
-	err = setIssuerAndSignCertificate(ctx.AuthCert, ctx.IDCert, idKey)
+	err = setIssuerAndSignCertificate(tls.AuthCert, tls.IDCert, idKey)
 	if err != nil {
 		return nil, err
 	}
+
+	tls.ctx.UseCertificate(tls.LinkCert)
+	tls.ctx.UsePrivateKey(tls.LinkKey)
+
+	return tls, nil
+}
+
+// newSSLCtx builds a new openssl context configured with options required by
+// Tor.
+func newSSLCtx() (*openssl.Ctx, error) {
+	ctx, err := openssl.NewCtx()
+	if err != nil {
+		return nil, err
+	}
+
+	// Insert: https://github.com/torproject/tor/blob/master/src/common/tortls.c#L1209-L1216
+	ctx.SetEllipticCurve(openssl.Prime256v1)
+
+	// Insert: https://github.com/torproject/tor/blob/master/src/common/tortls.c#L1124-L1125
+	ctx.SetOptions(openssl.NoSSLv2 | openssl.NoSSLv3)
+
+	// Insert: https://github.com/torproject/tor/blob/master/src/common/tortls.c#L1127-L1129
+	ctx.SetOptions(openssl.CipherServerPreference)
+
+	// Insert: https://github.com/torproject/tor/blob/master/src/common/tortls.c#L1131-L1145
+	ctx.SetOptions(openssl.NoTicket)
+
+	// Insert: https://github.com/torproject/tor/blob/master/src/common/tortls.c#L1172-L1174
+	ctx.SetMode(openssl.ReleaseBuffers)
+
+	// Insert: https://github.com/torproject/tor/blob/master/src/common/tortls.c#L1147-L1148
+	ctx.SetOptions(openssl.SingleDHUse | openssl.SingleECDHUse)
+
+	// Insert: https://github.com/torproject/torspec/blob/master/tor-spec.txt#L382-L384
+	ctx.SetOptions(openssl.NoSessionResumptionOrRenegotiation)
+
+	// Insert: https://github.com/torproject/tor/blob/master/src/common/tortls.c#L1161-L1163
+	ctx.SetOptions(openssl.NoCompression)
+
+	// Insert: https://github.com/torproject/tor/blob/master/src/common/tortls.c#L1188
+	ctx.SetSessionCacheMode(openssl.SessionCacheOff)
+
+	// Insert: https://github.com/torproject/tor/blob/master/src/common/tortls.c#L1221-L1222
+	ctx.SetVerify(openssl.VerifyNone, nil)
 
 	return ctx, nil
 }
