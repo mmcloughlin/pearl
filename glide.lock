@@ -1,5 +1,5 @@
-hash: ec826b68968df87f1b21593e8aa95cabbb596b9839ab857ae009d54b1aae3cdf
-updated: 2017-01-29T15:51:04.258585204-08:00
+hash: e9eb4709410c65c9ba62bfc2ed4ee57b5688fa71a838b941d43e2416dadcd691
+updated: 2017-02-19T23:54:03.462202011-08:00
 imports:
 - name: github.com/davecgh/go-spew
   version: 6d212800a42e8ab5c146b8ace3490ee17e5225f9
@@ -18,7 +18,7 @@ imports:
 - name: github.com/mattn/go-isatty
   version: 3a115632dcd687f9c8cd01679c83a06a0e21c1f3
 - name: github.com/mmcloughlin/openssl
-  version: 686ecaafbf8f9adc2484f8869659fc6b78b3ec90
+  version: e83c891edf571ba605c95069b9ab6b5dc90725c7
 - name: github.com/pkg/errors
   version: 645ef00459ed84a119197bfb8d8205042c6df63d
 - name: github.com/pmezard/go-difflib
