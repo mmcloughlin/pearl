@@ -21,7 +21,8 @@ type optionHandler func(*Config, string) error
 // optionHandlers is a map from keywords (lowercased) to the associated
 // handler. Used by ParseTorrc.
 var optionHandlers = map[string]optionHandler{
-	"orport": orPortHandler,
+	"nickname": nicknameHandler,
+	"orport":   orPortHandler,
 }
 
 // ParseTorrc parses Config from the given reader (in torrc format).
@@ -75,6 +76,12 @@ func ParseTorrcFile(path string) (*Config, error) {
 	defer f.Close()
 
 	return ParseTorrc(f)
+}
+
+// nicknameHandler parses the "Nickname" line.
+func nicknameHandler(cfg *Config, args string) error {
+	cfg.Nickname = args
+	return nil
 }
 
 // orPortHandler parses the "OrPort" line.

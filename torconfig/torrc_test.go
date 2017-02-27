@@ -13,7 +13,8 @@ func TestParseTorrcFile(t *testing.T) {
 	require.NoError(t, err)
 
 	expect := &Config{
-		ORPort: 9001,
+		Nickname: "JetpacksPlease",
+		ORPort:   9001,
 	}
 
 	assert.Equal(t, expect, cfg)
