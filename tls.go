@@ -151,6 +151,10 @@ func NewTLSContext(idKey openssl.PrivateKey) (*TLSContext, error) {
 	return tls, nil
 }
 
+func (t *TLSContext) Ctx() *openssl.Ctx {
+	return t.ctx
+}
+
 // newSSLCtx builds a new openssl context configured with options required by
 // Tor.
 func newSSLCtx() (*openssl.Ctx, error) {
