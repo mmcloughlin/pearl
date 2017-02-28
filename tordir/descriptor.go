@@ -3,6 +3,7 @@ package tordir
 import (
 	"bytes"
 	"crypto/sha1"
+	"encoding/base64"
 	"encoding/pem"
 	"fmt"
 	"net"
@@ -28,6 +29,8 @@ const (
 	routerSignatureKeyword = "router-signature"
 	acceptKeyword          = "accept"
 	rejectKeyword          = "reject"
+	ntorOnionKeyKeyword    = "ntor-onion-key"
+	platformKeyword        = "platform"
 )
 
 var requiredKeywords = []string{
@@ -157,6 +160,13 @@ func (d *ServerDescriptor) SetBandwidth(avg, burst, observed int) error {
 	return nil
 }
 
+// SetPlatform sets the platform (software, version, OS) of the server
+// descriptor.
+func (d *ServerDescriptor) SetPlatform(platform string) error {
+	d.addItem(NewItem(platformKeyword, []string{platform}))
+	return nil
+}
+
 // SetPublishedTime sets the time the descriptor was published.
 //
 // Reference: https://github.com/torproject/torspec/blob/master/dir-spec.txt#L440-L445
@@ -199,6 +209,27 @@ func (d *ServerDescriptor) SetExitPolicy(policy *torexitpolicy.Policy) error {
 		args := []string{rule.Pattern.Describe()}
 		d.addItem(NewItem(keyword, args))
 	}
+	return nil
+}
+
+// Reference: https://github.com/torproject/torspec/blob/master/dir-spec.txt#L513-L522
+//
+//	    "ntor-onion-key" base-64-encoded-key
+//
+//	       [At most once]
+//
+//	       A curve25519 public key used for the ntor circuit extended
+//	       handshake.  It's the standard encoding of the OR's curve25519
+//	       public key, encoded in base 64.  The trailing '=' sign MAY be
+//	       omitted from the base64 encoding.  The key MUST be accepted
+//	       for at least 1 week after any new key is published in a
+//	       subsequent descriptor.
+//
+func (d *ServerDescriptor) SetNtorOnionKey(k *torkeys.Curve25519KeyPair) error {
+	args := []string{
+		base64.RawStdEncoding.EncodeToString(k.Public[:]),
+	}
+	d.addItem(NewItem(ntorOnionKeyKeyword, args))
 	return nil
 }
 
