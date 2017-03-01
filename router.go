@@ -14,6 +14,7 @@ import (
 	"github.com/pkg/errors"
 )
 
+// Router is a Tor router.
 type Router struct {
 	config *torconfig.Config
 
@@ -24,6 +25,7 @@ type Router struct {
 	logger log.Logger
 }
 
+// NewRouter constructs a router based on the given config.
 func NewRouter(config *torconfig.Config, logger log.Logger) (*Router, error) {
 	idKey, err := torkeys.GenerateRSA()
 	if err != nil {
@@ -49,10 +51,12 @@ func NewRouter(config *torconfig.Config, logger log.Logger) (*Router, error) {
 	}, nil
 }
 
+// IdentityKey returns the identity key of the router.
 func (r *Router) IdentityKey() openssl.PrivateKey {
 	return r.idKey
 }
 
+// Run starts a listener and enters a main loop handling connections.
 func (r *Router) Run() error {
 	laddr := fmt.Sprintf(":%d", r.config.ORPort)
 	r.logger.With("laddr", laddr).Info("creating listener")
@@ -78,6 +82,7 @@ func (r *Router) Run() error {
 	return nil
 }
 
+// Descriptor returns a server descriptor for this router.
 func (r *Router) Descriptor() *tordir.ServerDescriptor {
 	s := tordir.NewServerDescriptor()
 	s.SetRouter(r.config.Nickname, net.IPv4(127, 0, 0, 1), r.config.ORPort, 0)

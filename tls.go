@@ -5,6 +5,7 @@ import (
 	"io"
 	"math/big"
 	"math/rand"
+	"net"
 	"time"
 
 	"github.com/mmcloughlin/openssl"
@@ -151,8 +152,10 @@ func NewTLSContext(idKey openssl.PrivateKey) (*TLSContext, error) {
 	return tls, nil
 }
 
-func (t *TLSContext) Ctx() *openssl.Ctx {
-	return t.ctx
+// ServerConn wraps an existing connection with a TLS layer configured
+// with this context.
+func (t *TLSContext) ServerConn(conn net.Conn) (*openssl.Conn, error) {
+	return openssl.Server(conn, t.ctx)
 }
 
 // newSSLCtx builds a new openssl context configured with options required by

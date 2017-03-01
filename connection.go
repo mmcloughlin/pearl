@@ -9,6 +9,7 @@ import (
 	"github.com/mmcloughlin/pearl/log"
 )
 
+// Connection encapsulates a router connection.
 type Connection struct {
 	router  *Router
 	conn    net.Conn
@@ -18,13 +19,14 @@ type Connection struct {
 	logger log.Logger
 }
 
+// NewConnection constructs a connection
 func NewConnection(r *Router, conn net.Conn, logger log.Logger) (*Connection, error) {
 	tlsCtx, err := NewTLSContext(r.IdentityKey())
 	if err != nil {
 		return nil, err
 	}
 
-	tlsConn, err := openssl.Server(conn, tlsCtx.Ctx())
+	tlsConn, err := tlsCtx.ServerConn(conn)
 	if err != nil {
 		return nil, err
 	}
@@ -39,6 +41,7 @@ func NewConnection(r *Router, conn net.Conn, logger log.Logger) (*Connection, er
 	}, nil
 }
 
+// Handle handles the full lifecycle of the connection.
 func (c *Connection) Handle() error {
 	c.logger.Info("handle")
 
