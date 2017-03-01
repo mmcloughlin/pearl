@@ -212,6 +212,8 @@ func (d *ServerDescriptor) SetExitPolicy(policy *torexitpolicy.Policy) error {
 	return nil
 }
 
+// SetNtorOnionKey sets the key used for ntor circuit extended handshake.
+//
 // Reference: https://github.com/torproject/torspec/blob/master/dir-spec.txt#L513-L522
 //
 //	    "ntor-onion-key" base-64-encoded-key
