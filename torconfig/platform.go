@@ -30,8 +30,8 @@ func NewPlatformHostOS(software, version string) Platform {
 	return NewPlatform(software, version, runtime.GOOS)
 }
 
-// String converts Platform to the standard string represention seen in server
-// descriptors.
+// String converts Platform to the standard string representation seen in
+// server descriptors.
 func (p Platform) String() string {
 	return fmt.Sprintf("%s %s on %s", p.Software, p.Version, strings.Title(p.OS))
 }
