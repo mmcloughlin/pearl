@@ -22,7 +22,7 @@ type Command byte
 //	         9 -- RELAY_EARLY (End-to-end data; limited)(See Sec 5.6)
 //	         10 -- CREATE2    (Extended CREATE cell)    (See Sec 5.1)
 //	         11 -- CREATED2   (Extended CREATED cell)    (See Sec 5.1)
-//	
+//
 //	    Variable-length command values are:
 //	         7 -- VERSIONS    (Negotiate proto version) (See Sec 4)
 //	         128 -- VPADDING  (Variable-length padding) (See Sec 7.2)
