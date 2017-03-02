@@ -81,6 +81,6 @@ func (c Command) String() string {
 
 // IsCommand determines whether the given byte is a recognized cell command.
 func IsCommand(c byte) bool {
-	_, ok := commandStrings[c]
+	_, ok := commandStrings[Command(c)]
 	return ok
 }
