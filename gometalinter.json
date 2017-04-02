@@ -8,8 +8,6 @@
     "dupl",
     "gas",
     "gocyclo",
-    "gosimple",
-    "staticcheck",
     "lll",
     "misspell",
     "goconst"
