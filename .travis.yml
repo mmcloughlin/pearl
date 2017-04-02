@@ -11,7 +11,7 @@ install:
   - go get github.com/alecthomas/gometalinter
   - gometalinter --install
 script:
-  - gometalinter --vendor --config=gometalinter.json ./...
   - $GOPATH/bin/glide install
+  - gometalinter --vendor --config=gometalinter.json ./...
   - overalls -project=github.com/mmcloughlin/pearl -- -v
   - goveralls -coverprofile=overalls.coverprofile -service=travis-ci
