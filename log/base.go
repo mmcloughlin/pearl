@@ -6,29 +6,33 @@ import "github.com/inconshreveable/log15"
 // Logger is the base interface for logging in the pearl packages.
 type Logger interface {
 	// With adds key value pair(s) to the logging context.
-	With(ctx ...interface{}) Logger
+	With(string, interface{}) Logger
 
 	// Logging at levels used in the official Tor client.
-	Debug(msg string, ctx ...interface{})
-	Info(msg string, ctx ...interface{})
-	Notice(msg string, ctx ...interface{})
-	Warn(msg string, ctx ...interface{})
-	Error(msg string, ctx ...interface{})
+	Trace(msg string)
+	Debug(msg string)
+	Info(msg string)
+	Notice(msg string)
+	Warn(msg string)
+	Error(msg string)
 }
 
 type log15Adaptor struct {
 	log15.Logger
 }
 
-func (l log15Adaptor) With(ctx ...interface{}) Logger {
+func (l log15Adaptor) With(k string, v interface{}) Logger {
 	return log15Adaptor{
-		Logger: l.New(ctx...),
+		Logger: l.New(k, v),
 	}
 }
 
-func (l log15Adaptor) Notice(msg string, ctx ...interface{}) {
-	l.Info(msg, ctx...)
-}
+func (l log15Adaptor) Trace(msg string)  { l.Logger.Debug(msg) }
+func (l log15Adaptor) Debug(msg string)  { l.Logger.Debug(msg) }
+func (l log15Adaptor) Info(msg string)   { l.Logger.Info(msg) }
+func (l log15Adaptor) Notice(msg string) { l.Logger.Info(msg) }
+func (l log15Adaptor) Warn(msg string)   { l.Logger.Warn(msg) }
+func (l log15Adaptor) Error(msg string)  { l.Logger.Error(msg) }
 
 // NewDebug builds a logger intended for debugging purposes.
 func NewDebug() Logger {
