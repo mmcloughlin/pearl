@@ -2,12 +2,17 @@ package pearl
 
 import "errors"
 
+// LinkProtocolVersion represents the version number of the link protocol.
 type LinkProtocolVersion uint16
 
 var (
-	LinkProtocolNone LinkProtocolVersion = 0
+	// LinkProtocolNone is an empty placeholder value for the
+	// LinkProtocolVersion type.
+	LinkProtocolNone LinkProtocolVersion
 )
 
+// ErrNoCommonVersion is returned from ResolveVersion when the two lists of
+// supported versions do not have any versions in common.
 var ErrNoCommonVersion = errors.New("no common version found")
 
 // ResolveVersion determines the agreed link protocol given the lists
