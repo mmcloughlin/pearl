@@ -18,25 +18,36 @@ type Logger interface {
 }
 
 type log15Adaptor struct {
-	log15.Logger
+	base log15.Logger
+	ctx  log15.Ctx
 }
 
 func (l log15Adaptor) With(k string, v interface{}) Logger {
+	newCtx := log15.Ctx{}
+	for key, val := range l.ctx {
+		newCtx[key] = val
+	}
+	newCtx[k] = v
 	return log15Adaptor{
-		Logger: l.New(k, v),
+		base: l.base,
+		ctx:  newCtx,
 	}
 }
 
-func (l log15Adaptor) Trace(msg string)  { l.Logger.Debug(msg) }
-func (l log15Adaptor) Debug(msg string)  { l.Logger.Debug(msg) }
-func (l log15Adaptor) Info(msg string)   { l.Logger.Info(msg) }
-func (l log15Adaptor) Notice(msg string) { l.Logger.Info(msg) }
-func (l log15Adaptor) Warn(msg string)   { l.Logger.Warn(msg) }
-func (l log15Adaptor) Error(msg string)  { l.Logger.Error(msg) }
+func (l log15Adaptor) logger() log15.Logger {
+	return l.base.New(l.ctx)
+}
+
+func (l log15Adaptor) Trace(msg string)  { l.Debug(msg) }
+func (l log15Adaptor) Debug(msg string)  { l.logger().Debug(msg) }
+func (l log15Adaptor) Info(msg string)   { l.logger().Info(msg) }
+func (l log15Adaptor) Notice(msg string) { l.Info(msg) }
+func (l log15Adaptor) Warn(msg string)   { l.logger().Warn(msg) }
+func (l log15Adaptor) Error(msg string)  { l.logger().Error(msg) }
 
 // NewDebug builds a logger intended for debugging purposes.
 func NewDebug() Logger {
 	return log15Adaptor{
-		Logger: log15.New(),
+		base: log15.New(),
 	}
 }
