@@ -23,10 +23,10 @@ func init() {
 }
 
 func run() error {
-	platform := torconfig.NewPlatformHostOS("pearl", "0.1")
+	platform := torconfig.NewPlatformHostOS("Tor", "0.2.9.9")
 	config := &torconfig.Config{
 		Nickname: "pearl",
-		ORPort:   9001,
+		ORPort:   9111,
 		Platform: platform.String(),
 	}
 

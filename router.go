@@ -47,7 +47,7 @@ func NewRouter(config *torconfig.Config, logger log.Logger) (*Router, error) {
 		idKey:    idKey,
 		onionKey: onionKey,
 		ntorKey:  ntorKey,
-		logger:   logger,
+		logger:   log.ForComponent(logger, "router"),
 	}, nil
 }
 

@@ -11,6 +11,8 @@ var (
 	LinkProtocolNone LinkProtocolVersion
 )
 
+var SupportedLinkProtocolVersions = []LinkProtocolVersion{4}
+
 // ErrNoCommonVersion is returned from ResolveVersion when the two lists of
 // supported versions do not have any versions in common.
 var ErrNoCommonVersion = errors.New("no common version found")

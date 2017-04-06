@@ -2,19 +2,20 @@ package pearl
 
 import (
 	"fmt"
-	"io"
 	"net"
 
 	"github.com/mmcloughlin/openssl"
 	"github.com/mmcloughlin/pearl/log"
+	"github.com/pkg/errors"
 )
 
 // Connection encapsulates a router connection.
 type Connection struct {
-	router  *Router
-	conn    net.Conn
-	tlsCtx  *TLSContext
-	tlsConn *openssl.Conn
+	router     *Router
+	conn       net.Conn
+	tlsCtx     *TLSContext
+	tlsConn    *openssl.Conn
+	cellReader CellReader
 
 	logger log.Logger
 }
@@ -31,13 +32,16 @@ func NewConnection(r *Router, conn net.Conn, logger log.Logger) (*Connection, er
 		return nil, err
 	}
 
-	return &Connection{
-		router:  r,
-		conn:    conn,
-		tlsCtx:  tlsCtx,
-		tlsConn: tlsConn,
+	logger = logger.With("raddr", conn.RemoteAddr())
 
-		logger: logger.With("raddr", conn.RemoteAddr()),
+	return &Connection{
+		router:     r,
+		conn:       conn,
+		tlsCtx:     tlsCtx,
+		tlsConn:    tlsConn,
+		cellReader: NewCellReader(tlsConn, logger),
+
+		logger: logger,
 	}, nil
 }
 
@@ -45,14 +49,55 @@ func NewConnection(r *Router, conn net.Conn, logger log.Logger) (*Connection, er
 func (c *Connection) Handle() error {
 	c.logger.Info("handle")
 
-	// XXX read from conn
-	buf := make([]byte, 5)
-	_, err := io.ReadFull(c.tlsConn, buf)
+	err := c.handshake()
 	if err != nil {
 		return err
 	}
 
-	fmt.Println(buf)
+	return nil
+}
+
+func (c *Connection) handshake() error {
+	// Expect a versions cell. Note this has circID length 2 regardless of link
+	// protocol version.
+	//
+	// Reference: https://github.com/torproject/torspec/blob/master/tor-spec.txt#L411-L413
+	//
+	//	   CIRCID_LEN is 2 for link protocol versions 1, 2, and 3.  CIRCID_LEN
+	//	   is 4 for link protocol version 4 or higher.  The VERSIONS cell itself
+	//	   always has CIRCID_LEN == 2 for backward compatibility.
+	//
+	cell, err := c.cellReader.ReadCell(VersionsCellFormat)
+	if err != nil {
+		return errors.Wrap(err, "could not read cell")
+	}
+
+	versionsCell, err := ParseVersionsCell(cell)
+	if err != nil {
+		return errors.Wrap(err, "could not parse versions cell")
+	}
+
+	c.logger.With("supported_versions", versionsCell.SupportedVersions).Debug("received versions cell")
+
+	// Send our own versions cell
+	ourVersionsCell := VersionsCell{
+		SupportedVersions: SupportedLinkProtocolVersions,
+	}
+	cell = ourVersionsCell.Cell()
+
+	_, err = c.tlsConn.Write(cell.Bytes())
+	if err != nil {
+		return errors.Wrap(err, "could not send versions cell")
+	}
+
+	c.logger.With("supported_versions", SupportedLinkProtocolVersions).Debug("sent versions cell")
+
+	// XXX
+	cell, err = c.cellReader.ReadCell(VersionsCellFormat)
+	if err != nil {
+		return errors.Wrap(err, "could not read cell")
+	}
+	fmt.Println(cell)
 
 	return nil
 }
