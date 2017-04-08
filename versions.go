@@ -56,6 +56,8 @@ type VersionsCell struct {
 	SupportedVersions []LinkProtocolVersion
 }
 
+var _ CellBuilder = new(VersionsCell)
+
 func ParseVersionsCell(c Cell) (*VersionsCell, error) {
 	if c.Command() != Versions {
 		return nil, ErrUnexpectedCommand
@@ -78,12 +80,12 @@ func ParseVersionsCell(c Cell) (*VersionsCell, error) {
 	}, nil
 }
 
-func (v VersionsCell) Cell() Cell {
+func (v VersionsCell) Cell(_ CellFormat) (Cell, error) {
 	n := uint16(2 * len(v.SupportedVersions))
 	c := NewCellEmptyPayload(VersionsCellFormat, 0, Versions, n)
 	payload := c.Payload()
 	for i, version := range v.SupportedVersions {
 		binary.BigEndian.PutUint16(payload[2*i:2*i+2], uint16(version))
 	}
-	return c
+	return c, nil
 }
