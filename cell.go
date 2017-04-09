@@ -134,7 +134,7 @@ func NewFixedCell(f CellFormat, circID CircID, cmd Command) Cell {
 
 	// BUG(mmcloughlin): NewFixedCell should use sync.Pool to allocate
 	// cell buffers.
-	alloc := f.CircIDLen() + 1 + 2 + MaxPayloadLength
+	alloc := f.CircIDLen() + 1 + MaxPayloadLength
 	data := make([]byte, alloc) // assumes we need 2 bytes for length (but we may not)
 	ptr := 0
 

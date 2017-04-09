@@ -43,6 +43,14 @@ type NetInfoCell struct {
 
 var _ CellBuilder = new(NetInfoCell)
 
+func NewNetInfoCell(r net.IP, s []net.IP) *NetInfoCell {
+	return &NetInfoCell{
+		Timestamp:       time.Now(),
+		ReceiverAddress: r,
+		SenderAddresses: s,
+	}
+}
+
 func (n NetInfoCell) Cell(f CellFormat) (Cell, error) {
 	c := NewFixedCell(f, 0, Netinfo)
 	payload := c.Payload()
