@@ -1,6 +1,7 @@
 package pearl
 
 import (
+	"encoding/hex"
 	"fmt"
 	"net"
 
@@ -128,12 +129,34 @@ func (c *Connection) handshake() error {
 
 	c.logger.Debug("sent certs cell")
 
-	// XXX
-	cell, err = c.cellReader.ReadCell(f)
+	// Send auth challenge cell
+	authChallengeCell, err := NewAuthChallengeCellStandard()
 	if err != nil {
-		return errors.Wrap(err, "could not read cell")
+		return errors.Wrap(err, "error initializing auth challenge cell")
 	}
-	fmt.Println(cell)
+
+	cell, err = authChallengeCell.Cell(f)
+	if err != nil {
+		return errors.Wrap(err, "error building auth challenge cell")
+	}
+
+	_, err = c.tlsConn.Write(cell.Bytes())
+	if err != nil {
+		return errors.Wrap(err, "could not send auth challenge cell")
+	}
+
+	c.logger.Debug("sent auth challenge cell")
+
+	// XXX
+	for {
+		cell, err = c.cellReader.ReadCell(f)
+		if err != nil {
+			return errors.Wrap(err, "could not read cell")
+		}
+
+		hx := hex.EncodeToString(cell.Bytes())
+		fmt.Println(hx)
+	}
 
 	return nil
 }
