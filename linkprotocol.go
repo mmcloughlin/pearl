@@ -2,6 +2,8 @@ package pearl
 
 import "errors"
 
+var SupportedLinkProtocolVersions = []LinkProtocolVersion{4}
+
 // LinkProtocolVersion represents the version number of the link protocol.
 type LinkProtocolVersion uint16
 
@@ -11,7 +13,12 @@ var (
 	LinkProtocolNone LinkProtocolVersion
 )
 
-var SupportedLinkProtocolVersions = []LinkProtocolVersion{4}
+func (v LinkProtocolVersion) CellFormat() CellFormat {
+	if v > 3 {
+		return CircID4Format{}
+	}
+	return CircID2Format{}
+}
 
 // ErrNoCommonVersion is returned from ResolveVersion when the two lists of
 // supported versions do not have any versions in common.

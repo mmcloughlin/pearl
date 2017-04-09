@@ -83,7 +83,10 @@ func (c *Connection) handshake() error {
 	ourVersionsCell := VersionsCell{
 		SupportedVersions: SupportedLinkProtocolVersions,
 	}
-	cell = ourVersionsCell.Cell()
+	cell, err = ourVersionsCell.Cell(VersionsCellFormat)
+	if err != nil {
+		return errors.Wrap(err, "error building versions cell")
+	}
 
 	_, err = c.tlsConn.Write(cell.Bytes())
 	if err != nil {
@@ -92,8 +95,41 @@ func (c *Connection) handshake() error {
 
 	c.logger.With("supported_versions", SupportedLinkProtocolVersions).Debug("sent versions cell")
 
+	// Settle on a protocol version
+	proto, err := ResolveVersion(versionsCell.SupportedVersions, ourVersionsCell.SupportedVersions)
+	if err != nil {
+		return errors.Wrap(err, "could not agree on link protocol version")
+	}
+
+	c.logger.With("version", proto).Info("determined link protocol version")
+	f := proto.CellFormat()
+
+	// Send certs cell
+	//
+	// Reference: https://github.com/torproject/torspec/blob/master/tor-spec.txt#L567-L569
+	//
+	//	   To authenticate the responder, the initiator MUST check the following:
+	//	     * The CERTS cell contains exactly one CertType 1 "Link" certificate.
+	//	     * The CERTS cell contains exactly one CertType 2 "ID" certificate.
+	//
+	certsCell := &CertsCell{}
+	certsCell.AddCert(LinkCert, c.tlsCtx.LinkCert)
+	certsCell.AddCert(IdentityCert, c.tlsCtx.IDCert)
+
+	cell, err = certsCell.Cell(f)
+	if err != nil {
+		return errors.Wrap(err, "error building certs cell")
+	}
+
+	_, err = c.tlsConn.Write(cell.Bytes())
+	if err != nil {
+		return errors.Wrap(err, "could not send certs cell")
+	}
+
+	c.logger.Debug("sent certs cell")
+
 	// XXX
-	cell, err = c.cellReader.ReadCell(VersionsCellFormat)
+	cell, err = c.cellReader.ReadCell(f)
 	if err != nil {
 		return errors.Wrap(err, "could not read cell")
 	}

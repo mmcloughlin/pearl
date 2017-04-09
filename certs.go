@@ -78,8 +78,8 @@ type CertType uint8
 //
 var (
 	LinkCert     CertType = 1
-	IdentityCert          = 2
-	AuthCert              = 3
+	IdentityCert CertType = 2
+	AuthCert     CertType = 3
 )
 
 type CertCellEntry struct {
@@ -92,6 +92,13 @@ type CertsCell struct {
 }
 
 var _ CellBuilder = new(CertsCell)
+
+func (c *CertsCell) AddCert(t CertType, crt *openssl.Certificate) {
+	c.Certs = append(c.Certs, CertCellEntry{
+		Type: t,
+		Cert: crt,
+	})
+}
 
 func (c CertsCell) Cell(f CellFormat) (Cell, error) {
 	// Reference: https://github.com/torproject/torspec/blob/master/tor-spec.txt#L549-L553

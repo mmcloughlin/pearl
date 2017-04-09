@@ -87,6 +87,10 @@ type Cell interface {
 	Bytes() []byte
 }
 
+type CellBuilder interface {
+	Cell(CellFormat) (Cell, error)
+}
+
 type cell struct {
 	format CellFormat
 	data   []byte
@@ -141,6 +145,12 @@ func (c cell) Bytes() []byte {
 
 type CellReader interface {
 	ReadCell(CellFormat) (Cell, error)
+}
+
+type CellReaderFunc func(CellFormat) (Cell, error)
+
+func (r CellReaderFunc) ReadCell(f CellFormat) (Cell, error) {
+	return r(f)
 }
 
 type cellReader struct {
