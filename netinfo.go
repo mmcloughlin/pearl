@@ -1,6 +1,11 @@
 package pearl
 
-import "net"
+import (
+	"encoding/binary"
+	"errors"
+	"net"
+	"time"
+)
 
 // Reference: https://github.com/torproject/torspec/blob/master/tor-spec.txt#L681-L702
 //
@@ -27,6 +32,49 @@ import "net"
 //	   that they have connected to another OR at its canonical address.
 //	   (See 5.3.1 below.)
 //
+
+var ErrUnencodableAddress = errors.New("could not encode address")
+
+type NetInfoCell struct {
+	Timestamp       time.Time
+	ReceiverAddress net.IP
+	SenderAddresses []net.IP
+}
+
+var _ CellBuilder = new(NetInfoCell)
+
+func (n NetInfoCell) Cell(f CellFormat) (Cell, error) {
+	c := NewFixedCell(f, 0, Netinfo)
+	payload := c.Payload()
+
+	// timestamp
+	epoch := n.Timestamp.Unix()
+	binary.BigEndian.PutUint32(payload, uint32(epoch))
+	ptr := 4
+
+	// receiver address
+	b := EncodeAddress(n.ReceiverAddress)
+	if b == nil {
+		return nil, ErrUnencodableAddress
+	}
+	copy(payload[ptr:], b)
+	ptr += len(b)
+
+	// sender address
+	payload[ptr] = byte(len(n.SenderAddresses))
+	ptr++
+
+	for _, addr := range n.SenderAddresses {
+		b = EncodeAddress(addr)
+		if b == nil {
+			return nil, ErrUnencodableAddress
+		}
+		copy(payload[ptr:], b)
+		ptr += len(b)
+	}
+
+	return c, nil
+}
 
 // EncodeAddress encodes the given IP address into the byte format appropriate
 // for NETINFO cells and other purposes.
