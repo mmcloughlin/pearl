@@ -16,7 +16,7 @@ import:
   subpackages:
   - curve25519
 - package: github.com/mmcloughlin/openssl
-  version: 41338ca690470c74de77a40b3245bf25805becce
+  version: 4fd73cb378d4081edddfc4c2bf76fe2d102ebc77
 - package: github.com/pkg/errors
   version: ^0.8.0
 - package: github.com/inconshreveable/log15
