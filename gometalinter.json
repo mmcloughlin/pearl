@@ -7,7 +7,6 @@
     "deadcode",
     "dupl",
     "gas",
-    "gocyclo",
     "lll",
     "misspell",
     "goconst"
