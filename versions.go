@@ -50,14 +50,19 @@ import (
 //	     4 -- Increases circuit ID width to 4 bytes.
 //
 
+// ErrVersionsCellOddLength is returned when we receive a versions cell of odd
+// length. This should never happen, because the body should be a list of 16-bit
+// integers.
 var ErrVersionsCellOddLength = errors.New("versions cell with odd length")
 
+// VersionsCell is a list of supported link protocol versions.
 type VersionsCell struct {
 	SupportedVersions []LinkProtocolVersion
 }
 
 var _ CellBuilder = new(VersionsCell)
 
+// ParseVersionsCell parses a Cell into the list of supported versions.
 func ParseVersionsCell(c Cell) (*VersionsCell, error) {
 	if c.Command() != Versions {
 		return nil, ErrUnexpectedCommand
@@ -80,6 +85,7 @@ func ParseVersionsCell(c Cell) (*VersionsCell, error) {
 	}, nil
 }
 
+// Cell builds the cell bytes for the versions cell.
 func (v VersionsCell) Cell(_ CellFormat) (Cell, error) {
 	n := uint16(2 * len(v.SupportedVersions))
 	c := NewCellEmptyPayload(VersionsCellFormat, 0, Versions, n)

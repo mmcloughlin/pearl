@@ -147,6 +147,24 @@ func (c *Connection) handshake() error {
 
 	c.logger.Debug("sent auth challenge cell")
 
+	// Send NETINFO cell
+	netInfoCell, err := NewNetInfoCellFromConn(c.tlsConn)
+	if err != nil {
+		return errors.Wrap(err, "error initializing net info cell")
+	}
+
+	cell, err = netInfoCell.Cell(f)
+	if err != nil {
+		return errors.Wrap(err, "error building net info cell")
+	}
+
+	_, err = c.tlsConn.Write(cell.Bytes())
+	if err != nil {
+		return errors.Wrap(err, "could not send net info cell")
+	}
+
+	c.logger.Debug("sent net info cell")
+
 	// XXX
 	for {
 		cell, err = c.cellReader.ReadCell(f)
@@ -157,6 +175,4 @@ func (c *Connection) handshake() error {
 		hx := hex.EncodeToString(cell.Bytes())
 		fmt.Println(hx)
 	}
-
-	return nil
 }

@@ -3,6 +3,7 @@ package pearl
 import (
 	"encoding/binary"
 	"errors"
+	"fmt"
 	"net"
 	"time"
 )
@@ -33,8 +34,13 @@ import (
 //	   (See 5.3.1 below.)
 //
 
-var ErrUnencodableAddress = errors.New("could not encode address")
+// Errors which can occur when parsing NETINFO cells.
+var (
+	ErrUnencodableAddress = errors.New("could not encode address")
+	ErrParseIPFromAddress = errors.New("could not parse ip from address")
+)
 
+// NetInfoCell represents a NETINFO cell.
 type NetInfoCell struct {
 	Timestamp       time.Time
 	ReceiverAddress net.IP
@@ -43,6 +49,8 @@ type NetInfoCell struct {
 
 var _ CellBuilder = new(NetInfoCell)
 
+// NewNetInfoCell builds a NetInfoCell with the given receiver and sender
+// addresses.
 func NewNetInfoCell(r net.IP, s []net.IP) *NetInfoCell {
 	return &NetInfoCell{
 		Timestamp:       time.Now(),
@@ -51,6 +59,18 @@ func NewNetInfoCell(r net.IP, s []net.IP) *NetInfoCell {
 	}
 }
 
+// NewNetInfoCellFromConn constructs a NetInfoCell with local and remote
+// addresses from conn.
+func NewNetInfoCellFromConn(conn net.Conn) (*NetInfoCell, error) {
+	remote := addrToIP(conn.RemoteAddr())
+	local := addrToIP(conn.LocalAddr())
+	if remote == nil || local == nil {
+		return nil, ErrParseIPFromAddress
+	}
+	return NewNetInfoCell(remote, []net.IP{local}), nil
+}
+
+// Cell actually constructs the cell.
 func (n NetInfoCell) Cell(f CellFormat) (Cell, error) {
 	c := NewFixedCell(f, 0, Netinfo)
 	payload := c.Payload()
@@ -154,4 +174,10 @@ func EncodeAddress(ip net.IP) []byte {
 	}
 
 	return nil
+}
+
+// BUG(mbm): addrToIP is stubbed out.
+func addrToIP(addr net.Addr) net.IP {
+	fmt.Println(addr)
+	return net.IPv4(127, 0, 0, 1)
 }

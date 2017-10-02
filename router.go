@@ -78,8 +78,6 @@ func (r *Router) Run() error {
 
 		go c.Handle()
 	}
-
-	return nil
 }
 
 // Descriptor returns a server descriptor for this router.

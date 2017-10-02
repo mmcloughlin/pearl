@@ -2,6 +2,8 @@ package pearl
 
 import "errors"
 
+// SupportedLinkProtocolVersions contains the list of link protocol versions
+// supported by this relay.
 var SupportedLinkProtocolVersions = []LinkProtocolVersion{4}
 
 // LinkProtocolVersion represents the version number of the link protocol.
@@ -13,6 +15,7 @@ var (
 	LinkProtocolNone LinkProtocolVersion
 )
 
+// CellFormat returns the cell format used by this link protocol version.
 func (v LinkProtocolVersion) CellFormat() CellFormat {
 	if v > 3 {
 		return CircID4Format{}

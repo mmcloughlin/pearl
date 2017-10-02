@@ -24,11 +24,11 @@ func TestNetInfoCell(t *testing.T) {
 		},
 	}
 
-	c, err := n.Cell(CircID4Format{})
+	c, err := n.Cell(CircID2Format{})
 	require.NoError(t, err)
 
 	payload := []byte{
-		0, 0, 0, 0, // circid
+		0, 0, // circid
 		8,                      // command
 		0xbe, 0xef, 0xca, 0xfe, // timestamp
 		4, 4, 0x11, 0x22, 0x33, 0x44, // receiver addr
@@ -36,7 +36,7 @@ func TestNetInfoCell(t *testing.T) {
 		4, 4, 16, 32, 64, 128, // first sender addr
 		6, 16, 0xbb, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0xee, // second sender addr
 	}
-	expect := make([]byte, 514)
+	expect := make([]byte, 512)
 	copy(expect, payload)
 
 	assert.Equal(t, expect, c.Bytes())

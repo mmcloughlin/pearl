@@ -67,6 +67,7 @@ import (
 //	   below must be exchanged.
 //
 
+// CertType is the certificate type ID.
 type CertType uint8
 
 // Reference: https://github.com/torproject/torspec/blob/master/tor-spec.txt#L557-L560
@@ -82,17 +83,20 @@ var (
 	AuthCert     CertType = 3
 )
 
+// CertCellEntry represents one cell in a CERTS cell.
 type CertCellEntry struct {
 	Type CertType
 	Cert *openssl.Certificate
 }
 
+// CertsCell is a CERTS cell.
 type CertsCell struct {
 	Certs []CertCellEntry
 }
 
 var _ CellBuilder = new(CertsCell)
 
+// AddCert adds a certificate to the cell.
 func (c *CertsCell) AddCert(t CertType, crt *openssl.Certificate) {
 	c.Certs = append(c.Certs, CertCellEntry{
 		Type: t,
@@ -100,6 +104,7 @@ func (c *CertsCell) AddCert(t CertType, crt *openssl.Certificate) {
 	})
 }
 
+// Cell builds the cell.
 func (c CertsCell) Cell(f CellFormat) (Cell, error) {
 	// Reference: https://github.com/torproject/torspec/blob/master/tor-spec.txt#L549-L553
 	//
@@ -131,7 +136,7 @@ func (c CertsCell) Cell(f CellFormat) (Cell, error) {
 
 	for i, entry := range c.Certs {
 		payload[ptr] = byte(entry.Type)
-		ptr += 1
+		ptr++
 
 		der := encoded[i]
 		clen := uint16(len(der))

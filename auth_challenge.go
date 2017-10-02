@@ -28,8 +28,10 @@ import (
 //	   see 4.4 below.
 //
 
+// AuthMethod represents an authentication method ID.
 type AuthMethod uint16
 
+// AuthChallengeCell represents an AUTH_CHALLENGE cell.
 type AuthChallengeCell struct {
 	Challenge [32]byte
 	Methods   []AuthMethod
@@ -37,6 +39,8 @@ type AuthChallengeCell struct {
 
 var _ CellBuilder = new(AuthChallengeCell)
 
+// NewAuthChallengeCell builds an AUTH_CHALLENGE cell with the given method IDs.
+// The challenge is generated at random.
 func NewAuthChallengeCell(methods []AuthMethod) (*AuthChallengeCell, error) {
 	var challenge [32]byte
 	_, err := rand.Read(challenge[:])
@@ -49,10 +53,12 @@ func NewAuthChallengeCell(methods []AuthMethod) (*AuthChallengeCell, error) {
 	}, nil
 }
 
+// NewAuthChallengeCellStandard builds an AUTH_CHALLENGE cell for method 1.
 func NewAuthChallengeCellStandard() (*AuthChallengeCell, error) {
 	return NewAuthChallengeCell([]AuthMethod{1})
 }
 
+// Cell constructs the cell bytes.
 func (a AuthChallengeCell) Cell(f CellFormat) (Cell, error) {
 	// Reference: https://github.com/torproject/torspec/blob/master/tor-spec.txt#L605-L607
 	//
