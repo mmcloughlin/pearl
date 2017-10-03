@@ -8,32 +8,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestGenerateExpectedOutput(t *testing.T) {
-	t.Skip()
-
-	k, err := GenerateRSA()
-	require.NoError(t, err)
-
-	cases := []struct {
-		Name    string
-		Encoder func() ([]byte, error)
-	}{
-		{"pkcs1_private_der", k.MarshalPKCS1PrivateKeyDER},
-		{"pkcs1_private_pem", k.MarshalPKCS1PrivateKeyPEM},
-		{"pkcs1_public_der", k.MarshalPKCS1PublicKeyDER},
-		{"pkcs1_public_pem", k.MarshalPKCS1PublicKeyPEM},
-		{"pkix_public_der", k.MarshalPKIXPublicKeyDER},
-		{"pkix_public_pem", k.MarshalPKIXPublicKeyDER},
-	}
-
-	for _, c := range cases {
-		b, err := c.Encoder()
-		require.NoError(t, err)
-		err = ioutil.WriteFile("testdata/"+c.Name, b, 0640)
-		require.NoError(t, err)
-	}
-}
-
 func TestPrivatePKCS1DERRoundTrip(t *testing.T) {
 	b, err := ioutil.ReadFile("testdata/pkcs1_private_der")
 	require.NoError(t, err)
