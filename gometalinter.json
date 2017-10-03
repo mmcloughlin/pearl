@@ -5,7 +5,6 @@
     "golint",
     "ineffassign",
     "deadcode",
-    "dupl",
     "gas",
     "lll",
     "misspell",
