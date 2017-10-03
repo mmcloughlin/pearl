@@ -1,11 +1,11 @@
 package pearl
 
 import (
+	"crypto/tls"
 	"encoding/hex"
 	"fmt"
 	"net"
 
-	"github.com/mmcloughlin/openssl"
 	"github.com/mmcloughlin/pearl/log"
 	"github.com/pkg/errors"
 )
@@ -15,7 +15,7 @@ type Connection struct {
 	router     *Router
 	conn       net.Conn
 	tlsCtx     *TLSContext
-	tlsConn    *openssl.Conn
+	tlsConn    *tls.Conn
 	cellReader CellReader
 
 	logger log.Logger
@@ -28,10 +28,7 @@ func NewConnection(r *Router, conn net.Conn, logger log.Logger) (*Connection, er
 		return nil, err
 	}
 
-	tlsConn, err := tlsCtx.ServerConn(conn)
-	if err != nil {
-		return nil, err
-	}
+	tlsConn := tlsCtx.ServerConn(conn)
 
 	logger = logger.With("raddr", conn.RemoteAddr())
 
