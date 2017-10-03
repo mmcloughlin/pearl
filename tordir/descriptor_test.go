@@ -1,6 +1,7 @@
 package tordir
 
 import (
+	"crypto/rsa"
 	"fmt"
 	"io/ioutil"
 	"math/rand"
@@ -10,12 +11,9 @@ import (
 	"time"
 
 	"github.com/jarcoal/httpmock"
-	"github.com/mmcloughlin/openssl"
 	"github.com/mmcloughlin/pearl/torexitpolicy"
 	"github.com/mmcloughlin/pearl/torkeys"
-	"github.com/mmcloughlin/pearl/torkeys/mocks"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 )
 
@@ -36,19 +34,19 @@ pNzJAotYqomSEYacdERb3seT041nfmzDdibOl0xn6iLh7oIk4taIzLlUgQJBAK8l
 -----END RSA PRIVATE KEY-----
 `)
 
-func BuildValidServerDescriptorWithKey(k torkeys.PrivateKey) *ServerDescriptor {
+func BuildValidServerDescriptorWithKey(k *rsa.PrivateKey) *ServerDescriptor {
 	s := NewServerDescriptor()
 	s.SetRouter("nickname", net.IPv4(1, 2, 3, 4), 9001, 0)
 	s.SetBandwidth(1000, 2000, 500)
 	s.SetPublishedTime(time.Unix(0, 0))
 	s.SetExitPolicy(torexitpolicy.RejectAllPolicy)
-	s.SetOnionKey(k)
+	s.SetOnionKey(&k.PublicKey)
 	s.SetSigningKey(k)
 	return s
 }
 
 func BuildValidServerDescriptor() *ServerDescriptor {
-	k, err := openssl.LoadPrivateKeyFromPEM(keyPEM)
+	k, err := torkeys.ParseRSAPrivateKeyPKCS1PEM(keyPEM)
 	if err != nil {
 		panic(err)
 	}
@@ -63,7 +61,7 @@ func TestBuildValidServerDescriptor(t *testing.T) {
 func TestServerDescriptor(t *testing.T) {
 	s := NewServerDescriptor()
 
-	k, err := openssl.LoadPrivateKeyFromPEM(keyPEM)
+	k, err := torkeys.ParseRSAPrivateKeyPKCS1PEM(keyPEM)
 	require.NoError(t, err)
 
 	// router (required)
@@ -82,7 +80,7 @@ func TestServerDescriptor(t *testing.T) {
 
 	// onion-key (required)
 	assert.Error(t, s.Validate())
-	s.SetOnionKey(k)
+	s.SetOnionKey(&k.PublicKey)
 
 	// signing-key (required)
 	assert.Error(t, s.Validate())
@@ -118,48 +116,6 @@ func TestServerDescriptorSetRouterErrors(t *testing.T) {
 	addr := net.ParseIP("2001:4860:0:2001::68")
 	err = s.SetRouter("nickname", addr, 9001, 0)
 	assert.Error(t, err)
-}
-
-func TestServerDescriptorSetKeysError(t *testing.T) {
-	m := &mocks.PrivateKey{}
-	m.On("MarshalPKCS1PublicKeyDER").Return(nil, assert.AnError).Times(3)
-
-	s := NewServerDescriptor()
-
-	err := s.SetOnionKey(m)
-	assert.Error(t, err)
-
-	err = s.SetSigningKey(m)
-	assert.Error(t, err)
-
-	err = s.setFingerprint(m)
-	assert.Error(t, err)
-
-	m.AssertExpectations(t)
-}
-
-func TestServerDescriptorSetFingerprintError(t *testing.T) {
-	m := &mocks.PrivateKey{}
-	m.On("MarshalPKCS1PublicKeyDER").Return([]byte("data"), nil).Once()
-	m.On("MarshalPKCS1PublicKeyDER").Return(nil, assert.AnError).Once()
-
-	s := NewServerDescriptor()
-	err := s.SetSigningKey(m)
-	assert.Error(t, err)
-
-	m.AssertExpectations(t)
-}
-
-func TestServerDescriptorSignatureError(t *testing.T) {
-	k := &mocks.PrivateKey{}
-	k.On("MarshalPKCS1PublicKeyDER").Return([]byte("pem"), nil).Times(3)
-	k.On("PrivateEncrypt", mock.AnythingOfType("[]uint8")).Return(nil, assert.AnError).Once()
-
-	s := BuildValidServerDescriptorWithKey(k)
-
-	_, err := s.Document()
-	assert.Error(t, err)
-	k.AssertExpectations(t)
 }
 
 func TestServerDescriptorMissingFieldError(t *testing.T) {

@@ -2,7 +2,7 @@ package tordir
 
 import (
 	"bytes"
-	"crypto/sha1"
+	"crypto/rsa"
 	"encoding/base64"
 	"encoding/pem"
 	"fmt"
@@ -67,7 +67,7 @@ type ServerDescriptor struct {
 	router     *Item
 	items      []*Item
 	keywords   map[string]bool
-	signingKey torkeys.PrivateKey
+	signingKey *rsa.PrivateKey
 }
 
 // NewServerDescriptor constructs an empty server descriptor.
@@ -253,7 +253,7 @@ func (d *ServerDescriptor) SetNtorOnionKey(k *torkeys.Curve25519KeyPair) error {
 //	       structure, encoded in base64, and wrapped in "-----BEGIN RSA PUBLIC
 //	       KEY-----" and "-----END RSA PUBLIC KEY-----".
 //
-func (d *ServerDescriptor) SetOnionKey(k torkeys.PublicKey) error {
+func (d *ServerDescriptor) SetOnionKey(k *rsa.PublicKey) error {
 	item, err := newItemWithKey(onionKeyKeyword, k)
 	if err != nil {
 		return err
@@ -291,15 +291,15 @@ func (d *ServerDescriptor) SetOnionKey(k torkeys.PublicKey) error {
 //	       [We didn't start parsing this line until Tor 0.1.0.6-rc; it should
 //	        be marked with "opt" until earlier versions of Tor are obsolete.]
 //
-func (d *ServerDescriptor) SetSigningKey(k torkeys.PrivateKey) error {
-	item, err := newItemWithKey(signingKeyKeyword, k)
+func (d *ServerDescriptor) SetSigningKey(k *rsa.PrivateKey) error {
+	item, err := newItemWithKey(signingKeyKeyword, &k.PublicKey)
 	if err != nil {
 		return err
 	}
 
 	d.addItem(item)
 
-	err = d.setFingerprint(k)
+	err = d.setFingerprint(&k.PublicKey)
 	if err != nil {
 		return err
 	}
@@ -309,7 +309,7 @@ func (d *ServerDescriptor) SetSigningKey(k torkeys.PrivateKey) error {
 	return nil
 }
 
-func (d *ServerDescriptor) setFingerprint(k torkeys.PublicKey) error {
+func (d *ServerDescriptor) setFingerprint(k *rsa.PublicKey) error {
 	h, err := torkeys.PublicKeyHash(k)
 	if err != nil {
 		return err
@@ -389,9 +389,7 @@ func (d *ServerDescriptor) sign(doc *Document) error {
 	doc.AddItem(item)
 
 	data := doc.Encode()
-	digest := sha1.Sum(data)
-
-	sig, err := d.signingKey.PrivateEncrypt(digest[:])
+	sig, err := torkeys.SignRSASHA1(data, d.signingKey)
 	if err != nil {
 		return err
 	}
@@ -474,8 +472,8 @@ func (d *ServerDescriptor) PublishPublic() error {
 	return nil
 }
 
-func newItemWithKey(keyword string, k torkeys.PublicKey) (*Item, error) {
-	der, err := k.MarshalPKCS1PublicKeyDER()
+func newItemWithKey(keyword string, k *rsa.PublicKey) (*Item, error) {
+	der, err := torkeys.MarshalRSAPublicKeyPKCS1DER(k)
 	if err != nil {
 		return nil, err
 	}

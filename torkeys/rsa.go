@@ -37,3 +37,8 @@ func PublicKeyHash(k *rsa.PublicKey) ([]byte, error) {
 
 	return h[:], nil
 }
+
+func SignRSASHA1(data []byte, k *rsa.PrivateKey) ([]byte, error) {
+	digest := sha1.Sum(data)
+	return rsa.SignPKCS1v15(nil, k, 0, digest[:])
+}
