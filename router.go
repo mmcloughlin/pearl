@@ -1,11 +1,11 @@
 package pearl
 
 import (
+	"crypto/rsa"
 	"fmt"
 	"net"
 	"time"
 
-	"github.com/mmcloughlin/openssl"
 	"github.com/mmcloughlin/pearl/log"
 	"github.com/mmcloughlin/pearl/torconfig"
 	"github.com/mmcloughlin/pearl/tordir"
@@ -18,8 +18,8 @@ import (
 type Router struct {
 	config *torconfig.Config
 
-	idKey    openssl.PrivateKey
-	onionKey openssl.PrivateKey
+	idKey    *rsa.PrivateKey
+	onionKey *rsa.PrivateKey
 	ntorKey  *torkeys.Curve25519KeyPair
 
 	logger log.Logger
@@ -52,7 +52,7 @@ func NewRouter(config *torconfig.Config, logger log.Logger) (*Router, error) {
 }
 
 // IdentityKey returns the identity key of the router.
-func (r *Router) IdentityKey() openssl.PrivateKey {
+func (r *Router) IdentityKey() *rsa.PrivateKey {
 	return r.idKey
 }
 
@@ -89,7 +89,7 @@ func (r *Router) Descriptor() *tordir.ServerDescriptor {
 	s.SetPublishedTime(time.Now())
 	s.SetExitPolicy(torexitpolicy.RejectAllPolicy)
 	s.SetSigningKey(r.IdentityKey())
-	s.SetOnionKey(r.onionKey)
+	s.SetOnionKey(&r.onionKey.PublicKey)
 	s.SetNtorOnionKey(r.ntorKey)
 	return s
 }
