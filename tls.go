@@ -146,7 +146,16 @@ func NewTLSContext(idKey *rsa.PrivateKey) (*TLSContext, error) {
 		return nil, errors.Wrap(err, "error signing auth certificate")
 	}
 
-	// XXX configure certificates
+	// configure certificates
+	ctx.cfg.Certificates = []tls.Certificate{
+		{
+			Certificate: [][]byte{
+				ctx.LinkCert.Raw,
+			},
+			PrivateKey: ctx.LinkKey,
+			Leaf:       ctx.LinkCert,
+		},
+	}
 
 	return ctx, nil
 }
