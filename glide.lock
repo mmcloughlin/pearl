@@ -1,57 +1,21 @@
-hash: aed61452283f3f151d5f3d8fc66af90d74a0d2fdf89945537971eb44c112227f
-updated: 2017-04-08T19:58:17.640133478-07:00
+hash: 71fddaec4092f18484028dd9c53e737c7bcf4964c9e0dd86fb82e09ef388a153
+updated: 2017-10-03T18:22:11.041899623-07:00
 imports:
-- name: github.com/davecgh/go-spew
-  version: 6d212800a42e8ab5c146b8ace3490ee17e5225f9
-  subpackages:
-  - spew
 - name: github.com/erans/gonionoo
-  version: 870942f67e087fb308cd84f3f4b6e88960863ce3
+  version: cbf36867527f94681035fbdc84e384627dcd2eb3
 - name: github.com/inconshreveable/log15
-  version: b105bd37f74e5d9dc7b6ad7806715c7a2b83fd3f
-- name: github.com/inconshreveable/mousetrap
-  version: 76626ae9c91c4f2a10f34cad8ce83ea42c93bb75
+  version: 0e4443bab83dd915f5a6d36d8c650b180744b8ce
 - name: github.com/jarcoal/httpmock
-  version: 145b10d659265440f062c31ea15326166bae56ee
-- name: github.com/mattn/go-colorable
-  version: ed8eb9e318d7a84ce5915b495b7d35e0cfe7b5a8
-- name: github.com/mattn/go-isatty
-  version: dda3de49cbfcec471bd7a70e6cc01fcc3ff90109
-- name: github.com/mmcloughlin/openssl
-  version: 4fd73cb378d4081edddfc4c2bf76fe2d102ebc77
-  subpackages:
-  - utils
+  version: 4442edb3db31196622da56482fd8d0fa375fba4d
 - name: github.com/pkg/errors
   version: 645ef00459ed84a119197bfb8d8205042c6df63d
-- name: github.com/pmezard/go-difflib
-  version: d8ed2627bdf02c080bf22230dbb337003b7aba2d
-  subpackages:
-  - difflib
-- name: github.com/spacemonkeygo/spacelog
-  version: 16604ed16156d8634877b208e8acc9279f399777
-- name: github.com/spf13/cobra
-  version: 9c28e4bbd74e5c3ed7aacbc552b2cab7cfdfe744
-- name: github.com/spf13/pflag
-  version: c7e63cf4530bcd3ba943729cee0efeff2ebea63f
-- name: github.com/stretchr/objx
-  version: cbeaeb16a013161a98496fad62933b1d21786672
 - name: github.com/stretchr/testify
   version: 69483b4bd14f5845b5a1e55bca19e954e827f1d0
   subpackages:
   - assert
-  - mock
   - require
 - name: golang.org/x/crypto
-  version: 8a549a1948fc5271eb24f36dcb0d3b47dec75a16
+  version: 9419663f5a44be8b34ca85f08abc5fe1be11f8a3
   subpackages:
   - curve25519
-- name: golang.org/x/sys
-  version: 8f0908ab3b2457e2e15403d3697c9ef5cb4b57a9
-  subpackages:
-  - unix
-- name: gopkg.in/inconshreveable/log15.v2
-  version: b105bd37f74e5d9dc7b6ad7806715c7a2b83fd3f
-  subpackages:
-  - stack
-  - term
 testImports: []
