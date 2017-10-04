@@ -3,7 +3,6 @@ package pearl
 import (
 	cryptorand "crypto/rand"
 	"crypto/rsa"
-	"crypto/tls"
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"io"
@@ -11,6 +10,8 @@ import (
 	"math/rand"
 	"net"
 	"time"
+
+	"github.com/mmcloughlin/pearl/tls"
 
 	"github.com/mmcloughlin/pearl/torkeys"
 	"github.com/pkg/errors"

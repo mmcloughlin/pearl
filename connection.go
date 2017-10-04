@@ -1,10 +1,11 @@
 package pearl
 
 import (
-	"crypto/tls"
 	"encoding/hex"
 	"fmt"
 	"net"
+
+	"github.com/mmcloughlin/pearl/tls"
 
 	"github.com/mmcloughlin/pearl/log"
 	"github.com/pkg/errors"
