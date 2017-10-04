@@ -277,7 +277,10 @@ func generateCertificateTemplate(cn string, lifetime time.Duration) (*x509.Certi
 	}, nil
 }
 
-func createCertificate(tmpl, parent *x509.Certificate, pub *rsa.PublicKey, priv *rsa.PrivateKey) (*x509.Certificate, error) {
+func createCertificate(
+	tmpl, parent *x509.Certificate,
+	pub *rsa.PublicKey, priv *rsa.PrivateKey,
+) (*x509.Certificate, error) {
 	der, err := x509.CreateCertificate(nil, tmpl, parent, pub, priv)
 	if err != nil {
 		return nil, err
