@@ -11,7 +11,8 @@
     "goconst"
   ],
   "Skip": [
-    "mocks"
+    "mocks",
+    "tls"
   ],
   "LineLength": 130
 }
