@@ -1,7 +1,7 @@
 package torkeys
 
 import (
-	"crypto/rand"
+	cryptorand "crypto/rand"
 	"crypto/rsa"
 	"crypto/sha1"
 )
@@ -16,7 +16,12 @@ import (
 //	   padding, see ftp://ftp.rsasecurity.com/pub/pkcs/pkcs-1/pkcs-1v2-1.pdf)
 //
 func GenerateRSA() (*rsa.PrivateKey, error) {
-	return rsa.GenerateKey(rand.Reader, 1024)
+	return GenerateRSAWithBits(1024)
+}
+
+// GenerateRSAWithBits generates an RSA private key of the given size.
+func GenerateRSAWithBits(bits int) (*rsa.PrivateKey, error) {
+	return rsa.GenerateKey(cryptorand.Reader, bits)
 }
 
 // PublicKeyHash computes the hash of a public key as defined in the spec

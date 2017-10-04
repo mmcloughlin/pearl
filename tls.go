@@ -2,37 +2,38 @@ package pearl
 
 import (
 	cryptorand "crypto/rand"
+	"crypto/rsa"
+	"crypto/tls"
+	"crypto/x509"
+	"crypto/x509/pkix"
 	"io"
 	"math/big"
 	"math/rand"
 	"net"
 	"time"
 
-	"github.com/mmcloughlin/openssl"
 	"github.com/mmcloughlin/pearl/torkeys"
+	"github.com/pkg/errors"
 )
 
 // TLSContext manages TLS parameters for a connection.
 type TLSContext struct {
-	ctx *openssl.Ctx
+	cfg *tls.Config
 
-	IDCert   *openssl.Certificate
-	LinkKey  openssl.PrivateKey
-	LinkCert *openssl.Certificate
-	AuthKey  openssl.PrivateKey
-	AuthCert *openssl.Certificate
+	IDCert   *x509.Certificate
+	LinkKey  *rsa.PrivateKey
+	LinkCert *x509.Certificate
+	AuthKey  *rsa.PrivateKey
+	AuthCert *x509.Certificate
 }
 
 // NewTLSContext builds a TLS context for a new connection with the given
 // identity key.
-func NewTLSContext(idKey openssl.PrivateKey) (*TLSContext, error) {
+func NewTLSContext(idKey *rsa.PrivateKey) (*TLSContext, error) {
 	var err error
 
-	tls := &TLSContext{}
-	tls.ctx, err = newSSLCtx()
-	if err != nil {
-		return nil, err
-	}
+	ctx := &TLSContext{}
+	ctx.cfg = newBaseTLSConfig()
 
 	// Reference: https://github.com/torproject/torspec/blob/master/tor-spec.txt#L225-L245
 	//
@@ -87,14 +88,14 @@ func NewTLSContext(idKey openssl.PrivateKey) (*TLSContext, error) {
 
 	idLifetime := time.Duration(365*24) * time.Hour
 
-	tls.IDCert, err = generateCertificate(idCN, idKey, idLifetime)
+	idCertTmpl, err := generateCertificateTemplate(idCN, idLifetime)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "failed to generate ID cert template")
 	}
 
-	err = setIssuerAndSignCertificate(tls.IDCert, tls.IDCert, idKey)
+	ctx.IDCert, err = createCertificate(idCertTmpl, idCertTmpl, &idKey.PublicKey, idKey)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "error signing ID certificate")
 	}
 
 	// Certificate lifetime is either set by the SSLKeyLifetime option or
@@ -113,184 +114,175 @@ func NewTLSContext(idKey openssl.PrivateKey) (*TLSContext, error) {
 	//	                                      key_lifetime);
 	//
 
-	// BUG(mmcloughlin): link key should be 2048 bits
-	tls.LinkKey, err = torkeys.GenerateRSA()
+	ctx.LinkKey, err = torkeys.GenerateRSAWithBits(2048)
 	if err != nil {
 		return nil, err
 	}
 
-	tls.LinkCert, err = generateCertificate(linkCN, tls.LinkKey, lifetime)
+	linkCertTmpl, err := generateCertificateTemplate(linkCN, lifetime)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "failed to generate link certificate template")
 	}
 
-	err = setIssuerAndSignCertificate(tls.LinkCert, tls.IDCert, idKey)
+	ctx.LinkCert, err = createCertificate(linkCertTmpl, ctx.IDCert, &ctx.LinkKey.PublicKey, idKey)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "error signing link certificate")
 	}
 
 	// Generate auth certificate.
 
-	tls.AuthKey, err = torkeys.GenerateRSA()
+	ctx.AuthKey, err = torkeys.GenerateRSAWithBits(2048)
 	if err != nil {
 		return nil, err
 	}
 
-	tls.AuthCert, err = generateCertificate(linkCN, tls.AuthKey, lifetime)
+	authCertTmpl, err := generateCertificateTemplate(linkCN, lifetime)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "failed to generate auth certificate template")
 	}
 
-	err = setIssuerAndSignCertificate(tls.AuthCert, tls.IDCert, idKey)
+	ctx.AuthCert, err = createCertificate(authCertTmpl, ctx.IDCert, &ctx.AuthKey.PublicKey, idKey)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "error signing auth certificate")
 	}
 
-	tls.ctx.UseCertificate(tls.LinkCert)
-	tls.ctx.UsePrivateKey(tls.LinkKey)
-
-	return tls, nil
-}
-
-// ServerConn wraps an existing connection with a TLS layer configured
-// with this context.
-func (t *TLSContext) ServerConn(conn net.Conn) (*openssl.Conn, error) {
-	return openssl.Server(conn, t.ctx)
-}
-
-// newSSLCtx builds a new openssl context configured with options required by
-// Tor.
-func newSSLCtx() (*openssl.Ctx, error) {
-	ctx, err := openssl.NewCtx()
-	if err != nil {
-		return nil, err
-	}
-
-	// Reference: https://github.com/torproject/tor/blob/master/src/common/tortls.c#L1209-L1216
-	//
-	//	    if (flags & TOR_TLS_CTX_USE_ECDHE_P224)
-	//	      nid = NID_secp224r1;
-	//	    else if (flags & TOR_TLS_CTX_USE_ECDHE_P256)
-	//	      nid = NID_X9_62_prime256v1;
-	//	    else
-	//	      nid = NID_tor_default_ecdhe_group;
-	//	    /* Use P-256 for ECDHE. */
-	//	    ec_key = EC_KEY_new_by_curve_name(nid);
-	//
-	ctx.SetEllipticCurve(openssl.Prime256v1)
-
-	// Reference: https://github.com/torproject/tor/blob/master/src/common/tortls.c#L1124-L1125
-	//
-	//	  SSL_CTX_set_options(result->ctx, SSL_OP_NO_SSLv2);
-	//	  SSL_CTX_set_options(result->ctx, SSL_OP_NO_SSLv3);
-	//
-	ctx.SetOptions(openssl.NoSSLv2 | openssl.NoSSLv3)
-
-	// Reference: https://github.com/torproject/tor/blob/master/src/common/tortls.c#L1127-L1129
-	//
-	//	  /* Prefer the server's ordering of ciphers: the client's ordering has
-	//	  * historically been chosen for fingerprinting resistance. */
-	//	  SSL_CTX_set_options(result->ctx, SSL_OP_CIPHER_SERVER_PREFERENCE);
-	//
-	ctx.SetOptions(openssl.CipherServerPreference)
-
-	// Reference: https://github.com/torproject/tor/blob/master/src/common/tortls.c#L1131-L1145
-	//
-	//	  /* Disable TLS tickets if they're supported.  We never want to use them;
-	//	   * using them can make our perfect forward secrecy a little worse, *and*
-	//	   * create an opportunity to fingerprint us (since it's unusual to use them
-	//	   * with TLS sessions turned off).
-	//	   *
-	//	   * In 0.2.4, clients advertise support for them though, to avoid a TLS
-	//	   * distinguishability vector.  This can give us worse PFS, though, if we
-	//	   * get a server that doesn't set SSL_OP_NO_TICKET.  With luck, there will
-	//	   * be few such servers by the time 0.2.4 is more stable.
-	//	   */
-	//	#ifdef SSL_OP_NO_TICKET
-	//	  if (! is_client) {
-	//	    SSL_CTX_set_options(result->ctx, SSL_OP_NO_TICKET);
-	//	  }
-	//	#endif
-	//
-	ctx.SetOptions(openssl.NoTicket)
-
-	// Reference: https://github.com/torproject/tor/blob/master/src/common/tortls.c#L1172-L1174
-	//
-	//	#ifdef SSL_MODE_RELEASE_BUFFERS
-	//	  SSL_CTX_set_mode(result->ctx, SSL_MODE_RELEASE_BUFFERS);
-	//	#endif
-	//
-	ctx.SetMode(openssl.ReleaseBuffers)
-
-	// Reference: https://github.com/torproject/tor/blob/master/src/common/tortls.c#L1147-L1148
-	//
-	//	  SSL_CTX_set_options(result->ctx, SSL_OP_SINGLE_DH_USE);
-	//	  SSL_CTX_set_options(result->ctx, SSL_OP_SINGLE_ECDH_USE);
-	//
-	ctx.SetOptions(openssl.SingleDHUse | openssl.SingleECDHUse)
-
-	// Reference: https://github.com/torproject/torspec/blob/master/tor-spec.txt#L382-L384
-	//
-	//	   Implementations MUST NOT allow TLS session resumption -- it can
-	//	   exacerbate some attacks (e.g. the "Triple Handshake" attack from
-	//	   Feb 2013), and it plays havoc with forward secrecy guarantees.
-	//
-	ctx.SetOptions(openssl.NoSessionResumptionOrRenegotiation)
-
-	// Reference: https://github.com/torproject/tor/blob/master/src/common/tortls.c#L1161-L1163
-	//
-	//	#ifdef SSL_OP_NO_COMPRESSION
-	//	  SSL_CTX_set_options(result->ctx, SSL_OP_NO_COMPRESSION);
-	//	#endif
-	//
-	ctx.SetOptions(openssl.NoCompression)
-
-	// Reference: https://github.com/torproject/tor/blob/master/src/common/tortls.c#L1188
-	//
-	//	  SSL_CTX_set_session_cache_mode(result->ctx, SSL_SESS_CACHE_OFF);
-	//
-	ctx.SetSessionCacheMode(openssl.SessionCacheOff)
-
-	// Reference: https://github.com/torproject/tor/blob/master/src/common/tortls.c#L1221-L1222
-	//
-	//	  SSL_CTX_set_verify(result->ctx, SSL_VERIFY_PEER,
-	//	                     always_accept_verify_cb);
-	//
-	ctx.SetVerify(openssl.VerifyNone, nil)
+	// XXX configure certificates
 
 	return ctx, nil
 }
 
-func generateCertificate(cn string, key openssl.PrivateKey, lifetime time.Duration) (*openssl.Certificate, error) {
+// ServerConn wraps an existing connection with a TLS layer configured
+// with this context.
+func (t *TLSContext) ServerConn(conn net.Conn) *tls.Conn {
+	return tls.Server(conn, t.cfg)
+}
+
+// newBaseTLSConfig builds a base TLS config that attempts to match OpenSSL
+// options required by Tor.
+func newBaseTLSConfig() *tls.Config {
+	return &tls.Config{
+		// Reference: https://github.com/torproject/tor/blob/master/src/common/tortls.c#L1209-L1216
+		//
+		//	    if (flags & TOR_TLS_CTX_USE_ECDHE_P224)
+		//	      nid = NID_secp224r1;
+		//	    else if (flags & TOR_TLS_CTX_USE_ECDHE_P256)
+		//	      nid = NID_X9_62_prime256v1;
+		//	    else
+		//	      nid = NID_tor_default_ecdhe_group;
+		//	    /* Use P-256 for ECDHE. */
+		//	    ec_key = EC_KEY_new_by_curve_name(nid);
+		//
+		CurvePreferences: []tls.CurveID{
+			tls.CurveP256,
+		},
+
+		// Reference: https://github.com/torproject/tor/blob/master/src/common/tortls.c#L1124-L1125
+		//
+		//	  SSL_CTX_set_options(result->ctx, SSL_OP_NO_SSLv2);
+		//	  SSL_CTX_set_options(result->ctx, SSL_OP_NO_SSLv3);
+		//
+		MinVersion: tls.VersionTLS10,
+
+		// Reference: https://github.com/torproject/tor/blob/master/src/common/tortls.c#L1127-L1129
+		//
+		//	  /* Prefer the server's ordering of ciphers: the client's ordering has
+		//	  * historically been chosen for fingerprinting resistance. */
+		//	  SSL_CTX_set_options(result->ctx, SSL_OP_CIPHER_SERVER_PREFERENCE);
+		//
+		// BUG(mbm): SSL_OP_CIPHER_SERVER_PREFERENCE not implementated
+
+		// Reference: https://github.com/torproject/tor/blob/master/src/common/tortls.c#L1131-L1145
+		//
+		//	  /* Disable TLS tickets if they're supported.  We never want to use them;
+		//	   * using them can make our perfect forward secrecy a little worse, *and*
+		//	   * create an opportunity to fingerprint us (since it's unusual to use them
+		//	   * with TLS sessions turned off).
+		//	   *
+		//	   * In 0.2.4, clients advertise support for them though, to avoid a TLS
+		//	   * distinguishability vector.  This can give us worse PFS, though, if we
+		//	   * get a server that doesn't set SSL_OP_NO_TICKET.  With luck, there will
+		//	   * be few such servers by the time 0.2.4 is more stable.
+		//	   */
+		//	#ifdef SSL_OP_NO_TICKET
+		//	  if (! is_client) {
+		//	    SSL_CTX_set_options(result->ctx, SSL_OP_NO_TICKET);
+		//	  }
+		//	#endif
+		//
+		SessionTicketsDisabled: true,
+
+		// Reference: https://github.com/torproject/tor/blob/master/src/common/tortls.c#L1172-L1174
+		//
+		//	#ifdef SSL_MODE_RELEASE_BUFFERS
+		//	  SSL_CTX_set_mode(result->ctx, SSL_MODE_RELEASE_BUFFERS);
+		//	#endif
+		//
+		// BUG(mbm): SSL_MODE_RELEASE_BUFFERS not implementated
+
+		// Reference: https://github.com/torproject/tor/blob/master/src/common/tortls.c#L1147-L1148
+		//
+		//	  SSL_CTX_set_options(result->ctx, SSL_OP_SINGLE_DH_USE);
+		//	  SSL_CTX_set_options(result->ctx, SSL_OP_SINGLE_ECDH_USE);
+		//
+		// BUG(mbm): SSL_OP_SINGLE_DH_USE and SSL_OP_SINGLE_ECDH_USE not implementated
+
+		// Reference: https://github.com/torproject/torspec/blob/master/tor-spec.txt#L382-L384
+		//
+		//	   Implementations MUST NOT allow TLS session resumption -- it can
+		//	   exacerbate some attacks (e.g. the "Triple Handshake" attack from
+		//	   Feb 2013), and it plays havoc with forward secrecy guarantees.
+		//
+		Renegotiation: tls.RenegotiateNever,
+
+		// Reference: https://github.com/torproject/tor/blob/master/src/common/tortls.c#L1161-L1163
+		//
+		//	#ifdef SSL_OP_NO_COMPRESSION
+		//	  SSL_CTX_set_options(result->ctx, SSL_OP_NO_COMPRESSION);
+		//	#endif
+		//
+		// BUG(mbm): SSL_OP_NO_COMPRESSION not implementated
+
+		// Reference: https://github.com/torproject/tor/blob/master/src/common/tortls.c#L1188
+		//
+		//	  SSL_CTX_set_session_cache_mode(result->ctx, SSL_SESS_CACHE_OFF);
+		//
+		ClientSessionCache: nil,
+
+		// Reference: https://github.com/torproject/tor/blob/master/src/common/tortls.c#L1221-L1222
+		//
+		//	  SSL_CTX_set_verify(result->ctx, SSL_VERIFY_PEER,
+		//	                     always_accept_verify_cb);
+		//
+		// BUG(mbm): is InsecureSkipVerify the same as the tor always_accept_verify_cb.
+		InsecureSkipVerify: true,
+	}
+}
+
+func generateCertificateTemplate(cn string, lifetime time.Duration) (*x509.Certificate, error) {
 	serial, err := generateCertificateSerial()
 	if err != nil {
 		return nil, err
 	}
 
-	now := time.Now()
-	issued := generateCertificateIssued(now, lifetime)
-	issuedDuration := issued.Sub(now)
+	issued := generateCertificateIssued(time.Now(), lifetime)
 
-	return openssl.NewCertificate(&openssl.CertificateInfo{
-		CommonName: cn,
-		Serial:     serial,
-		Issued:     issuedDuration,
-		Expires:    issuedDuration + lifetime,
-	}, key)
+	return &x509.Certificate{
+		Subject: pkix.Name{
+			CommonName: cn,
+		},
+		SerialNumber:       serial,
+		NotBefore:          issued,
+		NotAfter:           issued.Add(lifetime),
+		SignatureAlgorithm: x509.SHA256WithRSA,
+	}, nil
 }
 
-func setIssuerAndSignCertificate(cert, issuer *openssl.Certificate, key openssl.PrivateKey) error {
-	err := cert.SetIssuer(issuer)
+func createCertificate(tmpl, parent *x509.Certificate, pub *rsa.PublicKey, priv *rsa.PrivateKey) (*x509.Certificate, error) {
+	der, err := x509.CreateCertificate(nil, tmpl, parent, pub, priv)
 	if err != nil {
-		return err
+		return nil, err
 	}
-
-	err = cert.Sign(key, openssl.EVP_SHA256)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return x509.ParseCertificate(der)
 }
 
 // randomHostname generates a hostname starting with prefix, ending with
@@ -373,8 +365,7 @@ func generateCertificateIssued(now time.Time, lifetime time.Duration) time.Time 
 
 // generateCertificateSerial generates a serial number for a certificate. This
 // copies the convention of openssl and returns a 64-bit integer. Returns
-// big.Int so it can be used with
-// https://godoc.org/github.com/mmcloughlin/openssl#CertificateInfo.
+// big.Int so it can be used with x509.Certificate.
 //
 // Reference: https://github.com/torproject/tor/blob/master/src/common/tortls.c#L468-L470
 //

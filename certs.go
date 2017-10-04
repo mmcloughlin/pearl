@@ -1,10 +1,8 @@
 package pearl
 
 import (
+	"crypto/x509"
 	"encoding/binary"
-
-	"github.com/mmcloughlin/openssl"
-	"github.com/pkg/errors"
 )
 
 // Reference: https://github.com/torproject/torspec/blob/master/tor-spec.txt#L544-L599
@@ -85,8 +83,8 @@ var (
 
 // CertCellEntry represents one cell in a CERTS cell.
 type CertCellEntry struct {
-	Type CertType
-	Cert *openssl.Certificate
+	Type    CertType
+	CertDER []byte
 }
 
 // CertsCell is a CERTS cell.
@@ -97,10 +95,15 @@ type CertsCell struct {
 var _ CellBuilder = new(CertsCell)
 
 // AddCert adds a certificate to the cell.
-func (c *CertsCell) AddCert(t CertType, crt *openssl.Certificate) {
+func (c *CertsCell) AddCert(t CertType, crt *x509.Certificate) {
+	c.AddCertDER(t, crt.Raw)
+}
+
+// AddCertDER adds a DER-encoded certificate to the cell.
+func (c *CertsCell) AddCertDER(t CertType, der []byte) {
 	c.Certs = append(c.Certs, CertCellEntry{
-		Type: t,
-		Cert: crt,
+		Type:    t,
+		CertDER: der,
 	})
 }
 
@@ -120,12 +123,8 @@ func (c CertsCell) Cell(f CellFormat) (Cell, error) {
 	encoded := make([][]byte, N)
 
 	for i, entry := range c.Certs {
-		der, err := entry.Cert.MarshalDER()
-		if err != nil {
-			return nil, errors.Wrap(err, "failed to marshal certificate as DER")
-		}
-		encoded[i] = der
-		length += 3 + len(der)
+		encoded[i] = entry.CertDER
+		length += 3 + len(entry.CertDER)
 	}
 
 	cell := NewCellEmptyPayload(f, 0, Certs, uint16(length))
