@@ -9,7 +9,6 @@ import (
 	"crypto/x509"
 	"errors"
 	"fmt"
-	"internal/testenv"
 	"io"
 	"io/ioutil"
 	"math"
@@ -17,6 +16,7 @@ import (
 	"os"
 	"reflect"
 	"strings"
+	"testenv"
 	"testing"
 	"time"
 )

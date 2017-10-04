@@ -5,9 +5,9 @@
 package tls
 
 import (
+	"cipherhw"
 	"container/list"
 	"crypto"
-	"crypto/internal/cipherhw"
 	"crypto/rand"
 	"crypto/sha512"
 	"crypto/x509"
