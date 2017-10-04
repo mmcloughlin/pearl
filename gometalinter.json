@@ -13,5 +13,5 @@
   "Skip": [
     "mocks"
   ],
-  "LineLength": 120
+  "LineLength": 130
 }

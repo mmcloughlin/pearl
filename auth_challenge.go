@@ -101,6 +101,7 @@ type AuthenticateCell struct {
 	Authentication []byte
 }
 
+// ParseAuthenticateCell parses Cell c as an AUTHENTICATE cell.
 func ParseAuthenticateCell(c Cell) (*AuthenticateCell, error) {
 	if c.Command() != Authenticate {
 		return nil, ErrUnexpectedCommand
@@ -132,6 +133,7 @@ func ParseAuthenticateCell(c Cell) (*AuthenticateCell, error) {
 	}, nil
 }
 
+// Cell builds a cell from the AuthenticateCell payload.
 func (a AuthenticateCell) Cell(f CellFormat) (Cell, error) {
 	// Reference: https://github.com/torproject/torspec/blob/8aaa36d1a062b20ca263b6ac613b77a3ba1eb113/tor-spec.txt#L727-L731
 	//
