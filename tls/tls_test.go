@@ -16,9 +16,10 @@ import (
 	"os"
 	"reflect"
 	"strings"
-	"testenv"
 	"testing"
 	"time"
+
+	"github.com/mmcloughlin/pearl/tls/testenv"
 )
 
 var rsaCertPEM = `-----BEGIN CERTIFICATE-----

@@ -5,7 +5,6 @@
 package tls
 
 import (
-	"cipherhw"
 	"container/list"
 	"crypto"
 	"crypto/rand"
@@ -19,6 +18,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/mmcloughlin/pearl/tls/cipherhw"
 )
 
 const (
