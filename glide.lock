@@ -1,21 +1,50 @@
 hash: 71fddaec4092f18484028dd9c53e737c7bcf4964c9e0dd86fb82e09ef388a153
-updated: 2017-10-03T18:22:11.041899623-07:00
+updated: 2017-10-03T18:31:42.475221658-07:00
 imports:
+- name: github.com/davecgh/go-spew
+  version: 6d212800a42e8ab5c146b8ace3490ee17e5225f9
+  subpackages:
+  - spew
 - name: github.com/erans/gonionoo
   version: cbf36867527f94681035fbdc84e384627dcd2eb3
+- name: github.com/go-stack/stack
+  version: 817915b46b97fd7bb80e8ab6b69f01a53ac3eebf
 - name: github.com/inconshreveable/log15
   version: 0e4443bab83dd915f5a6d36d8c650b180744b8ce
+  subpackages:
+  - term
+- name: github.com/inconshreveable/mousetrap
+  version: 76626ae9c91c4f2a10f34cad8ce83ea42c93bb75
 - name: github.com/jarcoal/httpmock
   version: 4442edb3db31196622da56482fd8d0fa375fba4d
+- name: github.com/mattn/go-colorable
+  version: ad5389df28cdac544c99bd7b9161a0b5b6ca9d1b
+- name: github.com/mattn/go-isatty
+  version: a5cdd64afdee435007ee3e9f6ed4684af949d568
 - name: github.com/pkg/errors
   version: 645ef00459ed84a119197bfb8d8205042c6df63d
+- name: github.com/pmezard/go-difflib
+  version: d8ed2627bdf02c080bf22230dbb337003b7aba2d
+  subpackages:
+  - difflib
+- name: github.com/spf13/cobra
+  version: 0dacccfbaabc71b872087c1719c5380d3e185173
+- name: github.com/spf13/pflag
+  version: be7121dd7a937a85e1e4b1ddda6a3edce3466110
+- name: github.com/stretchr/objx
+  version: cbeaeb16a013161a98496fad62933b1d21786672
 - name: github.com/stretchr/testify
   version: 69483b4bd14f5845b5a1e55bca19e954e827f1d0
   subpackages:
   - assert
+  - mock
   - require
 - name: golang.org/x/crypto
   version: 9419663f5a44be8b34ca85f08abc5fe1be11f8a3
   subpackages:
   - curve25519
+- name: golang.org/x/sys
+  version: 314a259e304ff91bd6985da2a7149bbf91237993
+  subpackages:
+  - unix
 testImports: []
