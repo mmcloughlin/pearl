@@ -3,7 +3,6 @@ package pearl
 import (
 	"encoding/binary"
 	"errors"
-	"fmt"
 	"net"
 	"time"
 )
@@ -176,8 +175,6 @@ func EncodeAddress(ip net.IP) []byte {
 	return nil
 }
 
-// BUG(mbm): addrToIP is stubbed out.
 func addrToIP(addr net.Addr) net.IP {
-	fmt.Println(addr)
-	return net.IPv4(127, 0, 0, 1)
+	return addr.(*net.TCPAddr).IP
 }

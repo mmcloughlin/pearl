@@ -147,6 +147,7 @@ func NewTLSContext(idKey *rsa.PrivateKey) (*TLSContext, error) {
 	}
 
 	// configure certificates
+	// BUG(mbm): construction of tls.Certificate type is messy
 	ctx.cfg.Certificates = []tls.Certificate{
 		{
 			Certificate: [][]byte{
