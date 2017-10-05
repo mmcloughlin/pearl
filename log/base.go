@@ -3,6 +3,19 @@ package log
 
 import "github.com/inconshreveable/log15"
 
+// Level is a logging level.
+type Level int
+
+// Defined logging levels.
+const (
+	LevelTrace Level = iota
+	LevelDebug
+	LevelInfo
+	LevelNotice
+	LevelWarn
+	LevelError
+)
+
 // Logger is the base interface for logging in the pearl packages.
 type Logger interface {
 	// With adds key value pair(s) to the logging context.
@@ -15,6 +28,26 @@ type Logger interface {
 	Notice(msg string)
 	Warn(msg string)
 	Error(msg string)
+}
+
+// Log logs msg at level with the given Logger.
+func Log(l Logger, lvl Level, msg string) {
+	switch lvl {
+	case LevelTrace:
+		l.Trace(msg)
+	case LevelDebug:
+		l.Debug(msg)
+	case LevelInfo:
+		l.Info(msg)
+	case LevelNotice:
+		l.Notice(msg)
+	case LevelWarn:
+		l.Warn(msg)
+	case LevelError:
+		l.Error(msg)
+	default:
+		panic("unknown level")
+	}
 }
 
 type log15Adaptor struct {
