@@ -2,7 +2,6 @@ package pearl
 
 import (
 	"encoding/hex"
-	"fmt"
 	"net"
 
 	"github.com/mmcloughlin/pearl/tls"
@@ -18,6 +17,8 @@ type Connection struct {
 	tlsCtx     *TLSContext
 	tlsConn    *tls.Conn
 	cellReader CellReader
+
+	proto LinkProtocolVersion
 
 	logger log.Logger
 }
@@ -40,20 +41,20 @@ func NewConnection(r *Router, conn net.Conn, logger log.Logger) (*Connection, er
 		tlsConn:    tlsConn,
 		cellReader: NewCellReader(tlsConn, logger),
 
+		proto: LinkProtocolNone,
+
 		logger: logger,
 	}, nil
 }
 
 // Handle handles the full lifecycle of the connection.
-func (c *Connection) Handle() error {
+func (c *Connection) Handle() {
 	c.logger.Info("handle")
 
 	err := c.handshake()
 	if err != nil {
-		return err
+		log.Err(c.logger, err, "error handling connection")
 	}
-
-	return nil
 }
 
 func (c *Connection) handshake() error {
@@ -101,7 +102,8 @@ func (c *Connection) handshake() error {
 	}
 
 	c.logger.With("version", proto).Info("determined link protocol version")
-	f := proto.CellFormat()
+	c.proto = proto
+	f := c.proto.CellFormat()
 
 	// Send certs cell
 	//
@@ -163,14 +165,99 @@ func (c *Connection) handshake() error {
 
 	c.logger.Debug("sent net info cell")
 
-	// XXX
+	return c.execute(HandshakeHandler)
+}
+
+func (c *Connection) execute(h Handler) error {
+	var err error
+	var cell Cell
 	for {
-		cell, err = c.cellReader.ReadCell(f)
+		cell, err = c.cellReader.ReadCell(c.proto.CellFormat())
 		if err != nil {
 			return errors.Wrap(err, "could not read cell")
 		}
 
-		hx := hex.EncodeToString(cell.Bytes())
-		fmt.Println(hx)
+		c.logger.
+			With("cmd", cell.Command()).
+			With("circid", cell.CircID()).
+			With("payload", hex.EncodeToString(cell.Payload())).
+			Trace("received cell")
+
+		err = h.HandleCell(c, cell)
+		if err == EOH {
+			return nil
+		}
+		if err != nil {
+			return err
+		}
 	}
+}
+
+// HandshakeHandler handles cells during handshake.
+var HandshakeHandler = NewDirector(map[Command]Handler{
+	Padding:      IgnoreHandler,
+	Certs:        NotImplementedHandler,
+	Authenticate: NotImplementedHandler,
+	Netinfo:      NotImplementedHandler,
+})
+
+// EOH is a special error type used to indicate that cell handling should stop.
+var EOH = errors.New("end of handlers")
+
+// Handler is something that can handle a cell.
+type Handler interface {
+	HandleCell(*Connection, Cell) error
+}
+
+// HandlerFunc allows implementation of Handler interface with a plain function.
+type HandlerFunc func(*Connection, Cell) error
+
+// HandleCell calls f.
+func (f HandlerFunc) HandleCell(conn *Connection, c Cell) error {
+	return f(conn, c)
+}
+
+// LoggingHander builds a Handler that logs a Cell and does nothing else.
+func LoggingHander(lvl log.Level, msg string) Handler {
+	return HandlerFunc(func(conn *Connection, c Cell) error {
+		log.Log(conn.logger.With("cmd", c.Command()), lvl, msg)
+		return nil
+	})
+}
+
+// Convenience logging handlers.
+var (
+	IgnoreHandler         = LoggingHander(log.LevelDebug, "ignoring cell")
+	NotImplementedHandler = LoggingHander(log.LevelError, "cell handler not implemented")
+)
+
+// Director is a Handler that routes Cells to sub-handlers based on command type.
+type Director struct {
+	handlers map[Command]Handler
+}
+
+// NewDirector builds a Director with the given handlers.
+func NewDirector(handlers map[Command]Handler) *Director {
+	return &Director{
+		handlers: handlers,
+	}
+}
+
+// NewDirectorEmpty builds a Director with no handlers.
+func NewDirectorEmpty() *Director {
+	return NewDirector(make(map[Command]Handler))
+}
+
+// AddHandler adds a handler for the given command type.
+func (d *Director) AddHandler(cmd Command, h Handler) {
+	d.handlers[cmd] = h
+}
+
+// HandleCell handles c.
+func (d *Director) HandleCell(conn *Connection, c Cell) error {
+	h, found := d.handlers[c.Command()]
+	if !found {
+		return ErrUnexpectedCommand
+	}
+	return h.HandleCell(conn, c)
 }
