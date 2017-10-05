@@ -8,11 +8,8 @@ install:
   - go get github.com/Masterminds/glide
   - go get github.com/go-playground/overalls
   - go get github.com/mattn/goveralls
-  - go get github.com/alecthomas/gometalinter
-  - gometalinter --install
 script:
   - $GOPATH/bin/glide install
-  - gometalinter --vendor --config=gometalinter.json ./...
   - go install github.com/mmcloughlin/pearl/cmd/...
   - overalls -project=github.com/mmcloughlin/pearl -- -v
   - goveralls -coverprofile=overalls.coverprofile -service=travis-ci
