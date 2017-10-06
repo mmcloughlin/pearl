@@ -1,5 +1,5 @@
-hash: 71fddaec4092f18484028dd9c53e737c7bcf4964c9e0dd86fb82e09ef388a153
-updated: 2017-10-05T19:50:45.377052764-07:00
+hash: 57999ab55ba21c140fa161dc2d6cb0a10e5b3605befce7deb65351d09f4ea305
+updated: 2017-10-05T19:51:12.35468125-07:00
 imports:
 - name: github.com/davecgh/go-spew
   version: 6d212800a42e8ab5c146b8ace3490ee17e5225f9
@@ -45,6 +45,7 @@ imports:
   - chacha20poly1305
   - chacha20poly1305/internal/chacha20
   - curve25519
+  - hkdf
   - poly1305
 - name: golang.org/x/sys
   version: 314a259e304ff91bd6985da2a7149bbf91237993

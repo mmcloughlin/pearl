@@ -15,6 +15,7 @@ import:
 - package: golang.org/x/crypto
   subpackages:
   - curve25519
+  - hkdf
 - package: github.com/pkg/errors
   version: ^0.8.0
 - package: github.com/inconshreveable/log15
