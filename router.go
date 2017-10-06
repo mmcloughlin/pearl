@@ -22,6 +22,8 @@ type Router struct {
 	onionKey *rsa.PrivateKey
 	ntorKey  *torkeys.Curve25519KeyPair
 
+	fingerprint []byte
+
 	logger log.Logger
 }
 
@@ -42,12 +44,18 @@ func NewRouter(config *torconfig.Config, logger log.Logger) (*Router, error) {
 		return nil, err
 	}
 
+	fingerprint, err := torkeys.PublicKeyHash(&idKey.PublicKey)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to compute fingerprint")
+	}
+
 	return &Router{
-		config:   config,
-		idKey:    idKey,
-		onionKey: onionKey,
-		ntorKey:  ntorKey,
-		logger:   log.ForComponent(logger, "router"),
+		config:      config,
+		idKey:       idKey,
+		onionKey:    onionKey,
+		ntorKey:     ntorKey,
+		fingerprint: fingerprint,
+		logger:      log.ForComponent(logger, "router"),
 	}, nil
 }
 
@@ -56,9 +64,14 @@ func (r *Router) IdentityKey() *rsa.PrivateKey {
 	return r.idKey
 }
 
+// Fingerprint returns the router fingerprint.
+func (r *Router) Fingerprint() []byte {
+	return r.fingerprint
+}
+
 // Run starts a listener and enters a main loop handling connections.
 func (r *Router) Run() error {
-	laddr := fmt.Sprintf(":%d", r.config.ORPort)
+	laddr := fmt.Sprintf("localhost:%d", r.config.ORPort)
 	r.logger.With("laddr", laddr).Info("creating listener")
 	ln, err := net.Listen("tcp", laddr)
 	if err != nil {

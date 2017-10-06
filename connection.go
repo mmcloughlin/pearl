@@ -165,7 +165,19 @@ func (c *Connection) handshake() error {
 
 	c.logger.Debug("sent net info cell")
 
-	return c.execute(HandshakeHandler)
+	// Process handshake cells
+	err = c.execute(HandshakeHandler)
+	if err != nil {
+		return err
+	}
+
+	// Enter main loop
+	err = c.execute(RunLoopHandler)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (c *Connection) execute(h Handler) error {
@@ -198,7 +210,15 @@ var HandshakeHandler = NewDirector(map[Command]Handler{
 	Padding:      IgnoreHandler,
 	Certs:        NotImplementedHandler,
 	Authenticate: NotImplementedHandler,
-	Netinfo:      NotImplementedHandler,
+	Netinfo:      HandlerFunc(func(_ *Connection, _ Cell) error { return EOH }),
+})
+
+// HandshakeHandler handles cells during handshake.
+var RunLoopHandler = NewDirector(map[Command]Handler{
+	Padding: IgnoreHandler,
+	Create2: HandlerFunc(Create2Handler),
+	Create:  NotImplementedHandler,
+	Destroy: NotImplementedHandler,
 })
 
 // EOH is a special error type used to indicate that cell handling should stop.
