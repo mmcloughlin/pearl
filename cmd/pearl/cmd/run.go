@@ -17,16 +17,23 @@ var runCmd = &cobra.Command{
 		return run()
 	},
 }
+var (
+	nickname string
+	port     int
+)
 
 func init() {
+	runCmd.Flags().StringVarP(&nickname, "nickname", "n", "pearl", "nickname")
+	runCmd.Flags().IntVarP(&port, "port", "p", 9111, "relay port")
+
 	rootCmd.AddCommand(runCmd)
 }
 
 func run() error {
 	platform := torconfig.NewPlatformHostOS("Tor", "0.2.9.9")
 	config := &torconfig.Config{
-		Nickname: "pearl",
-		ORPort:   9111,
+		Nickname: nickname,
+		ORPort:   uint16(port),
 		Platform: platform.String(),
 	}
 
