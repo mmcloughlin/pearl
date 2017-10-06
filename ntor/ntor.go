@@ -52,12 +52,6 @@ const (
 //	     verify = H(secret_input, t_verify)
 //	     auth_input = verify | ID | B | Y | X | PROTOID | "Server"
 //
-// Reference: https://github.com/torproject/torspec/blob/8aaa36d1a062b20ca263b6ac613b77a3ba1eb113/proposals/216-ntor-handshake.txt#L52-L54
-//
-//	  Set EXP(a,b) == curve25519(.,b,a), and g == 9 .  Let KEYGEN() do the
-//	  appropriate manipulations when generating the secret key (clearing the
-//	  low bits, twiddling the high bits).
-//
 type ServerHandshake struct {
 	ClientPK          []byte
 	ServerKeyPair     *torkeys.Curve25519KeyPair
@@ -85,17 +79,14 @@ func (s ServerHandshake) SecretInput() []byte {
 	//	  APPEND(si, PROTOID, PROTOID_LEN);
 	//
 	var buf bytes.Buffer
-	var t [32]byte
 	var X [32]byte
 	copy(X[:], s.ClientPK)
 
 	// EXP(X,y)
-	curve25519.ScalarMult(&t, &s.ServerKeyPair.Private, &X)
-	buf.Write(t[:])
+	buf.Write(exp(X, s.ServerKeyPair.Private))
 
 	// EXP(X,b)
-	curve25519.ScalarMult(&t, &s.ServerNTORKey.Private, &X)
-	buf.Write(t[:])
+	buf.Write(exp(X, s.ServerNTORKey.Private))
 
 	// ID
 	buf.Write(s.ServerFingerprint)
@@ -196,4 +187,61 @@ func (s ServerHandshake) KDF() io.Reader {
 	//	   hidden service protocol.  Excess bytes from K are discarded.
 	//
 	return hkdf.New(sha256.New, s.SecretInput(), []byte(tKey), []byte(mExpand))
+}
+
+type ClientHandshake struct {
+	Kx [32]byte
+	KX [32]byte
+	KY [32]byte
+	KB [32]byte
+	ID []byte
+}
+
+func (c ClientHandshake) SecretInput() []byte {
+	// Reference: https://github.com/torproject/tor/blob/7505f452c865ef9ca5be35647032f93bfb392762/src/or/onion_ntor.c#L276-L288
+	//
+	//	  /* Compute secret_input */
+	//	  curve25519_handshake(si, &handshake_state->seckey_x, &s.pubkey_Y);
+	//	  bad = safe_mem_is_zero(si, CURVE25519_OUTPUT_LEN);
+	//	  si += CURVE25519_OUTPUT_LEN;
+	//	  curve25519_handshake(si, &handshake_state->seckey_x,
+	//	                       &handshake_state->pubkey_B);
+	//	  bad |= (safe_mem_is_zero(si, CURVE25519_OUTPUT_LEN) << 1);
+	//	  si += CURVE25519_OUTPUT_LEN;
+	//	  APPEND(si, handshake_state->router_id, DIGEST_LEN);
+	//	  APPEND(si, handshake_state->pubkey_B.public_key, CURVE25519_PUBKEY_LEN);
+	//	  APPEND(si, handshake_state->pubkey_X.public_key, CURVE25519_PUBKEY_LEN);
+	//	  APPEND(si, s.pubkey_Y.public_key, CURVE25519_PUBKEY_LEN);
+	//	  APPEND(si, PROTOID, PROTOID_LEN);
+	//
+	// Reference: https://github.com/torproject/torspec/blob/8aaa36d1a062b20ca263b6ac613b77a3ba1eb113/tor-spec.txt#L1112-L1117
+	//
+	//	   The client then checks Y is in G^* [see NOTE below], and computes
+	//
+	//	     secret_input = EXP(Y,x) | EXP(B,x) | ID | B | X | Y | PROTOID
+	//	     KEY_SEED = H(secret_input, t_key)
+	//	     verify = H(secret_input, t_verify)
+	//	     auth_input = verify | ID | B | Y | X | PROTOID | "Server"
+	//
+	var buf bytes.Buffer
+	buf.Write(exp(c.KY, c.Kx))
+	buf.Write(exp(c.KB, c.Kx))
+	buf.Write(c.ID)
+	buf.Write(c.KB[:])
+	buf.Write(c.KX[:])
+	buf.Write(c.KY[:])
+	buf.Write([]byte(ntorProtoID))
+	return buf.Bytes()
+}
+
+// Reference: https://github.com/torproject/torspec/blob/8aaa36d1a062b20ca263b6ac613b77a3ba1eb113/proposals/216-ntor-handshake.txt#L52-L54
+//
+//	  Set EXP(a,b) == curve25519(.,b,a), and g == 9 .  Let KEYGEN() do the
+//	  appropriate manipulations when generating the secret key (clearing the
+//	  low bits, twiddling the high bits).
+//
+func exp(a, b [32]byte) []byte {
+	var t [32]byte
+	curve25519.ScalarMult(&t, &b, &a)
+	return t[:]
 }
