@@ -1,5 +1,5 @@
 hash: 71fddaec4092f18484028dd9c53e737c7bcf4964c9e0dd86fb82e09ef388a153
-updated: 2017-10-03T18:31:42.475221658-07:00
+updated: 2017-10-05T19:50:45.377052764-07:00
 imports:
 - name: github.com/davecgh/go-spew
   version: 6d212800a42e8ab5c146b8ace3490ee17e5225f9
@@ -28,9 +28,9 @@ imports:
   subpackages:
   - difflib
 - name: github.com/spf13/cobra
-  version: 0dacccfbaabc71b872087c1719c5380d3e185173
+  version: d5bde60e022436203e377c47806e001418c16af3
 - name: github.com/spf13/pflag
-  version: be7121dd7a937a85e1e4b1ddda6a3edce3466110
+  version: 2c300e72a98b4351617d9b927d2d2860ece8ee24
 - name: github.com/stretchr/objx
   version: cbeaeb16a013161a98496fad62933b1d21786672
 - name: github.com/stretchr/testify
@@ -42,7 +42,10 @@ imports:
 - name: golang.org/x/crypto
   version: 9419663f5a44be8b34ca85f08abc5fe1be11f8a3
   subpackages:
+  - chacha20poly1305
+  - chacha20poly1305/internal/chacha20
   - curve25519
+  - poly1305
 - name: golang.org/x/sys
   version: 314a259e304ff91bd6985da2a7149bbf91237993
   subpackages:
