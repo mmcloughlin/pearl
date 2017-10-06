@@ -250,7 +250,13 @@ func NewServerHandshakeDataNTOR(Y [32]byte, auth []byte) ServerHandshakeDataNTOR
 //	     verify = H(secret_input, t_verify)
 //	     auth_input = verify | ID | B | Y | X | PROTOID | "Server"
 //
-// TODO(mbm): poorly named
+// Reference: https://github.com/torproject/torspec/blob/8aaa36d1a062b20ca263b6ac613b77a3ba1eb113/proposals/216-ntor-handshake.txt#L52-L54
+//
+//	  Set EXP(a,b) == curve25519(.,b,a), and g == 9 .  Let KEYGEN() do the
+//	  appropriate manipulations when generating the secret key (clearing the
+//	  low bits, twiddling the high bits).
+//
+// TODO(mbm): extract into ntor sub-package?
 type serverHandshakeNTOR struct {
 	ClientPK          []byte
 	ServerKeyPair     *torkeys.Curve25519KeyPair
