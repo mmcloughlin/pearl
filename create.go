@@ -136,7 +136,12 @@ type ClientHandshakeDataNTOR []byte
 
 func (h ClientHandshakeDataNTOR) ServerFingerprint() []byte { return h[:20] }
 func (h ClientHandshakeDataNTOR) KeyID() []byte             { return h[20:52] }
-func (h ClientHandshakeDataNTOR) ClientPK() []byte          { return h[52:84] }
+
+func (h ClientHandshakeDataNTOR) ClientPK() [32]byte {
+	var X [32]byte
+	copy(X[:], h[52:84])
+	return X
+}
 
 func ProcessHandshakeNTOR(conn *Connection, c *Create2Cell) error {
 	clientData := ClientHandshakeDataNTOR(c.HandshakeData)
@@ -170,14 +175,18 @@ func ProcessHandshakeNTOR(conn *Connection, c *Create2Cell) error {
 	}
 
 	h := ntor.ServerHandshake{
-		ClientPK:          clientData.ClientPK(),
-		ServerKeyPair:     serverKeyPair,
-		ServerNTORKey:     conn.router.ntorKey,
-		ServerFingerprint: conn.router.Fingerprint(),
+		Public: ntor.Public{
+			ID: conn.router.Fingerprint(),
+			KX: clientData.ClientPK(),
+			KY: serverKeyPair.Public,
+			KB: conn.router.ntorKey.Public,
+		},
+		Ky: serverKeyPair.Private,
+		Kb: conn.router.ntorKey.Private,
 	}
 
 	// Record results
-	circ, err := BuildCircuitNTOR(c.CircID, h.KDF())
+	circ, err := BuildCircuitNTOR(c.CircID, ntor.KDF(h))
 	if err != nil {
 		return errors.Wrap(err, "failed to build circuit")
 	}
@@ -195,7 +204,7 @@ func ProcessHandshakeNTOR(conn *Connection, c *Create2Cell) error {
 	//	       SERVER_PK   Y                       [G_LENGTH bytes]
 	//	       AUTH        H(auth_input, t_mac)    [H_LENGTH bytes]
 	//
-	hd := NewServerHandshakeDataNTOR(serverKeyPair.Public, h.Auth())
+	hd := NewServerHandshakeDataNTOR(serverKeyPair.Public, ntor.Auth(h))
 	reply := &Created2Cell{
 		CircID:        c.CircID,
 		HandshakeData: hd,
