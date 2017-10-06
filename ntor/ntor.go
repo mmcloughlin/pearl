@@ -5,18 +5,13 @@ import (
 	"bytes"
 	"crypto/hmac"
 	"crypto/sha256"
+	"io"
 
 	"github.com/mmcloughlin/pearl/torkeys"
 	"golang.org/x/crypto/curve25519"
+	"golang.org/x/crypto/hkdf"
 )
 
-const (
-	ntorProtoID = "ntor-curve25519-sha256-1"
-)
-
-// ServerHandshake assists with computing values in the server-side of
-// circuit creation.
-//
 // Reference: https://github.com/torproject/torspec/blob/8aaa36d1a062b20ca263b6ac613b77a3ba1eb113/tor-spec.txt#L1073-L1088
 //
 //	   In this section, define:
@@ -35,6 +30,17 @@ const (
 //	                  a private/public keypair.
 //	      m_expand  = PROTOID | ":key_expand"
 //	      KEYID(A)  = A
+//
+const (
+	ntorProtoID = "ntor-curve25519-sha256-1"
+	tKey        = ntorProtoID + ":key_extract"
+	tMac        = ntorProtoID + ":mac"
+	tVerify     = ntorProtoID + ":verify"
+	mExpand     = ntorProtoID + ":key_expand"
+)
+
+// ServerHandshake assists with computing values in the server-side of
+// circuit creation.
 //
 // Reference: https://github.com/torproject/torspec/blob/8aaa36d1a062b20ca263b6ac613b77a3ba1eb113/tor-spec.txt#L1100-L1106
 //
@@ -110,11 +116,11 @@ func (s ServerHandshake) SecretInput() []byte {
 }
 
 func (s ServerHandshake) KeySeed() []byte {
-	return ntorHMAC(s.SecretInput(), "key_extract")
+	return ntorHMAC(s.SecretInput(), tKey)
 }
 
 func (s ServerHandshake) Verify() []byte {
-	return ntorHMAC(s.SecretInput(), "verify")
+	return ntorHMAC(s.SecretInput(), tVerify)
 }
 
 func (s ServerHandshake) AuthInput() []byte {
@@ -153,11 +159,41 @@ func (s ServerHandshake) AuthInput() []byte {
 }
 
 func (s ServerHandshake) Auth() []byte {
-	return ntorHMAC(s.AuthInput(), "mac")
+	return ntorHMAC(s.AuthInput(), tMac)
 }
 
 func ntorHMAC(x []byte, k string) []byte {
-	h := hmac.New(sha256.New, []byte(ntorProtoID+":"+k))
+	h := hmac.New(sha256.New, []byte(k))
 	h.Write(x)
 	return h.Sum(nil)
+}
+
+// KDF returns the key derivation function according to HKDF in RFC5869.
+func (s ServerHandshake) KDF() io.Reader {
+	// Reference: https://github.com/torproject/torspec/blob/8aaa36d1a062b20ca263b6ac613b77a3ba1eb113/tor-spec.txt#L1193-L1214
+	//
+	//	5.2.2. KDF-RFC5869
+	//
+	//	   For newer KDF needs, Tor uses the key derivation function HKDF from
+	//	   RFC5869, instantiated with SHA256.  (This is due to a construction
+	//	   from Krawczyk.)  The generated key material is:
+	//
+	//	       K = K_1 | K_2 | K_3 | ...
+	//
+	//	       Where H(x,t) is HMAC_SHA256 with value x and key t
+	//	         and K_1     = H(m_expand | INT8(1) , KEY_SEED )
+	//	         and K_(i+1) = H(K_i | m_expand | INT8(i+1) , KEY_SEED )
+	//	         and m_expand is an arbitrarily chosen value,
+	//	         and INT8(i) is a octet with the value "i".
+	//
+	//	   In RFC5869's vocabulary, this is HKDF-SHA256 with info == m_expand,
+	//	   salt == t_key, and IKM == secret_input.
+	//
+	//	   When used in the ntor handshake, the first HASH_LEN bytes form the
+	//	   forward digest Df; the next HASH_LEN form the backward digest Db; the
+	//	   next KEY_LEN form Kf, the next KEY_LEN form Kb, and the final
+	//	   DIGEST_LEN bytes are taken as a nonce to use in the place of KH in the
+	//	   hidden service protocol.  Excess bytes from K are discarded.
+	//
+	return hkdf.New(sha256.New, s.SecretInput(), []byte(tKey), []byte(mExpand))
 }

@@ -3,6 +3,7 @@ package pearl
 import (
 	"bytes"
 	"encoding/binary"
+	"io"
 
 	"github.com/mmcloughlin/pearl/log"
 	"github.com/mmcloughlin/pearl/ntor"
@@ -176,6 +177,15 @@ func ProcessHandshakeNTOR(conn *Connection, c *Create2Cell) error {
 	}
 
 	// Record results
+	circ, err := BuildCircuitNTOR(c.CircID, h.KDF())
+	if err != nil {
+		return errors.Wrap(err, "failed to build circuit")
+	}
+
+	err = conn.circuits.AddCircuit(circ)
+	if err != nil {
+		return errors.Wrap(err, "failed to register circuit")
+	}
 
 	// Send reply
 	//
@@ -204,6 +214,30 @@ func ProcessHandshakeNTOR(conn *Connection, c *Create2Cell) error {
 	conn.logger.Info("sent created2 cell")
 
 	return nil
+}
+
+// BuildCircuitNTOR constructs a Circuit reading key material from r.
+func BuildCircuitNTOR(id CircID, r io.Reader) (*Circuit, error) {
+	// Reference: https://github.com/torproject/torspec/blob/8aaa36d1a062b20ca263b6ac613b77a3ba1eb113/tor-spec.txt#L1210-L1214
+	//
+	//	   When used in the ntor handshake, the first HASH_LEN bytes form the
+	//	   forward digest Df; the next HASH_LEN form the backward digest Db; the
+	//	   next KEY_LEN form Kf, the next KEY_LEN form Kb, and the final
+	//	   DIGEST_LEN bytes are taken as a nonce to use in the place of KH in the
+	//	   hidden service protocol.  Excess bytes from K are discarded.
+	//
+	var k [72]byte
+	_, err := io.ReadFull(r, k[:])
+	if err != nil {
+		return nil, errors.Wrap(err, "short read for circuit key material")
+	}
+	return &Circuit{
+		ID:             id,
+		ForwardDigest:  k[:20],
+		BackwardDigest: k[20:40],
+		ForwardKey:     k[40:56],
+		BackwardKey:    k[56:72],
+	}, nil
 }
 
 // ServerHandshakeDataNTOR represents server handshake data for the NTOR handshake.

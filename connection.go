@@ -18,7 +18,8 @@ type Connection struct {
 	tlsConn    *tls.Conn
 	cellReader CellReader
 
-	proto LinkProtocolVersion
+	proto    LinkProtocolVersion
+	circuits *CircuitManager
 
 	logger log.Logger
 }
@@ -41,7 +42,8 @@ func NewConnection(r *Router, conn net.Conn, logger log.Logger) (*Connection, er
 		tlsConn:    tlsConn,
 		cellReader: NewCellReader(tlsConn, logger),
 
-		proto: LinkProtocolNone,
+		proto:    LinkProtocolNone,
+		circuits: NewCircuitManager(),
 
 		logger: logger,
 	}, nil
