@@ -195,6 +195,8 @@ def server(seckey_b, my_node_id, message, keyBytes=72):
     if my_node_id != message[:NODE_ID_LENGTH]:
         return None
 
+    print("begin server()")
+
     badness = (keyid(seckey_b.get_public()) !=
                message[NODE_ID_LENGTH:NODE_ID_LENGTH+H_LENGTH])
 
@@ -274,10 +276,23 @@ def client_part2(seckey_x, msg, node_id, pubkey_B, keyBytes=72):
     """
     assert len(msg) == G_LENGTH + H_LENGTH
 
+    print('begin client_part2()')
+
     pubkey_Y = curve25519mod.Public(msg[:G_LENGTH])
     their_auth = msg[G_LENGTH:]
 
     pubkey_X = seckey_x.get_public()
+
+    # x  [32]byte
+    dump('x', seckey_x.serialize())
+    # X  [32]byte
+    dump('X', pubkey_X.serialize())
+    # Y  [32]byte
+    dump('Y', pubkey_Y.serialize())
+    # B  [32]byte
+    dump('B', pubkey_B.serialize())
+    # ID []byte
+    dump('ID', node_id)
 
     yx = seckey_x.get_shared_key(pubkey_Y, hash_nil)
     bx = seckey_x.get_shared_key(pubkey_B, hash_nil)
@@ -287,8 +302,10 @@ def client_part2(seckey_x, msg, node_id, pubkey_B, keyBytes=72):
                     pubkey_B.serialize() +
                     pubkey_X.serialize() +
                     pubkey_Y.serialize() + PROTOID)
+    dump('secret_input', secret_input)
 
     verify = H_verify(secret_input)
+    dump('verify', verify)
 
     # auth_input = verify | ID | B | Y | X | PROTOID | "Server"
     auth_input = (verify + node_id +
@@ -296,8 +313,10 @@ def client_part2(seckey_x, msg, node_id, pubkey_B, keyBytes=72):
                   pubkey_Y.serialize() +
                   pubkey_X.serialize() + PROTOID +
                   b"Server")
+    dump('auth_input', auth_input)
 
     my_auth = H_mac(auth_input)
+    dump('auth', my_auth)
 
     badness = my_auth != their_auth
     badness |= bad_result(yx) + bad_result(bx)
