@@ -195,6 +195,7 @@ func (c *Connection) execute(h Handler) error {
 			With("cmd", cell.Command()).
 			With("circid", cell.CircID()).
 			With("payload", hex.EncodeToString(cell.Payload())).
+			With("bytes", hex.EncodeToString(cell.Bytes())).
 			Trace("received cell")
 
 		err = h.HandleCell(c, cell)
@@ -217,10 +218,11 @@ var HandshakeHandler = NewDirector(map[Command]Handler{
 
 // HandshakeHandler handles cells during handshake.
 var RunLoopHandler = NewDirector(map[Command]Handler{
-	Padding: IgnoreHandler,
-	Create2: HandlerFunc(Create2Handler),
-	Create:  NotImplementedHandler,
-	Destroy: NotImplementedHandler,
+	Padding:    IgnoreHandler,
+	Create2:    HandlerFunc(Create2Handler),
+	Create:     NotImplementedHandler,
+	Destroy:    NotImplementedHandler,
+	RelayEarly: HandlerFunc(RelayHandler),
 })
 
 // EOH is a special error type used to indicate that cell handling should stop.

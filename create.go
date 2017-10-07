@@ -241,11 +241,9 @@ func BuildCircuitNTOR(id CircID, r io.Reader) (*Circuit, error) {
 		return nil, errors.Wrap(err, "short read for circuit key material")
 	}
 	return &Circuit{
-		ID:             id,
-		ForwardDigest:  k[:20],
-		BackwardDigest: k[20:40],
-		ForwardKey:     k[40:56],
-		BackwardKey:    k[56:72],
+		ID:       id,
+		Forward:  NewCircuitDirectionState(k[:20], k[40:56]),
+		Backward: NewCircuitDirectionState(k[20:40], k[56:72]),
 	}, nil
 }
 

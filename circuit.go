@@ -1,16 +1,29 @@
 package pearl
 
 import (
+	"crypto/cipher"
 	"errors"
 	"sync"
+
+	"github.com/mmcloughlin/pearl/torkeys"
 )
 
+type CircuitDirectionState struct {
+	digest []byte
+	cipher.Stream
+}
+
+func NewCircuitDirectionState(d, k []byte) CircuitDirectionState {
+	return CircuitDirectionState{
+		digest: d,
+		Stream: torkeys.NewStream(k),
+	}
+}
+
 type Circuit struct {
-	ID             CircID
-	ForwardDigest  []byte
-	BackwardDigest []byte
-	ForwardKey     []byte
-	BackwardKey    []byte
+	ID       CircID
+	Forward  CircuitDirectionState
+	Backward CircuitDirectionState
 }
 
 // CircuitManager manages a collection of circuits.
@@ -35,4 +48,11 @@ func (m *CircuitManager) AddCircuit(c *Circuit) error {
 	}
 	m.circuits[c.ID] = c
 	return nil
+}
+
+func (m *CircuitManager) Circuit(id CircID) (*Circuit, bool) {
+	m.RLock()
+	defer m.RUnlock()
+	c, ok := m.circuits[id]
+	return c, ok
 }
