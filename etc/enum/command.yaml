@@ -1,0 +1,24 @@
+pkg: pearl
+doc: Command represents a cell packet command byte.
+name: Command
+type: byte
+ref: https://github.com/torproject/torspec/blob/8aaa36d1a062b20ca263b6ac613b77a3ba1eb113/tor-spec.txt#L446-L467
+codes:
+    0: PADDING
+    1: CREATE
+    2: CREATED
+    3: RELAY
+    4: DESTROY
+    5: CREATE_FAST
+    6: CREATED_FAST
+    8: NETINFO
+    9: RELAY_EARLY
+    10: CREATE2
+    11: CREATED2
+    12: PADDING_NEGOTIATE
+    7: VERSIONS
+    128: VPADDING
+    129: CERTS
+    130: AUTH_CHALLENGE
+    131: AUTHENTICATE
+    132: AUTHORIZE

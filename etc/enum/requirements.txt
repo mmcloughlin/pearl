@@ -1,0 +1,2 @@
+PyYAML==3.12
+stringcase==1.2.0
