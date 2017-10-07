@@ -1,0 +1,21 @@
+pkg: pearl
+doc: Command represents a relay cell command byte.
+name: RelayCommand
+type: byte
+ref: https://github.com/torproject/torspec/blob/8aaa36d1a062b20ca263b6ac613b77a3ba1eb113/tor-spec.txt#L1422-L1439
+codes:
+    1: RELAY_BEGIN
+    2: RELAY_DATA
+    3: RELAY_END
+    4: RELAY_CONNECTED
+    5: RELAY_SENDME
+    6: RELAY_EXTEND
+    7: RELAY_EXTENDED
+    8: RELAY_TRUNCATE
+    9: RELAY_TRUNCATED
+    10: RELAY_DROP
+    11: RELAY_RESOLVE
+    12: RELAY_RESOLVED
+    13: RELAY_BEGIN_DIR
+    14: RELAY_EXTEND2
+    15: RELAY_EXTENDED2
