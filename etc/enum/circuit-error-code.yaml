@@ -1,0 +1,20 @@
+pkg: pearl
+doc: CircuitErrorCode is an error code classifying a problem with a circuit.
+name: CircuitErrorCode
+prefix: CircuitError
+type: byte
+ref: https://github.com/torproject/torspec/blob/8aaa36d1a062b20ca263b6ac613b77a3ba1eb113/tor-spec.txt#L1337-L1352
+codes:
+     0: NONE
+     1: PROTOCOL
+     2: INTERNAL
+     3: REQUESTED
+     4: HIBERNATING
+     5: RESOURCELIMIT
+     6: CONNECTFAILED
+     7: OR_IDENTITY
+     8: OR_CONN_CLOSED
+     9: FINISHED
+     10: TIMEOUT
+     11: DESTROYED
+     12: NOSUCHSERVICE

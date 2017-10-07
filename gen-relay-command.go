@@ -4,7 +4,7 @@ package pearl
 
 import "fmt"
 
-// Command represents a relay cell command byte.
+// RelayCommand represents a relay cell command byte.
 type RelayCommand byte
 
 // All possible RelayCommand values.

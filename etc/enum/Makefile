@@ -1,4 +1,4 @@
-all: gen-command.go gen-relay-command.go
+all: gen-command.go gen-relay-command.go gen-circuit-error-code.go
 
 gen-%.go: makeenum.py %.yaml
 	python $^ >$@

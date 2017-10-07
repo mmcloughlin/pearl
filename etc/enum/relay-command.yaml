@@ -1,5 +1,5 @@
 pkg: pearl
-doc: Command represents a relay cell command byte.
+doc: RelayCommand represents a relay cell command byte.
 name: RelayCommand
 type: byte
 ref: https://github.com/torproject/torspec/blob/8aaa36d1a062b20ca263b6ac613b77a3ba1eb113/tor-spec.txt#L1422-L1439
