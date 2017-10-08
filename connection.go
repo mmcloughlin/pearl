@@ -4,6 +4,7 @@ import (
 	"encoding/hex"
 	"net"
 
+	"github.com/davecgh/go-spew/spew"
 	"github.com/mmcloughlin/pearl/tls"
 
 	"github.com/mmcloughlin/pearl/log"
@@ -201,6 +202,8 @@ func (c *Connection) clientHandshake() error {
 	if err != nil {
 		return errors.Wrap(err, "could not parse certs cell")
 	}
+
+	spew.Dump(certsCell)
 
 	/*
 		// Send certs cell

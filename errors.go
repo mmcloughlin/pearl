@@ -1,6 +1,9 @@
 package pearl
 
-import "errors"
+import "github.com/pkg/errors"
 
-// ErrUnexpectedCommand occurs when a command was not expected.
-var ErrUnexpectedCommand = errors.New("unexpected command")
+// Common error types.
+var (
+	ErrUnexpectedCommand = errors.New("unexpected command")
+	ErrShortCellPayload  = errors.New("cell payload too short")
+)

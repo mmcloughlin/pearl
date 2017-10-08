@@ -3,9 +3,10 @@ package pearl
 import (
 	"crypto/x509"
 	"encoding/binary"
+	"errors"
 )
 
-// Reference: https://github.com/torproject/torspec/blob/master/tor-spec.txt#L544-L599
+// Reference: https://github.com/torproject/torspec/blob/8aaa36d1a062b20ca263b6ac613b77a3ba1eb113/tor-spec.txt#L581-L592
 //
 //	4.2. CERTS cells
 //
@@ -20,52 +21,8 @@ import (
 //
 //	   Any extra octets at the end of a CERTS cell MUST be ignored.
 //
-//	     CertType values are:
-//	        1: Link key certificate certified by RSA1024 identity
-//	        2: RSA1024 Identity certificate
-//	        3: RSA1024 AUTHENTICATE cell link certificate
-//
-//	   The certificate format for the above certificate types is DER encoded
-//	   X509.
-//
-//	   A CERTS cell may have no more than one certificate of each CertType.
-//
-//	   To authenticate the responder, the initiator MUST check the following:
-//	     * The CERTS cell contains exactly one CertType 1 "Link" certificate.
-//	     * The CERTS cell contains exactly one CertType 2 "ID" certificate.
-//	     * Both certificates have validAfter and validUntil dates that
-//	       are not expired.
-//	     * The certified key in the Link certificate matches the
-//	       link key that was used to negotiate the TLS connection.
-//	     * The certified key in the ID certificate is a 1024-bit RSA key.
-//	     * The certified key in the ID certificate was used to sign both
-//	       certificates.
-//	     * The link certificate is correctly signed with the key in the
-//	       ID certificate
-//	     * The ID certificate is correctly self-signed.
-//	   Checking these conditions is sufficient to authenticate that the
-//	   initiator is talking to the Tor node with the expected identity,
-//	   as certified in the ID certificate.
-//
-//	   To authenticate the initiator, the responder MUST check the
-//	   following:
-//	     * The CERTS cell contains exactly one CertType 3 "AUTH" certificate.
-//	     * The CERTS cell contains exactly one CertType 2 "ID" certificate.
-//	     * Both certificates have validAfter and validUntil dates that
-//	       are not expired.
-//	     * The certified key in the AUTH certificate is a 1024-bit RSA key.
-//	     * The certified key in the ID certificate is a 1024-bit RSA key.
-//	     * The certified key in the ID certificate was used to sign both
-//	       certificates.
-//	     * The auth certificate is correctly signed with the key in the
-//	       ID certificate.
-//	     * The ID certificate is correctly self-signed.
-//	   Checking these conditions is NOT sufficient to authenticate that the
-//	   initiator has the ID it claims; to do so, the cells in 4.3 and 4.4
-//	   below must be exchanged.
-//
 
-// CertCellEntry represents one cell in a CERTS cell.
+// CertCellEntry represents one certificate in a CERTS cell.
 type CertCellEntry struct {
 	Type    CertType
 	CertDER []byte
@@ -78,6 +35,46 @@ type CertsCell struct {
 
 var _ CellBuilder = new(CertsCell)
 
+func ParseCertsCell(c Cell) (*CertsCell, error) {
+	if c.Command() != Certs {
+		return nil, ErrUnexpectedCommand
+	}
+
+	certs := &CertsCell{}
+
+	p := c.Payload()
+	if len(p) < 1 {
+		return nil, ErrShortCellPayload
+	}
+
+	N := p[0]
+	p = p[1:]
+
+	for i := 0; i < int(N); i++ {
+		if len(p) < 3 {
+			return nil, ErrShortCellPayload
+		}
+		t := p[0]
+		if !IsCertType(t) {
+			return nil, errors.New("unrecognized cert type")
+		}
+
+		clen := binary.BigEndian.Uint16(p[1:])
+		p = p[3:]
+
+		if len(p) < int(clen) {
+			return nil, ErrShortCellPayload
+		}
+
+		der := p[:clen]
+		certs.AddCertDER(CertType(t), der)
+
+		p = p[clen:]
+	}
+
+	return certs, nil
+}
+
 // AddCert adds a certificate to the cell.
 func (c *CertsCell) AddCert(t CertType, crt *x509.Certificate) {
 	c.AddCertDER(t, crt.Raw)
@@ -89,6 +86,17 @@ func (c *CertsCell) AddCertDER(t CertType, der []byte) {
 		Type:    t,
 		CertDER: der,
 	})
+}
+
+// Lookup looks for a certificate of type t in the cell. If found it returns the
+// DER-encoded certificate. Otherwise nil.
+func (c *CertsCell) Lookup(t CertType) []byte {
+	for _, e := range c.Certs {
+		if e.Type == t {
+			return e.CertDER
+		}
+	}
+	return nil
 }
 
 // Cell builds the cell.
