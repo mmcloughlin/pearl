@@ -168,6 +168,12 @@ func (t *TLSContext) ServerConn(conn net.Conn) *tls.Conn {
 	return tls.Server(conn, t.cfg)
 }
 
+// ClientConn wraps an existing connection with a TLS layer configured
+// with this context.
+func (t *TLSContext) ClientConn(conn net.Conn) *tls.Conn {
+	return tls.Client(conn, t.cfg)
+}
+
 // newBaseTLSConfig builds a base TLS config that attempts to match OpenSSL
 // options required by Tor.
 func newBaseTLSConfig() *tls.Config {

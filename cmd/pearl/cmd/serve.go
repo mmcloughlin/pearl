@@ -1,20 +1,18 @@
 package cmd
 
 import (
-	"fmt"
-
 	"github.com/mmcloughlin/pearl"
 	"github.com/mmcloughlin/pearl/log"
 	"github.com/mmcloughlin/pearl/torconfig"
 	"github.com/spf13/cobra"
 )
 
-// runCmd represents the run command
-var runCmd = &cobra.Command{
-	Use:   "run",
-	Short: "Run relay",
+// serveCmd represents the serve command
+var serveCmd = &cobra.Command{
+	Use:   "serve",
+	Short: "Start a relay server",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		return run()
+		return serve()
 	},
 }
 var (
@@ -23,13 +21,13 @@ var (
 )
 
 func init() {
-	runCmd.Flags().StringVarP(&nickname, "nickname", "n", "pearl", "nickname")
-	runCmd.Flags().IntVarP(&port, "port", "p", 9111, "relay port")
+	serveCmd.Flags().StringVarP(&nickname, "nickname", "n", "pearl", "nickname")
+	serveCmd.Flags().IntVarP(&port, "port", "p", 9111, "relay port")
 
-	rootCmd.AddCommand(runCmd)
+	rootCmd.AddCommand(serveCmd)
 }
 
-func run() error {
+func serve() error {
 	platform := torconfig.NewPlatformHostOS("Tor", "0.2.9.9")
 	config := &torconfig.Config{
 		Nickname: nickname,
@@ -44,19 +42,12 @@ func run() error {
 		return err
 	}
 
-	desc := r.Descriptor()
-	doc, err := desc.Document()
-	if err != nil {
-		return err
-	}
-
-	fmt.Println(string(doc.Encode()))
-
 	go func() {
 		r.Serve()
 	}()
 
 	authority := "127.0.0.1:7000"
+	desc := r.Descriptor()
 	err = desc.PublishToAuthority(authority)
 	if err != nil {
 		return err

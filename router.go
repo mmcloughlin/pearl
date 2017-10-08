@@ -27,6 +27,9 @@ type Router struct {
 	logger log.Logger
 }
 
+// TODO(mbm): determine which parts of Router struct are required for client and
+// server. Perhaps a stripped down struct can be used for client-only.
+
 // NewRouter constructs a router based on the given config.
 func NewRouter(config *torconfig.Config, logger log.Logger) (*Router, error) {
 	idKey, err := torkeys.GenerateRSA()
@@ -84,13 +87,33 @@ func (r *Router) Serve() error {
 			return errors.Wrap(err, "error accepting connection")
 		}
 
-		c, err := NewConnection(r, conn, r.logger)
+		c, err := NewServer(r, conn, r.logger)
 		if err != nil {
 			return errors.Wrap(err, "error building connection")
 		}
 
 		go c.Handle()
 	}
+}
+
+func (r *Router) Connect(raddr string) (*Connection, error) {
+	conn, err := net.Dial("tcp", raddr)
+	if err != nil {
+		return nil, errors.Wrap(err, "dial failed")
+	}
+
+	c, err := NewClient(r, conn, r.logger)
+	if err != nil {
+		return nil, errors.Wrap(err, "building connection failed")
+	}
+
+	// TODO(mbm): should we be calling this here?
+	err = c.clientHandshake()
+	if err != nil {
+		return nil, errors.Wrap(err, "handshake failed")
+	}
+
+	return c, nil
 }
 
 // Descriptor returns a server descriptor for this router.

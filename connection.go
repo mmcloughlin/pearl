@@ -13,7 +13,6 @@ import (
 // Connection encapsulates a router connection.
 type Connection struct {
 	router     *Router
-	conn       net.Conn
 	tlsCtx     *TLSContext
 	tlsConn    *tls.Conn
 	cellReader CellReader
@@ -24,20 +23,29 @@ type Connection struct {
 	logger log.Logger
 }
 
-// NewConnection constructs a connection
-func NewConnection(r *Router, conn net.Conn, logger log.Logger) (*Connection, error) {
+// NewServer constructs a server connection.
+func NewServer(r *Router, conn net.Conn, logger log.Logger) (*Connection, error) {
 	tlsCtx, err := NewTLSContext(r.IdentityKey())
 	if err != nil {
 		return nil, err
 	}
-
 	tlsConn := tlsCtx.ServerConn(conn)
+	return newConnection(r, tlsCtx, tlsConn, logger.With("role", "server")), nil
+}
 
-	logger = logger.With("raddr", conn.RemoteAddr())
+// NewClient constructs a client-side connection.
+func NewClient(r *Router, conn net.Conn, logger log.Logger) (*Connection, error) {
+	tlsCtx, err := NewTLSContext(r.IdentityKey())
+	if err != nil {
+		return nil, err
+	}
+	tlsConn := tlsCtx.ClientConn(conn)
+	return newConnection(r, tlsCtx, tlsConn, logger.With("role", "client")), nil
+}
 
+func newConnection(r *Router, tlsCtx *TLSContext, tlsConn *tls.Conn, logger log.Logger) *Connection {
 	return &Connection{
 		router:     r,
-		conn:       conn,
 		tlsCtx:     tlsCtx,
 		tlsConn:    tlsConn,
 		cellReader: NewCellReader(tlsConn, logger),
@@ -45,66 +53,34 @@ func NewConnection(r *Router, conn net.Conn, logger log.Logger) (*Connection, er
 		proto:    LinkProtocolNone,
 		circuits: NewCircuitManager(),
 
-		logger: logger,
-	}, nil
+		logger: logger.With("raddr", tlsConn.RemoteAddr()),
+	}
 }
 
 // Handle handles the full lifecycle of the connection.
 func (c *Connection) Handle() {
 	c.logger.Info("handle")
 
-	err := c.handshake()
+	err := c.serverHandshake()
 	if err != nil {
 		log.Err(c.logger, err, "error handling connection")
 	}
 }
 
-func (c *Connection) handshake() error {
-	// Expect a versions cell. Note this has circID length 2 regardless of link
-	// protocol version.
-	//
-	// Reference: https://github.com/torproject/torspec/blob/master/tor-spec.txt#L411-L413
-	//
-	//	   CIRCID_LEN is 2 for link protocol versions 1, 2, and 3.  CIRCID_LEN
-	//	   is 4 for link protocol version 4 or higher.  The VERSIONS cell itself
-	//	   always has CIRCID_LEN == 2 for backward compatibility.
-	//
-	cell, err := c.cellReader.ReadCell(VersionsCellFormat)
+func (c *Connection) serverHandshake() error {
+	// Establish link protocol version
+	clientVersions, err := c.receiveVersions()
 	if err != nil {
-		return errors.Wrap(err, "could not read cell")
+		return errors.Wrap(err, "failed to determine client versions")
 	}
 
-	versionsCell, err := ParseVersionsCell(cell)
+	err = c.sendVersions(SupportedLinkProtocolVersions)
 	if err != nil {
-		return errors.Wrap(err, "could not parse versions cell")
+		return errors.Wrap(err, "failed to send supported versions")
 	}
 
-	c.logger.With("supported_versions", versionsCell.SupportedVersions).Debug("received versions cell")
+	c.establishVersion(clientVersions, SupportedLinkProtocolVersions)
 
-	// Send our own versions cell
-	ourVersionsCell := VersionsCell{
-		SupportedVersions: SupportedLinkProtocolVersions,
-	}
-	cell, err = ourVersionsCell.Cell(VersionsCellFormat)
-	if err != nil {
-		return errors.Wrap(err, "error building versions cell")
-	}
-
-	_, err = c.tlsConn.Write(cell.Bytes())
-	if err != nil {
-		return errors.Wrap(err, "could not send versions cell")
-	}
-
-	c.logger.With("supported_versions", SupportedLinkProtocolVersions).Debug("sent versions cell")
-
-	// Settle on a protocol version
-	proto, err := ResolveVersion(versionsCell.SupportedVersions, ourVersionsCell.SupportedVersions)
-	if err != nil {
-		return errors.Wrap(err, "could not agree on link protocol version")
-	}
-
-	c.logger.With("version", proto).Info("determined link protocol version")
-	c.proto = proto
 	f := c.proto.CellFormat()
 
 	// Send certs cell
@@ -119,7 +95,7 @@ func (c *Connection) handshake() error {
 	certsCell.AddCert(LinkCert, c.tlsCtx.LinkCert)
 	certsCell.AddCert(IdentityCert, c.tlsCtx.IDCert)
 
-	cell, err = certsCell.Cell(f)
+	cell, err := certsCell.Cell(f)
 	if err != nil {
 		return errors.Wrap(err, "error building certs cell")
 	}
@@ -182,6 +158,161 @@ func (c *Connection) handshake() error {
 	return nil
 }
 
+func (c *Connection) clientHandshake() error {
+	// Establish link protocol version
+	err := c.sendVersions(SupportedLinkProtocolVersions)
+	if err != nil {
+		return errors.Wrap(err, "failed to send supported versions")
+	}
+
+	serverVersions, err := c.receiveVersions()
+	if err != nil {
+		return errors.Wrap(err, "failed to determine server versions")
+	}
+
+	c.establishVersion(serverVersions, SupportedLinkProtocolVersions)
+
+	//f := c.proto.CellFormat()
+
+	/*
+		// Send certs cell
+		//
+		// Reference: https://github.com/torproject/torspec/blob/master/tor-spec.txt#L567-L569
+		//
+		//	   To authenticate the responder, the initiator MUST check the following:
+		//	     * The CERTS cell contains exactly one CertType 1 "Link" certificate.
+		//	     * The CERTS cell contains exactly one CertType 2 "ID" certificate.
+		//
+		certsCell := &CertsCell{}
+		certsCell.AddCert(LinkCert, c.tlsCtx.LinkCert)
+		certsCell.AddCert(IdentityCert, c.tlsCtx.IDCert)
+
+		cell, err = certsCell.Cell(f)
+		if err != nil {
+			return errors.Wrap(err, "error building certs cell")
+		}
+
+		_, err = c.tlsConn.Write(cell.Bytes())
+		if err != nil {
+			return errors.Wrap(err, "could not send certs cell")
+		}
+
+		c.logger.Debug("sent certs cell")
+
+		// Send auth challenge cell
+		authChallengeCell, err := NewAuthChallengeCellStandard()
+		if err != nil {
+			return errors.Wrap(err, "error initializing auth challenge cell")
+		}
+
+		cell, err = authChallengeCell.Cell(f)
+		if err != nil {
+			return errors.Wrap(err, "error building auth challenge cell")
+		}
+
+		_, err = c.tlsConn.Write(cell.Bytes())
+		if err != nil {
+			return errors.Wrap(err, "could not send auth challenge cell")
+		}
+
+		c.logger.Debug("sent auth challenge cell")
+
+		// Send NETINFO cell
+		netInfoCell, err := NewNetInfoCellFromConn(c.tlsConn)
+		if err != nil {
+			return errors.Wrap(err, "error initializing net info cell")
+		}
+
+		cell, err = netInfoCell.Cell(f)
+		if err != nil {
+			return errors.Wrap(err, "error building net info cell")
+		}
+
+		_, err = c.tlsConn.Write(cell.Bytes())
+		if err != nil {
+			return errors.Wrap(err, "could not send net info cell")
+		}
+
+		c.logger.Debug("sent net info cell")
+
+		// Process handshake cells
+		err = c.execute(HandshakeHandler)
+		if err != nil {
+			return err
+		}
+
+		// Enter main loop
+		err = c.execute(RunLoopHandler)
+		if err != nil {
+			return err
+		}
+
+	*/
+
+	return nil
+}
+
+// receiveVersions expects a VERSIONS cell and returns the contained
+// LinkProtocolVersions.
+func (c *Connection) receiveVersions() ([]LinkProtocolVersion, error) {
+	// Expect a versions cell. Note this has circID length 2 regardless of link
+	// protocol version.
+	//
+	// Reference: https://github.com/torproject/torspec/blob/master/tor-spec.txt#L411-L413
+	//
+	//	   CIRCID_LEN is 2 for link protocol versions 1, 2, and 3.  CIRCID_LEN
+	//	   is 4 for link protocol version 4 or higher.  The VERSIONS cell itself
+	//	   always has CIRCID_LEN == 2 for backward compatibility.
+	//
+	cell, err := c.cellReader.ReadCell(VersionsCellFormat)
+	if err != nil {
+		return nil, errors.Wrap(err, "could not read cell")
+	}
+
+	versionsCell, err := ParseVersionsCell(cell)
+	if err != nil {
+		return nil, errors.Wrap(err, "could not parse versions cell")
+	}
+
+	c.logger.With("supported_versions", versionsCell.SupportedVersions).Debug("received versions cell")
+
+	return versionsCell.SupportedVersions, nil
+}
+
+// sendVersions sends a VERSIONS cell with the given list of protocol versions.
+func (c *Connection) sendVersions(v []LinkProtocolVersion) error {
+	ourVersionsCell := VersionsCell{
+		SupportedVersions: v,
+	}
+	cell, err := ourVersionsCell.Cell(VersionsCellFormat)
+	if err != nil {
+		return errors.Wrap(err, "error building versions cell")
+	}
+
+	_, err = c.tlsConn.Write(cell.Bytes())
+	if err != nil {
+		return errors.Wrap(err, "could not send versions cell")
+	}
+
+	c.logger.With("supported_versions", v).Debug("sent versions cell")
+
+	return nil
+}
+
+// establishVersion reconciles two supported versions list and sets the proto
+// field.
+func (c *Connection) establishVersion(a, b []LinkProtocolVersion) error {
+	proto, err := ResolveVersion(a, b)
+	if err != nil {
+		return errors.Wrap(err, "could not agree on link protocol version")
+	}
+
+	c.logger.With("version", proto).Info("determined link protocol version")
+	c.proto = proto
+
+	return nil
+}
+
 func (c *Connection) execute(h Handler) error {
 	var err error
 	var cell Cell
@@ -208,7 +339,7 @@ func (c *Connection) execute(h Handler) error {
 	}
 }
 
-// HandshakeHandler handles cells during handshake.
+// HandshakeHandler handles cells during server side handshake.
 var HandshakeHandler = NewDirector(map[Command]Handler{
 	Padding:      IgnoreHandler,
 	Certs:        NotImplementedHandler,
