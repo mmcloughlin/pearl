@@ -105,6 +105,10 @@ func (c *Conn) serverHandshake() error {
 	}
 	c.handshakeComplete = true
 
+	c.masterSecret = hs.masterSecret
+	c.clientRandom = hs.clientHello.random
+	c.serverRandom = hs.hello.random
+
 	return nil
 }
 

@@ -253,6 +253,9 @@ NextCipherSuite:
 	c.didResume = isResume
 	c.handshakeComplete = true
 	c.cipherSuite = suite.id
+	c.masterSecret = hs.masterSecret
+	c.clientRandom = hs.hello.random
+	c.serverRandom = hs.serverHello.random
 	return nil
 }
 

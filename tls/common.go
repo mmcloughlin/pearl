@@ -171,6 +171,9 @@ type ConnectionState struct {
 	VerifiedChains              [][]*x509.Certificate // verified chains built from PeerCertificates
 	SignedCertificateTimestamps [][]byte              // SCTs from the server, if any
 	OCSPResponse                []byte                // stapled OCSP response from server, if any
+	MasterSecret                []byte                // TLS master secret
+	ClientRandom                []byte                // Random from client hello
+	ServerRandom                []byte                // Random from server hello
 
 	// TLSUnique contains the "tls-unique" channel binding value (see RFC
 	// 5929, section 3). For resumed sessions this value will be nil
