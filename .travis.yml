@@ -5,11 +5,9 @@ go:
   - 1.9.x
   - tip
 install:
-  - go get github.com/Masterminds/glide
   - go get github.com/go-playground/overalls
   - go get github.com/mattn/goveralls
 script:
-  - $GOPATH/bin/glide install
   - go install github.com/mmcloughlin/pearl/cmd/...
   - overalls -project=github.com/mmcloughlin/pearl -- -v
   - goveralls -coverprofile=overalls.coverprofile -service=travis-ci
