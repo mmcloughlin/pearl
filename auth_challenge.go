@@ -71,14 +71,44 @@ func NewAuthChallengeCellStandard() (*AuthChallengeCell, error) {
 	return NewAuthChallengeCell([]AuthMethod{AuthMethodRSASHA256TLSSecret})
 }
 
-// Cell constructs the cell bytes.
-func (a AuthChallengeCell) Cell(f CellFormat) (Cell, error) {
-	// Reference: https://github.com/torproject/torspec/blob/master/tor-spec.txt#L605-L607
+// ParseAuthChallengeCell parses c as an AUTH_CHALLENGE cell.
+func ParseAuthChallengeCell(c Cell) (*AuthChallengeCell, error) {
+	// Reference: https://github.com/torproject/torspec/blob/8aaa36d1a062b20ca263b6ac613b77a3ba1eb113/tor-spec.txt#L700-L702
 	//
 	//	       Challenge [32 octets]
 	//	       N_Methods [2 octets]
 	//	       Methods   [2 * N_Methods octets]
 	//
+	if c.Command() != AuthChallenge {
+		return nil, ErrUnexpectedCommand
+	}
+
+	p := c.Payload()
+	ac := &AuthChallengeCell{}
+
+	if len(p) < 32+2 {
+		return nil, ErrShortCellPayload
+	}
+
+	copy(ac.Challenge[:], p)
+	N := int(binary.BigEndian.Uint16(p[32:]))
+	p = p[34:]
+
+	if len(p) < 2*N {
+		return nil, ErrShortCellPayload
+	}
+
+	ac.Methods = make([]AuthMethod, N)
+	for i := 0; i < N; i++ {
+		ac.Methods[i] = AuthMethod(binary.BigEndian.Uint16(p))
+		p = p[2:]
+	}
+
+	return ac, nil
+}
+
+// Cell constructs the cell bytes.
+func (a AuthChallengeCell) Cell(f CellFormat) (Cell, error) {
 	m := len(a.Methods)
 	n := 32 + 2 + 2*m
 	c := NewCellEmptyPayload(f, 0, AuthChallenge, uint16(n))

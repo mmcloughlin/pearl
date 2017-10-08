@@ -4,7 +4,6 @@ import (
 	"encoding/hex"
 	"net"
 
-	"github.com/davecgh/go-spew/spew"
 	"github.com/mmcloughlin/pearl/tls"
 
 	"github.com/mmcloughlin/pearl/log"
@@ -126,23 +125,11 @@ func (c *Connection) serverHandshake() error {
 
 	c.logger.Debug("sent auth challenge cell")
 
-	// Send NETINFO cell
-	netInfoCell, err := NewNetInfoCellFromConn(c.tlsConn)
+	// Send NETINFO
+	err = c.sendNetInfoCell()
 	if err != nil {
-		return errors.Wrap(err, "error initializing net info cell")
+		return errors.Wrap(err, "failed to send net info")
 	}
-
-	cell, err = netInfoCell.Cell(f)
-	if err != nil {
-		return errors.Wrap(err, "error building net info cell")
-	}
-
-	_, err = c.tlsConn.Write(cell.Bytes())
-	if err != nil {
-		return errors.Wrap(err, "could not send net info cell")
-	}
-
-	c.logger.Debug("sent net info cell")
 
 	// Process handshake cells
 	err = c.execute(HandshakeHandler)
@@ -203,51 +190,38 @@ func (c *Connection) clientHandshake() error {
 		return errors.Wrap(err, "could not parse certs cell")
 	}
 
-	spew.Dump(certsCell)
+	c.logger.With("numcerts", len(certsCell.Certs)).Debug("received certs cell")
+	c.logger.Error("certificate cell verification not implemented")
+
+	// Receive AUTH_CHALLENGE cell
+	cell, err = c.cellReader.ReadCell(c.proto.CellFormat())
+	if err != nil {
+		return errors.Wrap(err, "could not read cell")
+	}
+
+	authChallengeCell, err := ParseAuthChallengeCell(cell)
+	if err != nil {
+		return errors.Wrap(err, "could not parse auth challenge cell")
+	}
+
+	log.WithBytes(c.logger, "challenge", authChallengeCell.Challenge[:]).Debug("received auth challenge cell")
+	c.logger.Error("auth challenge reply not implemented")
+
+	// Receive NETINFO cell
+	cell, err = c.cellReader.ReadCell(c.proto.CellFormat())
+	if err != nil {
+		return errors.Wrap(err, "could not read cell")
+	}
+
+	netInfoCell, err := ParseNetInfoCell(cell)
+	if err != nil {
+		return errors.Wrap(err, "could not parse netinfo cell")
+	}
+
+	c.logger.With("receiver_addr", netInfoCell.ReceiverAddress).Debug("received net info cell")
+	c.logger.Error("net info processing not implemented")
 
 	/*
-		// Send certs cell
-		//
-		// Reference: https://github.com/torproject/torspec/blob/master/tor-spec.txt#L567-L569
-		//
-		//	   To authenticate the responder, the initiator MUST check the following:
-		//	     * The CERTS cell contains exactly one CertType 1 "Link" certificate.
-		//	     * The CERTS cell contains exactly one CertType 2 "ID" certificate.
-		//
-		certsCell := &CertsCell{}
-		certsCell.AddCert(LinkCert, c.tlsCtx.LinkCert)
-		certsCell.AddCert(IdentityCert, c.tlsCtx.IDCert)
-
-		cell, err = certsCell.Cell(f)
-		if err != nil {
-			return errors.Wrap(err, "error building certs cell")
-		}
-
-		_, err = c.tlsConn.Write(cell.Bytes())
-		if err != nil {
-			return errors.Wrap(err, "could not send certs cell")
-		}
-
-		c.logger.Debug("sent certs cell")
-
-		// Send auth challenge cell
-		authChallengeCell, err := NewAuthChallengeCellStandard()
-		if err != nil {
-			return errors.Wrap(err, "error initializing auth challenge cell")
-		}
-
-		cell, err = authChallengeCell.Cell(f)
-		if err != nil {
-			return errors.Wrap(err, "error building auth challenge cell")
-		}
-
-		_, err = c.tlsConn.Write(cell.Bytes())
-		if err != nil {
-			return errors.Wrap(err, "could not send auth challenge cell")
-		}
-
-		c.logger.Debug("sent auth challenge cell")
-
 		// Send NETINFO cell
 		netInfoCell, err := NewNetInfoCellFromConn(c.tlsConn)
 		if err != nil {
@@ -340,6 +314,27 @@ func (c *Connection) establishVersion(a, b []LinkProtocolVersion) error {
 
 	c.logger.With("version", proto).Info("determined link protocol version")
 	c.proto = proto
+
+	return nil
+}
+
+func (c *Connection) sendNetInfoCell() error {
+	netInfoCell, err := NewNetInfoCellFromConn(c.tlsConn)
+	if err != nil {
+		return errors.Wrap(err, "error initializing net info cell")
+	}
+
+	cell, err := netInfoCell.Cell(c.proto.CellFormat())
+	if err != nil {
+		return errors.Wrap(err, "error building net info cell")
+	}
+
+	_, err = c.tlsConn.Write(cell.Bytes())
+	if err != nil {
+		return errors.Wrap(err, "could not send net info cell")
+	}
+
+	c.logger.Debug("sent net info cell")
 
 	return nil
 }
