@@ -53,7 +53,7 @@ func run() error {
 	fmt.Println(string(doc.Encode()))
 
 	go func() {
-		r.Run()
+		r.Serve()
 	}()
 
 	authority := "127.0.0.1:7000"

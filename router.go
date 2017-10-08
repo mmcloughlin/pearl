@@ -69,8 +69,8 @@ func (r *Router) Fingerprint() []byte {
 	return r.fingerprint
 }
 
-// Run starts a listener and enters a main loop handling connections.
-func (r *Router) Run() error {
+// Serve starts a listener and enters a main loop handling connections.
+func (r *Router) Serve() error {
 	laddr := fmt.Sprintf("localhost:%d", r.config.ORPort)
 	r.logger.With("laddr", laddr).Info("creating listener")
 	ln, err := net.Listen("tcp", laddr)
