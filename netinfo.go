@@ -2,9 +2,10 @@ package pearl
 
 import (
 	"encoding/binary"
-	"errors"
 	"net"
 	"time"
+
+	"github.com/pkg/errors"
 )
 
 // Reference: https://github.com/torproject/torspec/blob/master/tor-spec.txt#L681-L702
@@ -69,6 +70,46 @@ func NewNetInfoCellFromConn(conn net.Conn) (*NetInfoCell, error) {
 	return NewNetInfoCell(remote, []net.IP{local}), nil
 }
 
+func ParseNetInfoCell(c Cell) (*NetInfoCell, error) {
+	if c.Command() != Netinfo {
+		return nil, ErrUnexpectedCommand
+	}
+
+	p := c.Payload()
+	ni := &NetInfoCell{}
+
+	// Timestamp
+	if len(p) < 4 {
+		return nil, ErrShortCellPayload
+	}
+	epoch := binary.BigEndian.Uint32(p)
+	ni.Timestamp = time.Unix(int64(epoch), 0)
+	p = p[4:]
+
+	// ReceiverAddress
+	var err error
+	ni.ReceiverAddress, p, err = DecodeAddress(p)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to decode receiver address")
+	}
+
+	// SenderAddresses
+	if len(p) < 1 {
+		return nil, ErrShortCellPayload
+	}
+	n := int(p[0])
+	p = p[1:]
+	ni.SenderAddresses = make([]net.IP, n)
+	for i := 0; i < n; i++ {
+		ni.SenderAddresses[i], p, err = DecodeAddress(p)
+		if err != nil {
+			return nil, errors.Wrap(err, "failed to decode sender address")
+		}
+	}
+
+	return ni, nil
+}
+
 // Cell actually constructs the cell.
 func (n NetInfoCell) Cell(f CellFormat) (Cell, error) {
 	c := NewFixedCell(f, 0, Netinfo)
@@ -108,7 +149,7 @@ func (n NetInfoCell) Cell(f CellFormat) (Cell, error) {
 func EncodeAddress(ip net.IP) []byte {
 	// Referenced in tor spec but in relation to something else.
 	//
-	// Reference: https://github.com/torproject/torspec/blob/master/tor-spec.txt#L1486-L1496
+	// Reference: https://github.com/torproject/torspec/blob/8aaa36d1a062b20ca263b6ac613b77a3ba1eb113/tor-spec.txt#L1659-L1669
 	//
 	//	       Type   (1 octet)
 	//	       Length (1 octet)
@@ -122,7 +163,7 @@ func EncodeAddress(ip net.IP) []byte {
 	//	      0xF0 -- Error, transient
 	//	      0xF1 -- Error, nontransient
 	//
-	// Reference: https://github.com/torproject/tor/blob/master/src/or/relay.c#L2914-L2941
+	// Reference: https://github.com/torproject/tor/blob/51e47481fc6f131d4e421de061029459ccbb033e/src/or/relay.c#L3015-L3042
 	//
 	//	/** Append an encoded value of <b>addr</b> to <b>payload_out</b>, which must
 	//	 * have at least 18 bytes of free space.  The encoding is, as specified in
@@ -173,6 +214,28 @@ func EncodeAddress(ip net.IP) []byte {
 	}
 
 	return nil
+}
+
+// DecodeAddress decodes the given bytes into an IP and returns the remaining.
+func DecodeAddress(b []byte) (net.IP, []byte, error) {
+	if len(b) < 6 {
+		return nil, nil, errors.New("too short")
+	}
+
+	// IPv4
+	if b[0] == 4 && b[1] == 4 {
+		return net.IP(b[2:6]), b[6:], nil
+	}
+
+	// IPv6
+	if len(b) < 18 {
+		return nil, nil, errors.New("too short")
+	}
+	if b[0] == 6 && b[1] == 16 {
+		return net.IP(b[2:18]), b[18:], nil
+	}
+
+	return nil, nil, errors.New("unrecognized format")
 }
 
 func addrToIP(addr net.Addr) net.IP {
