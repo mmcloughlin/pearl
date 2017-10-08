@@ -59,6 +59,7 @@ def output(spec):
     '''.format(**spec)
 
     print '''
+    // Is{name} determines whether {receiver} is a possible {name} value.
     func Is{name}({receiver} {type}) bool {{
         _, ok := {string_map_var}[{name}({receiver})]
         return ok

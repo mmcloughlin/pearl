@@ -48,6 +48,7 @@ func (c CertType) String() string {
 	return fmt.Sprintf("CertType(%d)", byte(c))
 }
 
+// IsCertType determines whether c is a possible CertType value.
 func IsCertType(c byte) bool {
 	_, ok := stringsCertType[CertType(c)]
 	return ok

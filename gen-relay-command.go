@@ -74,6 +74,7 @@ func (r RelayCommand) String() string {
 	return fmt.Sprintf("RelayCommand(%d)", byte(r))
 }
 
+// IsRelayCommand determines whether r is a possible RelayCommand value.
 func IsRelayCommand(r byte) bool {
 	_, ok := stringsRelayCommand[RelayCommand(r)]
 	return ok

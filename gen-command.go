@@ -84,6 +84,7 @@ func (c Command) String() string {
 	return fmt.Sprintf("Command(%d)", byte(c))
 }
 
+// IsCommand determines whether c is a possible Command value.
 func IsCommand(c byte) bool {
 	_, ok := stringsCommand[Command(c)]
 	return ok

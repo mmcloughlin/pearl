@@ -68,6 +68,7 @@ func (c CircuitErrorCode) String() string {
 	return fmt.Sprintf("CircuitErrorCode(%d)", byte(c))
 }
 
+// IsCircuitErrorCode determines whether c is a possible CircuitErrorCode value.
 func IsCircuitErrorCode(c byte) bool {
 	_, ok := stringsCircuitErrorCode[CircuitErrorCode(c)]
 	return ok
