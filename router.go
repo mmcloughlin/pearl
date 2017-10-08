@@ -47,7 +47,7 @@ func NewRouter(config *torconfig.Config, logger log.Logger) (*Router, error) {
 		return nil, err
 	}
 
-	fingerprint, err := torkeys.PublicKeyHash(&idKey.PublicKey)
+	fingerprint, err := torkeys.Fingerprint(&idKey.PublicKey)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to compute fingerprint")
 	}

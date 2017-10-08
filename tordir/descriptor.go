@@ -310,7 +310,7 @@ func (d *ServerDescriptor) SetSigningKey(k *rsa.PrivateKey) error {
 }
 
 func (d *ServerDescriptor) setFingerprint(k *rsa.PublicKey) error {
-	h, err := torkeys.PublicKeyHash(k)
+	h, err := torkeys.Fingerprint(k)
 	if err != nil {
 		return err
 	}

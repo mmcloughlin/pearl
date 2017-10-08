@@ -16,7 +16,7 @@ func TestGenerateRSA(t *testing.T) {
 	assert.Equal(t, 65537, k.E)
 }
 
-func TestPublicKeyHash(t *testing.T) {
+func TestFingerprint(t *testing.T) {
 	// test data taken from a server descriptor
 	keyPEM := `-----BEGIN RSA PUBLIC KEY-----
 MIGJAoGBAL3AM6+zg8ICgl0E27D/nGzJEI8AaoCjkiAH03/ltQa/+1sFs3O+M3Js
@@ -29,7 +29,7 @@ qr9jcmN5zD7BBUua+kHYSEx40uId2T8e4ztpQSeNB32i6p4pWlcbAgMBAAE=
 	key, err := ParseRSAPublicKeyPKCS1PEM([]byte(keyPEM))
 	require.NoError(t, err)
 
-	h, err := PublicKeyHash(key)
+	h, err := Fingerprint(key)
 	require.NoError(t, err)
 
 	fingerprint := strings.ToUpper(hex.EncodeToString(h))

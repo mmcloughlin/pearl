@@ -4,6 +4,8 @@ import (
 	cryptorand "crypto/rand"
 	"crypto/rsa"
 	"crypto/sha1"
+	"crypto/sha256"
+	"hash"
 )
 
 // GenerateRSA generates an RSA key pair according to the Tor requirements.
@@ -24,23 +26,38 @@ func GenerateRSAWithBits(bits int) (*rsa.PrivateKey, error) {
 	return rsa.GenerateKey(cryptorand.Reader, bits)
 }
 
-// PublicKeyHash computes the hash of a public key as defined in the spec
+// Fingerprint computes the SHA-1 hash of a public key referred to as a
+// fingerprint.
+func Fingerprint(k *rsa.PublicKey) ([]byte, error) {
+	return publicKeyHash(k, sha1.New())
+}
+
+// Fingerprint256 computes the SHA-256 hash of a public key.
+func Fingerprint256(k *rsa.PublicKey) ([]byte, error) {
+	return publicKeyHash(k, sha256.New())
+}
+
+// publicKeyHash computes the hash of a public key as defined in the spec
 // below.
 //
-// Reference: https://github.com/torproject/torspec/blob/master/tor-spec.txt#L109-L110
+// Reference: https://github.com/torproject/torspec/blob/8aaa36d1a062b20ca263b6ac613b77a3ba1eb113/tor-spec.txt#L116-L118
 //
-//	   When we refer to "the hash of a public key", we mean the SHA-1 hash of the
-//	   DER encoding of an ASN.1 RSA public key (as specified in PKCS.1).
+//	   When we refer to "the hash of a public key", unless otherwise
+//	   specified, we mean the SHA-1 hash of the DER encoding of an ASN.1 RSA
+//	   public key (as specified in PKCS.1).
 //
-func PublicKeyHash(k *rsa.PublicKey) ([]byte, error) {
+func publicKeyHash(k *rsa.PublicKey, h hash.Hash) ([]byte, error) {
 	der, err := MarshalRSAPublicKeyPKCS1DER(k)
 	if err != nil {
 		return nil, err
 	}
 
-	h := sha1.Sum(der)
+	_, err = h.Write(der)
+	if err != nil {
+		return nil, err
+	}
 
-	return h[:], nil
+	return h.Sum(nil), nil
 }
 
 // SignRSASHA1 signs data with k. This is the RSA encryption of the SHA-1 hash
