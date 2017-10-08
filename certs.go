@@ -65,22 +65,6 @@ import (
 //	   below must be exchanged.
 //
 
-// CertType is the certificate type ID.
-type CertType uint8
-
-// Reference: https://github.com/torproject/torspec/blob/master/tor-spec.txt#L557-L560
-//
-//	     CertType values are:
-//	        1: Link key certificate certified by RSA1024 identity
-//	        2: RSA1024 Identity certificate
-//	        3: RSA1024 AUTHENTICATE cell link certificate
-//
-var (
-	LinkCert     CertType = 1
-	IdentityCert CertType = 2
-	AuthCert     CertType = 3
-)
-
 // CertCellEntry represents one cell in a CERTS cell.
 type CertCellEntry struct {
 	Type    CertType

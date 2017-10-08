@@ -92,8 +92,8 @@ func (c *Connection) serverHandshake() error {
 	//	     * The CERTS cell contains exactly one CertType 2 "ID" certificate.
 	//
 	certsCell := &CertsCell{}
-	certsCell.AddCert(LinkCert, c.tlsCtx.LinkCert)
-	certsCell.AddCert(IdentityCert, c.tlsCtx.IDCert)
+	certsCell.AddCert(CertTypeLink, c.tlsCtx.LinkCert)
+	certsCell.AddCert(CertTypeIdentity, c.tlsCtx.IDCert)
 
 	cell, err := certsCell.Cell(f)
 	if err != nil {
@@ -159,6 +159,25 @@ func (c *Connection) serverHandshake() error {
 }
 
 func (c *Connection) clientHandshake() error {
+	// Reference: https://github.com/torproject/torspec/blob/8aaa36d1a062b20ca263b6ac613b77a3ba1eb113/tor-spec.txt#L509-L523
+	//
+	//	   When the in-protocol handshake is used, the initiator sends a
+	//	   VERSIONS cell to indicate that it will not be renegotiating.  The
+	//	   responder sends a VERSIONS cell, a CERTS cell (4.2 below) to give the
+	//	   initiator the certificates it needs to learn the responder's
+	//	   identity, an AUTH_CHALLENGE cell (4.3) that the initiator must include
+	//	   as part of its answer if it chooses to authenticate, and a NETINFO
+	//	   cell (4.5).  As soon as it gets the CERTS cell, the initiator knows
+	//	   whether the responder is correctly authenticated.  At this point the
+	//	   initiator behaves differently depending on whether it wants to
+	//	   authenticate or not. If it does not want to authenticate, it MUST
+	//	   send a NETINFO cell.  If it does want to authenticate, it MUST send a
+	//	   CERTS cell, an AUTHENTICATE cell (4.4), and a NETINFO.  When this
+	//	   handshake is in use, the first cell must be VERSIONS, VPADDING, or
+	//	   AUTHORIZE, and no other cell type is allowed to intervene besides
+	//	   those specified, except for VPADDING cells.
+	//
+
 	// Establish link protocol version
 	err := c.sendVersions(SupportedLinkProtocolVersions)
 	if err != nil {
@@ -172,7 +191,16 @@ func (c *Connection) clientHandshake() error {
 
 	c.establishVersion(serverVersions, SupportedLinkProtocolVersions)
 
-	//f := c.proto.CellFormat()
+	// Receive CERTS cell
+	cell, err := c.cellReader.ReadCell(c.proto.CellFormat())
+	if err != nil {
+		return errors.Wrap(err, "could not read cell")
+	}
+
+	certsCell, err := ParseCertsCell(cell)
+	if err != nil {
+		return errors.Wrap(err, "could not parse certs cell")
+	}
 
 	/*
 		// Send certs cell

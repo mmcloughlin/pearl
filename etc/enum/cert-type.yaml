@@ -1,0 +1,14 @@
+pkg: pearl
+doc: CertType is a certificate type code for CERTS cells.
+name: CertType
+prefix: CertType
+type: byte
+ref: https://github.com/torproject/torspec/blob/8aaa36d1a062b20ca263b6ac613b77a3ba1eb113/tor-spec.txt#L594-L601
+codes:
+    1: LINK # Link key certificate certified by RSA1024 identity
+    2: IDENTITY # RSA1024 Identity certificate, self-signed.
+    3: AUTH # RSA1024 AUTHENTICATE cell link certificate, signed with RSA1024 key.
+    4: ED25519_SIGNING # Ed25519 signing key, signed with identity key.
+    5: ED25519_LINK # TLS link certificate, signed with ed25519 signing key.
+    6: ED25519_AUTH # Ed25519 AUTHENTICATE cell key, signed with ed25519 signing key.
+    7: ED25519_IDENTITY # Ed25519 identity, signed with RSA identity.
