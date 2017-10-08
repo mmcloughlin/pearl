@@ -1,7 +1,10 @@
 package pearl
 
 import (
+	"crypto/sha256"
 	"encoding/hex"
+	"hash"
+	"io"
 	"net"
 
 	"github.com/mmcloughlin/pearl/tls"
@@ -12,13 +15,18 @@ import (
 
 // Connection encapsulates a router connection.
 type Connection struct {
-	router     *Router
-	tlsCtx     *TLSContext
-	tlsConn    *tls.Conn
-	cellReader CellReader
+	router  *Router
+	tlsCtx  *TLSContext
+	tlsConn *tls.Conn
 
 	proto    LinkProtocolVersion
 	circuits *CircuitManager
+
+	rd           io.Reader
+	wr           io.Writer
+	cellReader   CellReader
+	inboundHash  hash.Hash
+	outboundHash hash.Hash
 
 	logger log.Logger
 }
@@ -44,14 +52,25 @@ func NewClient(r *Router, conn net.Conn, logger log.Logger) (*Connection, error)
 }
 
 func newConnection(r *Router, tlsCtx *TLSContext, tlsConn *tls.Conn, logger log.Logger) *Connection {
+	// BUG(mbm): massively inefficient to always hash io (only required for AUTH_CHALLENGE/AUTHENTICATE)
+	inboundHash := sha256.New()
+	outboundHash := sha256.New()
+	rd := io.TeeReader(tlsConn, inboundHash)
+	wr := io.MultiWriter(tlsConn, outboundHash)
+
 	return &Connection{
-		router:     r,
-		tlsCtx:     tlsCtx,
-		tlsConn:    tlsConn,
-		cellReader: NewCellReader(tlsConn, logger),
+		router:  r,
+		tlsCtx:  tlsCtx,
+		tlsConn: tlsConn,
 
 		proto:    LinkProtocolNone,
 		circuits: NewCircuitManager(),
+
+		rd:           rd,
+		wr:           wr,
+		cellReader:   NewCellReader(rd, logger),
+		inboundHash:  inboundHash,
+		outboundHash: outboundHash,
 
 		logger: logger.With("raddr", tlsConn.RemoteAddr()),
 	}
@@ -81,8 +100,6 @@ func (c *Connection) serverHandshake() error {
 
 	c.establishVersion(clientVersions, SupportedLinkProtocolVersions)
 
-	f := c.proto.CellFormat()
-
 	// Send certs cell
 	//
 	// Reference: https://github.com/torproject/torspec/blob/master/tor-spec.txt#L567-L569
@@ -95,17 +112,10 @@ func (c *Connection) serverHandshake() error {
 	certsCell.AddCert(CertTypeLink, c.tlsCtx.LinkCert)
 	certsCell.AddCert(CertTypeIdentity, c.tlsCtx.IDCert)
 
-	cell, err := certsCell.Cell(f)
-	if err != nil {
-		return errors.Wrap(err, "error building certs cell")
-	}
-
-	_, err = c.tlsConn.Write(cell.Bytes())
+	err = c.sendCell(certsCell)
 	if err != nil {
 		return errors.Wrap(err, "could not send certs cell")
 	}
-
-	c.logger.Debug("sent certs cell")
 
 	// Send auth challenge cell
 	authChallengeCell, err := NewAuthChallengeCellStandard()
@@ -113,17 +123,10 @@ func (c *Connection) serverHandshake() error {
 		return errors.Wrap(err, "error initializing auth challenge cell")
 	}
 
-	cell, err = authChallengeCell.Cell(f)
-	if err != nil {
-		return errors.Wrap(err, "error building auth challenge cell")
-	}
-
-	_, err = c.tlsConn.Write(cell.Bytes())
+	err = c.sendCell(authChallengeCell)
 	if err != nil {
 		return errors.Wrap(err, "could not send auth challenge cell")
 	}
-
-	c.logger.Debug("sent auth challenge cell")
 
 	// Send NETINFO
 	err = c.sendNetInfoCell()
@@ -185,12 +188,12 @@ func (c *Connection) clientHandshake() error {
 		return errors.Wrap(err, "could not read cell")
 	}
 
-	certsCell, err := ParseCertsCell(cell)
+	peerCertsCell, err := ParseCertsCell(cell)
 	if err != nil {
 		return errors.Wrap(err, "could not parse certs cell")
 	}
 
-	c.logger.With("numcerts", len(certsCell.Certs)).Debug("received certs cell")
+	c.logger.With("numcerts", len(peerCertsCell.Certs)).Debug("received certs cell")
 	c.logger.Error("certificate cell verification not implemented")
 
 	// Receive AUTH_CHALLENGE cell
@@ -221,38 +224,37 @@ func (c *Connection) clientHandshake() error {
 	c.logger.With("receiver_addr", netInfoCell.ReceiverAddress).Debug("received net info cell")
 	c.logger.Error("net info processing not implemented")
 
-	/*
-		// Send NETINFO cell
-		netInfoCell, err := NewNetInfoCellFromConn(c.tlsConn)
-		if err != nil {
-			return errors.Wrap(err, "error initializing net info cell")
-		}
+	// Send CERTS cell:
+	//
+	// Reference: https://github.com/torproject/torspec/blob/8aaa36d1a062b20ca263b6ac613b77a3ba1eb113/tor-spec.txt#L716-L721
+	//
+	//	   If an initiator wants to authenticate, it responds to the
+	//	   AUTH_CHALLENGE cell with a CERTS cell and an AUTHENTICATE cell.
+	//	   The CERTS cell is as a server would send, except that instead of
+	//	   sending a CertType 1 (and possibly CertType 5) certs for arbitrary link
+	//	   certificates, the initiator sends a CertType 3 (and possibly
+	//	   CertType 6) cert for an RSA/Ed25519 AUTHENTICATE key.
+	//
+	// Reference: https://github.com/torproject/torspec/blob/8aaa36d1a062b20ca263b6ac613b77a3ba1eb113/tor-spec.txt#L678-L681
+	//
+	//	   To authenticate the initiator as having an RSA identity key only,
+	//	   the responder MUST check the following:
+	//	     * The CERTS cell contains exactly one CertType 3 "AUTH" certificate.
+	//	     * The CERTS cell contains exactly one CertType 2 "ID" certificate.
+	//
+	certsCell := &CertsCell{}
+	certsCell.AddCert(CertTypeIdentity, c.tlsCtx.IDCert)
+	certsCell.AddCert(CertTypeAuth, c.tlsCtx.AuthCert)
 
-		cell, err = netInfoCell.Cell(f)
-		if err != nil {
-			return errors.Wrap(err, "error building net info cell")
-		}
+	err = c.sendCell(certsCell)
+	if err != nil {
+		return errors.Wrap(err, "could not send certs cell")
+	}
 
-		_, err = c.tlsConn.Write(cell.Bytes())
-		if err != nil {
-			return errors.Wrap(err, "could not send net info cell")
-		}
+	// TODO(mbm): send AUTHENTICATE cell in client handshake
 
-		c.logger.Debug("sent net info cell")
-
-		// Process handshake cells
-		err = c.execute(HandshakeHandler)
-		if err != nil {
-			return err
-		}
-
-		// Enter main loop
-		err = c.execute(RunLoopHandler)
-		if err != nil {
-			return err
-		}
-
-	*/
+	// Send NETINFO cell
+	c.sendNetInfoCell()
 
 	return nil
 }
@@ -289,12 +291,8 @@ func (c *Connection) sendVersions(v []LinkProtocolVersion) error {
 	ourVersionsCell := VersionsCell{
 		SupportedVersions: v,
 	}
-	cell, err := ourVersionsCell.Cell(VersionsCellFormat)
-	if err != nil {
-		return errors.Wrap(err, "error building versions cell")
-	}
 
-	_, err = c.tlsConn.Write(cell.Bytes())
+	err := c.sendCell(ourVersionsCell)
 	if err != nil {
 		return errors.Wrap(err, "could not send versions cell")
 	}
@@ -324,17 +322,21 @@ func (c *Connection) sendNetInfoCell() error {
 		return errors.Wrap(err, "error initializing net info cell")
 	}
 
-	cell, err := netInfoCell.Cell(c.proto.CellFormat())
+	return c.sendCell(netInfoCell)
+}
+
+func (c *Connection) sendCell(b CellBuilder) error {
+	cell, err := b.Cell(c.proto.CellFormat())
 	if err != nil {
-		return errors.Wrap(err, "error building net info cell")
+		return errors.Wrap(err, "error building cell")
 	}
 
-	_, err = c.tlsConn.Write(cell.Bytes())
+	_, err = c.wr.Write(cell.Bytes())
 	if err != nil {
-		return errors.Wrap(err, "could not send net info cell")
+		return errors.Wrap(err, "could not send cell")
 	}
 
-	c.logger.Debug("sent net info cell")
+	c.logger.Debug("sent cell")
 
 	return nil
 }
