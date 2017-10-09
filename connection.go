@@ -3,10 +3,12 @@ package pearl
 import (
 	"crypto/sha256"
 	"encoding/hex"
+	"fmt"
 	"hash"
 	"io"
 	"net"
 
+	"github.com/mmcloughlin/pearl/debug"
 	"github.com/mmcloughlin/pearl/tls"
 	"github.com/mmcloughlin/pearl/torcrypto"
 
@@ -23,7 +25,6 @@ type Connection struct {
 	proto    LinkProtocolVersion
 	circuits *CircuitManager
 
-	rd           io.Reader
 	wr           io.Writer
 	cellReader   CellReader
 	inboundHash  hash.Hash
@@ -56,7 +57,6 @@ func newConnection(r *Router, tlsCtx *TLSContext, tlsConn *tls.Conn, logger log.
 	// BUG(mbm): massively inefficient to always hash io (only required for AUTH_CHALLENGE/AUTHENTICATE)
 	inboundHash := sha256.New()
 	outboundHash := sha256.New()
-	rd := io.TeeReader(tlsConn, inboundHash)
 	wr := io.MultiWriter(tlsConn, outboundHash)
 
 	return &Connection{
@@ -67,9 +67,8 @@ func newConnection(r *Router, tlsCtx *TLSContext, tlsConn *tls.Conn, logger log.
 		proto:    LinkProtocolNone,
 		circuits: NewCircuitManager(),
 
-		rd:           rd,
 		wr:           wr,
-		cellReader:   NewCellReader(rd, logger),
+		cellReader:   NewHashedCellReader(NewCellReader(tlsConn, logger), inboundHash),
 		inboundHash:  inboundHash,
 		outboundHash: outboundHash,
 
@@ -248,6 +247,8 @@ func (c *Connection) clientHandshake() error {
 		return errors.New("missing server link cert")
 	}
 
+	debug.DumpBytes("server_link", serverLinkCert)
+
 	serverIDCertDER := peerCertsCell.Lookup(CertTypeIdentity)
 	if serverIDCertDER == nil {
 		return errors.New("missing server identity cert")
@@ -259,6 +260,11 @@ func (c *Connection) clientHandshake() error {
 	}
 
 	cs := c.tlsConn.ConnectionState()
+
+	for i, crt := range cs.PeerCertificates {
+		debug.DumpBytes(fmt.Sprintf("peer_cert_%d", i), crt.Raw)
+	}
+
 	a := &AuthRSASHA256TLSSecret{
 		AuthKey:           c.tlsCtx.AuthKey,
 		ClientIdentityKey: &c.router.idKey.PublicKey,
@@ -373,7 +379,7 @@ func (c *Connection) sendCell(b CellBuilder) error {
 		return errors.Wrap(err, "could not send cell")
 	}
 
-	c.logger.Debug("sent cell")
+	CellLogger(c.logger, cell).Trace("sent cell")
 
 	return nil
 }
@@ -387,12 +393,7 @@ func (c *Connection) execute(h Handler) error {
 			return errors.Wrap(err, "could not read cell")
 		}
 
-		c.logger.
-			With("cmd", cell.Command()).
-			With("circid", cell.CircID()).
-			With("payload", hex.EncodeToString(cell.Payload())).
-			With("bytes", hex.EncodeToString(cell.Bytes())).
-			Trace("received cell")
+		CellLogger(c.logger, cell).Trace("received cell")
 
 		err = h.HandleCell(c, cell)
 		if err == EOH {
@@ -402,6 +403,12 @@ func (c *Connection) execute(h Handler) error {
 			return err
 		}
 	}
+}
+
+func CellLogger(l log.Logger, cell Cell) log.Logger {
+	return l.With("cmd", cell.Command()).
+		With("circid", cell.CircID()).
+		With("bytes", hex.EncodeToString(cell.Bytes()))
 }
 
 // HandshakeHandler handles cells during server side handshake.

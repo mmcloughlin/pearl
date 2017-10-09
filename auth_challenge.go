@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"io"
 
+	"github.com/mmcloughlin/pearl/debug"
 	"github.com/mmcloughlin/pearl/torcrypto"
 	"github.com/pkg/errors"
 )
@@ -286,6 +287,9 @@ func (a AuthRSASHA256TLSSecret) Body() ([]byte, error) {
 	buf.Write(sid)
 
 	buf.Write(a.ServerLogHash)
+
+	debug.DumpBytes("SLOG", a.ServerLogHash)
+
 	buf.Write(a.ClientLogHash)
 
 	scert := a.SCERT()
@@ -316,9 +320,7 @@ func (a AuthRSASHA256TLSSecret) Cell(f CellFormat) (Cell, error) {
 		return nil, err
 	}
 
-	for _, b := range body {
-		fmt.Printf("%02x\n", b)
-	}
+	debug.DumpBytes("auth_body", body)
 
 	c := &AuthenticateCell{
 		Method:         AuthMethodRSASHA256TLSSecret,
