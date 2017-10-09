@@ -269,7 +269,7 @@ func (a AuthRSASHA256TLSSecret) TLSSecrets() []byte {
 	return h.Sum(nil)
 }
 
-func (a AuthRSASHA256TLSSecret) Bytes() ([]byte, error) {
+func (a AuthRSASHA256TLSSecret) Body() ([]byte, error) {
 	var buf bytes.Buffer
 	buf.Write([]byte("AUTH0001"))
 
@@ -311,10 +311,15 @@ func (a AuthRSASHA256TLSSecret) Bytes() ([]byte, error) {
 }
 
 func (a AuthRSASHA256TLSSecret) Cell(f CellFormat) (Cell, error) {
-	body, err := a.Bytes()
+	body, err := a.Body()
 	if err != nil {
 		return nil, err
 	}
+
+	for _, b := range body {
+		fmt.Printf("%02x\n", b)
+	}
+
 	c := &AuthenticateCell{
 		Method:         AuthMethodRSASHA256TLSSecret,
 		Authentication: body,

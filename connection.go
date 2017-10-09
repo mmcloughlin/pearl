@@ -73,7 +73,7 @@ func newConnection(r *Router, tlsCtx *TLSContext, tlsConn *tls.Conn, logger log.
 		inboundHash:  inboundHash,
 		outboundHash: outboundHash,
 
-		logger: logger.With("raddr", tlsConn.RemoteAddr()),
+		logger: log.ForConn(logger, tlsConn),
 	}
 }
 
@@ -211,20 +211,6 @@ func (c *Connection) clientHandshake() error {
 	log.WithBytes(c.logger, "challenge", authChallengeCell.Challenge[:]).Debug("received auth challenge cell")
 	c.logger.Error("auth challenge reply not implemented")
 
-	// Receive NETINFO cell
-	cell, err = c.cellReader.ReadCell(c.proto.CellFormat())
-	if err != nil {
-		return errors.Wrap(err, "could not read cell")
-	}
-
-	netInfoCell, err := ParseNetInfoCell(cell)
-	if err != nil {
-		return errors.Wrap(err, "could not parse netinfo cell")
-	}
-
-	c.logger.With("receiver_addr", netInfoCell.ReceiverAddress).Debug("received net info cell")
-	c.logger.Error("net info processing not implemented")
-
 	// Send CERTS cell:
 	//
 	// Reference: https://github.com/torproject/torspec/blob/8aaa36d1a062b20ca263b6ac613b77a3ba1eb113/tor-spec.txt#L716-L721
@@ -292,6 +278,20 @@ func (c *Connection) clientHandshake() error {
 
 	// Send NETINFO cell
 	c.sendNetInfoCell()
+
+	// Receive NETINFO cell
+	cell, err = c.cellReader.ReadCell(c.proto.CellFormat())
+	if err != nil {
+		return errors.Wrap(err, "could not read cell")
+	}
+
+	netInfoCell, err := ParseNetInfoCell(cell)
+	if err != nil {
+		return errors.Wrap(err, "could not parse netinfo cell")
+	}
+
+	c.logger.With("receiver_addr", netInfoCell.ReceiverAddress).Debug("received net info cell")
+	c.logger.Error("net info processing not implemented")
 
 	return nil
 }
