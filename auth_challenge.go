@@ -1,10 +1,16 @@
 package pearl
 
 import (
-	"crypto/rand"
+	"bytes"
+	"crypto/hmac"
+	cryptorand "crypto/rand"
+	"crypto/rsa"
+	"crypto/sha256"
 	"encoding/binary"
 	"fmt"
+	"io"
 
+	"github.com/mmcloughlin/pearl/torkeys"
 	"github.com/pkg/errors"
 )
 
@@ -56,7 +62,7 @@ var _ CellBuilder = new(AuthChallengeCell)
 // The challenge is generated at random.
 func NewAuthChallengeCell(methods []AuthMethod) (*AuthChallengeCell, error) {
 	var challenge [32]byte
-	_, err := rand.Read(challenge[:])
+	_, err := cryptorand.Read(challenge[:])
 	if err != nil {
 		return nil, errors.Wrap(err, "could not read enough random bytes")
 	}
@@ -105,6 +111,15 @@ func ParseAuthChallengeCell(c Cell) (*AuthChallengeCell, error) {
 	}
 
 	return ac, nil
+}
+
+func (a AuthChallengeCell) SupportsMethod(m AuthMethod) bool {
+	for _, method := range a.Methods {
+		if method == m {
+			return true
+		}
+	}
+	return false
 }
 
 // Cell constructs the cell bytes.
@@ -182,4 +197,127 @@ func (a AuthenticateCell) Cell(f CellFormat) (Cell, error) {
 	copy(payload[4:], a.Authentication)
 
 	return c, nil
+}
+
+// Reference: https://github.com/torproject/torspec/blob/8aaa36d1a062b20ca263b6ac613b77a3ba1eb113/tor-spec.txt#L741-L774
+//
+//	4.4.1. Link authentication type 1: RSA-SHA256-TLSSecret
+//
+//	   If AuthType is 1 (meaning "RSA-SHA256-TLSSecret"), then the
+//	   Authentication field of the AUTHENTICATE cell contains the following:
+//
+//	       TYPE: The characters "AUTH0001" [8 octets]
+//	       CID: A SHA256 hash of the initiator's RSA1024 identity key [32 octets]
+//	       SID: A SHA256 hash of the responder's RSA1024 identity key [32 octets]
+//	       SLOG: A SHA256 hash of all bytes sent from the responder to the
+//	         initiator as part of the negotiation up to and including the
+//	         AUTH_CHALLENGE cell; that is, the VERSIONS cell, the CERTS cell,
+//	         the AUTH_CHALLENGE cell, and any padding cells.  [32 octets]
+//	       CLOG: A SHA256 hash of all bytes sent from the initiator to the
+//	         responder as part of the negotiation so far; that is, the
+//	         VERSIONS cell and the CERTS cell and any padding cells. [32
+//	         octets]
+//	       SCERT: A SHA256 hash of the responder's TLS link certificate. [32
+//	         octets]
+//	       TLSSECRETS: A SHA256 HMAC, using the TLS master secret as the
+//	         secret key, of the following:
+//	           - client_random, as sent in the TLS Client Hello
+//	           - server_random, as sent in the TLS Server Hello
+//	           - the NUL terminated ASCII string:
+//	             "Tor V3 handshake TLS cross-certification"
+//	          [32 octets]
+//	       RAND: A 24 byte value, randomly chosen by the initiator.  (In an
+//	         imitation of SSL3's gmt_unix_time field, older versions of Tor
+//	         sent an 8-byte timestamp as the first 8 bytes of this field;
+//	         new implementations should not do that.) [24 octets]
+//	       SIG: A signature of a SHA256 hash of all the previous fields
+//	         using the initiator's "Authenticate" key as presented.  (As
+//	         always in Tor, we use OAEP-MGF1 padding; see tor-spec.txt
+//	         section 0.3.)
+//	          [variable length]
+//
+
+type AuthRSASHA256TLSSecret struct {
+	AuthKey           *rsa.PrivateKey
+	ClientIdentityKey *rsa.PublicKey
+	ServerIdentityKey *rsa.PublicKey
+	ServerLogHash     []byte
+	ClientLogHash     []byte
+	ServerLinkCert    []byte
+	TLSMasterSecret   []byte
+	TLSClientRandom   []byte
+	TLSServerRandom   []byte
+}
+
+func (a AuthRSASHA256TLSSecret) CID() ([]byte, error) {
+	return torkeys.Fingerprint256(a.ClientIdentityKey)
+}
+
+func (a AuthRSASHA256TLSSecret) SID() ([]byte, error) {
+	return torkeys.Fingerprint256(a.ServerIdentityKey)
+}
+
+func (a AuthRSASHA256TLSSecret) SCERT() [32]byte {
+	return sha256.Sum256(a.ServerLinkCert)
+}
+
+func (a AuthRSASHA256TLSSecret) TLSSecrets() []byte {
+	h := hmac.New(sha256.New, a.TLSMasterSecret)
+	h.Write(a.TLSClientRandom)
+	h.Write(a.TLSServerRandom)
+	h.Write([]byte("Tor V3 handshake TLS cross-certification\x00"))
+	return h.Sum(nil)
+}
+
+func (a AuthRSASHA256TLSSecret) Bytes() ([]byte, error) {
+	var buf bytes.Buffer
+	buf.Write([]byte("AUTH0001"))
+
+	cid, err := a.CID()
+	if err != nil {
+		return nil, err
+	}
+	buf.Write(cid)
+
+	sid, err := a.SID()
+	if err != nil {
+		return nil, err
+	}
+	buf.Write(sid)
+
+	buf.Write(a.ServerLogHash)
+	buf.Write(a.ClientLogHash)
+
+	scert := a.SCERT()
+	buf.Write(scert[:])
+
+	buf.Write(a.TLSSecrets())
+
+	io.CopyN(&buf, cryptorand.Reader, 24)
+
+	//	       SIG: A signature of a SHA256 hash of all the previous fields
+	//	         using the initiator's "Authenticate" key as presented.  (As
+	//	         always in Tor, we use OAEP-MGF1 padding; see tor-spec.txt
+	//	         section 0.3.)
+	// TODO(mbm): I'm not sure what OAEP means here. TvdW seems to be using PKCS padding.
+	digest := sha256.Sum256(buf.Bytes())
+	sig, err := rsa.SignPKCS1v15(nil, a.AuthKey, 0, digest[:])
+	if err != nil {
+		return nil, err
+	}
+	buf.Write(sig)
+
+	return buf.Bytes(), nil
+}
+
+func (a AuthRSASHA256TLSSecret) Cell(f CellFormat) (Cell, error) {
+	body, err := a.Bytes()
+	if err != nil {
+		return nil, err
+	}
+	c := &AuthenticateCell{
+		Method:         AuthMethodRSASHA256TLSSecret,
+		Authentication: body,
+	}
+	return c.Cell(f)
 }

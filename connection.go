@@ -8,6 +8,7 @@ import (
 	"net"
 
 	"github.com/mmcloughlin/pearl/tls"
+	"github.com/mmcloughlin/pearl/torkeys"
 
 	"github.com/mmcloughlin/pearl/log"
 	"github.com/pkg/errors"
@@ -252,6 +253,42 @@ func (c *Connection) clientHandshake() error {
 	}
 
 	// TODO(mbm): send AUTHENTICATE cell in client handshake
+	if !authChallengeCell.SupportsMethod(AuthMethodRSASHA256TLSSecret) {
+		return errors.New("server does not support auth method")
+	}
+
+	serverLinkCert := peerCertsCell.Lookup(CertTypeLink)
+	if serverLinkCert == nil {
+		return errors.New("missing server link cert")
+	}
+
+	serverIDCertDER := peerCertsCell.Lookup(CertTypeIdentity)
+	if serverIDCertDER == nil {
+		return errors.New("missing server identity cert")
+	}
+
+	serverIDKey, err := torkeys.ParseRSAPublicKeyFromCertificateDER(serverIDCertDER)
+	if err != nil {
+		return errors.Wrap(err, "failed to extract server identity key")
+	}
+
+	cs := c.tlsConn.ConnectionState()
+	a := &AuthRSASHA256TLSSecret{
+		AuthKey:           c.tlsCtx.AuthKey,
+		ClientIdentityKey: &c.router.idKey.PublicKey,
+		ServerIdentityKey: serverIDKey,
+		ServerLogHash:     c.inboundHash.Sum(nil),
+		ClientLogHash:     c.outboundHash.Sum(nil),
+		ServerLinkCert:    serverLinkCert,
+		TLSMasterSecret:   cs.MasterSecret,
+		TLSClientRandom:   cs.ClientRandom,
+		TLSServerRandom:   cs.ServerRandom,
+	}
+
+	err = c.sendCell(a)
+	if err != nil {
+		return errors.Wrap(err, "failed to send authenticate cell")
+	}
 
 	// Send NETINFO cell
 	c.sendNetInfoCell()

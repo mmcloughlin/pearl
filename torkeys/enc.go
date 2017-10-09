@@ -93,3 +93,17 @@ func ParseRSAPublicKeyPKCS1PEM(b []byte) (*rsa.PublicKey, error) {
 	}
 	return ParseRSAPublicKeyPKCS1DER(d.Bytes)
 }
+
+func ParseRSAPublicKeyFromCertificateDER(der []byte) (*rsa.PublicKey, error) {
+	cert, err := x509.ParseCertificate(der)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to parse DER-encoded certificate")
+	}
+
+	k, ok := cert.PublicKey.(*rsa.PublicKey)
+	if !ok {
+		return nil, errors.New("non-RSA public key")
+	}
+
+	return k, nil
+}

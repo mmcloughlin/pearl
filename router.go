@@ -52,13 +52,15 @@ func NewRouter(config *torconfig.Config, logger log.Logger) (*Router, error) {
 		return nil, errors.Wrap(err, "failed to compute fingerprint")
 	}
 
+	logger = log.ForComponent(logger, "router")
+	logger = log.WithBytes(logger, "fingerprint", fingerprint)
 	return &Router{
 		config:      config,
 		idKey:       idKey,
 		onionKey:    onionKey,
 		ntorKey:     ntorKey,
 		fingerprint: fingerprint,
-		logger:      log.ForComponent(logger, "router"),
+		logger:      logger,
 	}, nil
 }
 
