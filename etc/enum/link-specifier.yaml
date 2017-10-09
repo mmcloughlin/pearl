@@ -1,0 +1,11 @@
+pkg: pearl
+doc: LinkSpecifier describes how to connect to the next node in a circuit.
+name: LinkSpecifier
+prefix: LinkSpecifier
+type: byte
+ref: https://github.com/torproject/torspec/blob/8aaa36d1a062b20ca263b6ac613b77a3ba1eb113/tor-spec.txt#L954-L964
+codes:
+    0: TLS_TCP_IPv4 # TLS-over-TCP, IPv4 address
+    1: TLS_TCP_IPv6 # TLS-over-TCP, IPv6 address
+    2: LEGACY_IDENTITY # Legacy identity
+    3: ED25519_IDENTITY # Ed25519 identity

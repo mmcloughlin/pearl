@@ -8,11 +8,20 @@ def read_spec(filename):
         return yaml.load(f)
 
 
+SPECIAL = [ 'TLS', 'TCP', 'IPv4', 'IPv6' ]
+
+def label_to_const_name(label):
+    s = stringcase.pascalcase(label.lower())
+    for spec in SPECIAL:
+        s = s.replace(spec.lower().title(), spec)
+    return s
+
+
 def output_foreach_code(spec, tmpl):
     for value, label in spec['codes'].items():
         print tmpl.format(
             label=label,
-            label_pascal=stringcase.pascalcase(label.lower()),
+            label_const_name=label_to_const_name(label),
             value=value,
             **spec
         )
@@ -39,7 +48,7 @@ def output(spec):
         print line.format(**spec)
 
     print 'const ('
-    output_foreach_code(spec, '\t{prefix}{label_pascal} {name} = {value}')
+    output_foreach_code(spec, '\t{prefix}{label_const_name} {name} = {value}')
     print ')'
     print
 
