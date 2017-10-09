@@ -15,8 +15,8 @@ import (
 
 	"github.com/pkg/errors"
 
+	"github.com/mmcloughlin/pearl/torcrypto"
 	"github.com/mmcloughlin/pearl/torexitpolicy"
-	"github.com/mmcloughlin/pearl/torkeys"
 )
 
 const (
@@ -227,7 +227,7 @@ func (d *ServerDescriptor) SetExitPolicy(policy *torexitpolicy.Policy) error {
 //	       for at least 1 week after any new key is published in a
 //	       subsequent descriptor.
 //
-func (d *ServerDescriptor) SetNtorOnionKey(k *torkeys.Curve25519KeyPair) error {
+func (d *ServerDescriptor) SetNtorOnionKey(k *torcrypto.Curve25519KeyPair) error {
 	args := []string{
 		base64.RawStdEncoding.EncodeToString(k.Public[:]),
 	}
@@ -310,7 +310,7 @@ func (d *ServerDescriptor) SetSigningKey(k *rsa.PrivateKey) error {
 }
 
 func (d *ServerDescriptor) setFingerprint(k *rsa.PublicKey) error {
-	h, err := torkeys.Fingerprint(k)
+	h, err := torcrypto.Fingerprint(k)
 	if err != nil {
 		return err
 	}
@@ -389,7 +389,7 @@ func (d *ServerDescriptor) sign(doc *Document) error {
 	doc.AddItem(item)
 
 	data := doc.Encode()
-	sig, err := torkeys.SignRSASHA1(data, d.signingKey)
+	sig, err := torcrypto.SignRSASHA1(data, d.signingKey)
 	if err != nil {
 		return err
 	}
@@ -473,7 +473,7 @@ func (d *ServerDescriptor) PublishPublic() error {
 }
 
 func newItemWithKey(keyword string, k *rsa.PublicKey) (*Item, error) {
-	der, err := torkeys.MarshalRSAPublicKeyPKCS1DER(k)
+	der, err := torcrypto.MarshalRSAPublicKeyPKCS1DER(k)
 	if err != nil {
 		return nil, err
 	}

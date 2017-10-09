@@ -7,7 +7,7 @@ import (
 
 	"github.com/mmcloughlin/pearl/log"
 	"github.com/mmcloughlin/pearl/ntor"
-	"github.com/mmcloughlin/pearl/torkeys"
+	"github.com/mmcloughlin/pearl/torcrypto"
 	"github.com/pkg/errors"
 )
 
@@ -169,7 +169,7 @@ func ProcessHandshakeNTOR(conn *Connection, c *Create2Cell) error {
 	}
 	ctx.Debug("verified ntor key id")
 
-	serverKeyPair, err := torkeys.GenerateCurve25519KeyPair()
+	serverKeyPair, err := torcrypto.GenerateCurve25519KeyPair()
 	if err != nil {
 		return errors.Wrap(err, "failed to generate server key pair")
 	}

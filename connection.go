@@ -8,7 +8,7 @@ import (
 	"net"
 
 	"github.com/mmcloughlin/pearl/tls"
-	"github.com/mmcloughlin/pearl/torkeys"
+	"github.com/mmcloughlin/pearl/torcrypto"
 
 	"github.com/mmcloughlin/pearl/log"
 	"github.com/pkg/errors"
@@ -267,7 +267,7 @@ func (c *Connection) clientHandshake() error {
 		return errors.New("missing server identity cert")
 	}
 
-	serverIDKey, err := torkeys.ParseRSAPublicKeyFromCertificateDER(serverIDCertDER)
+	serverIDKey, err := torcrypto.ParseRSAPublicKeyFromCertificateDER(serverIDCertDER)
 	if err != nil {
 		return errors.Wrap(err, "failed to extract server identity key")
 	}

@@ -8,9 +8,9 @@ import (
 
 	"github.com/mmcloughlin/pearl/log"
 	"github.com/mmcloughlin/pearl/torconfig"
+	"github.com/mmcloughlin/pearl/torcrypto"
 	"github.com/mmcloughlin/pearl/tordir"
 	"github.com/mmcloughlin/pearl/torexitpolicy"
-	"github.com/mmcloughlin/pearl/torkeys"
 	"github.com/pkg/errors"
 )
 
@@ -20,7 +20,7 @@ type Router struct {
 
 	idKey    *rsa.PrivateKey
 	onionKey *rsa.PrivateKey
-	ntorKey  *torkeys.Curve25519KeyPair
+	ntorKey  *torcrypto.Curve25519KeyPair
 
 	fingerprint []byte
 
@@ -32,22 +32,22 @@ type Router struct {
 
 // NewRouter constructs a router based on the given config.
 func NewRouter(config *torconfig.Config, logger log.Logger) (*Router, error) {
-	idKey, err := torkeys.GenerateRSA()
+	idKey, err := torcrypto.GenerateRSA()
 	if err != nil {
 		return nil, err
 	}
 
-	onionKey, err := torkeys.GenerateRSA()
+	onionKey, err := torcrypto.GenerateRSA()
 	if err != nil {
 		return nil, err
 	}
 
-	ntorKey, err := torkeys.GenerateCurve25519KeyPair()
+	ntorKey, err := torcrypto.GenerateCurve25519KeyPair()
 	if err != nil {
 		return nil, err
 	}
 
-	fingerprint, err := torkeys.Fingerprint(&idKey.PublicKey)
+	fingerprint, err := torcrypto.Fingerprint(&idKey.PublicKey)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to compute fingerprint")
 	}

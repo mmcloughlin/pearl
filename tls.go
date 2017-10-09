@@ -13,7 +13,7 @@ import (
 
 	"github.com/mmcloughlin/pearl/tls"
 
-	"github.com/mmcloughlin/pearl/torkeys"
+	"github.com/mmcloughlin/pearl/torcrypto"
 	"github.com/pkg/errors"
 )
 
@@ -122,7 +122,7 @@ func NewTLSContext(idKey *rsa.PrivateKey) (*TLSContext, error) {
 	//	      ERR("The ID certificate was not valid");
 	//
 
-	ctx.LinkKey, err = torkeys.GenerateRSA()
+	ctx.LinkKey, err = torcrypto.GenerateRSA()
 	if err != nil {
 		return nil, err
 	}
@@ -139,7 +139,7 @@ func NewTLSContext(idKey *rsa.PrivateKey) (*TLSContext, error) {
 
 	// Generate auth certificate.
 
-	ctx.AuthKey, err = torkeys.GenerateRSA()
+	ctx.AuthKey, err = torcrypto.GenerateRSA()
 	if err != nil {
 		return nil, err
 	}

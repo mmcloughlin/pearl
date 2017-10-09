@@ -10,7 +10,7 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/mmcloughlin/pearl/torkeys"
+	"github.com/mmcloughlin/pearl/torcrypto"
 	"github.com/pkg/errors"
 )
 
@@ -250,11 +250,11 @@ type AuthRSASHA256TLSSecret struct {
 }
 
 func (a AuthRSASHA256TLSSecret) CID() ([]byte, error) {
-	return torkeys.Fingerprint256(a.ClientIdentityKey)
+	return torcrypto.Fingerprint256(a.ClientIdentityKey)
 }
 
 func (a AuthRSASHA256TLSSecret) SID() ([]byte, error) {
-	return torkeys.Fingerprint256(a.ServerIdentityKey)
+	return torcrypto.Fingerprint256(a.ServerIdentityKey)
 }
 
 func (a AuthRSASHA256TLSSecret) SCERT() [32]byte {

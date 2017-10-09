@@ -5,7 +5,7 @@ import (
 	"errors"
 	"sync"
 
-	"github.com/mmcloughlin/pearl/torkeys"
+	"github.com/mmcloughlin/pearl/torcrypto"
 )
 
 type CircuitDirectionState struct {
@@ -16,7 +16,7 @@ type CircuitDirectionState struct {
 func NewCircuitDirectionState(d, k []byte) CircuitDirectionState {
 	return CircuitDirectionState{
 		digest: d,
-		Stream: torkeys.NewStream(k),
+		Stream: torcrypto.NewStream(k),
 	}
 }
 

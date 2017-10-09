@@ -11,8 +11,8 @@ import (
 	"time"
 
 	"github.com/jarcoal/httpmock"
+	"github.com/mmcloughlin/pearl/torcrypto"
 	"github.com/mmcloughlin/pearl/torexitpolicy"
-	"github.com/mmcloughlin/pearl/torkeys"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -46,7 +46,7 @@ func BuildValidServerDescriptorWithKey(k *rsa.PrivateKey) *ServerDescriptor {
 }
 
 func BuildValidServerDescriptor() *ServerDescriptor {
-	k, err := torkeys.ParseRSAPrivateKeyPKCS1PEM(keyPEM)
+	k, err := torcrypto.ParseRSAPrivateKeyPKCS1PEM(keyPEM)
 	if err != nil {
 		panic(err)
 	}
@@ -61,7 +61,7 @@ func TestBuildValidServerDescriptor(t *testing.T) {
 func TestServerDescriptor(t *testing.T) {
 	s := NewServerDescriptor()
 
-	k, err := torkeys.ParseRSAPrivateKeyPKCS1PEM(keyPEM)
+	k, err := torcrypto.ParseRSAPrivateKeyPKCS1PEM(keyPEM)
 	require.NoError(t, err)
 
 	// router (required)

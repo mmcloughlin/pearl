@@ -1,4 +1,4 @@
-package torkeys
+package torcrypto
 
 import (
 	"crypto/rand"
