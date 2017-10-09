@@ -3,12 +3,10 @@ package pearl
 import (
 	"crypto/sha256"
 	"encoding/hex"
-	"fmt"
 	"hash"
 	"io"
 	"net"
 
-	"github.com/mmcloughlin/pearl/debug"
 	"github.com/mmcloughlin/pearl/tls"
 	"github.com/mmcloughlin/pearl/torcrypto"
 
@@ -247,8 +245,6 @@ func (c *Connection) clientHandshake() error {
 		return errors.New("missing server link cert")
 	}
 
-	debug.DumpBytes("server_link", serverLinkCert)
-
 	serverIDCertDER := peerCertsCell.Lookup(CertTypeIdentity)
 	if serverIDCertDER == nil {
 		return errors.New("missing server identity cert")
@@ -260,10 +256,6 @@ func (c *Connection) clientHandshake() error {
 	}
 
 	cs := c.tlsConn.ConnectionState()
-
-	for i, crt := range cs.PeerCertificates {
-		debug.DumpBytes(fmt.Sprintf("peer_cert_%d", i), crt.Raw)
-	}
 
 	a := &AuthRSASHA256TLSSecret{
 		AuthKey:           c.tlsCtx.AuthKey,

@@ -2,6 +2,7 @@ package pearl
 
 import "hash"
 
+// HashedCellReader maintains a running digest of all cells it receives.
 type HashedCellReader struct {
 	r CellReader
 	h hash.Hash
@@ -9,6 +10,7 @@ type HashedCellReader struct {
 
 var _ CellReader = new(HashedCellReader)
 
+// NewHashedCellReader reads cells from c and hashes them with h.
 func NewHashedCellReader(r CellReader, h hash.Hash) *HashedCellReader {
 	return &HashedCellReader{
 		r: r,
@@ -16,6 +18,7 @@ func NewHashedCellReader(r CellReader, h hash.Hash) *HashedCellReader {
 	}
 }
 
+// ReadCell reads a cell and hashes it.
 func (h *HashedCellReader) ReadCell(f CellFormat) (Cell, error) {
 	c, err := h.r.ReadCell(f)
 	if err != nil {
@@ -28,8 +31,4 @@ func (h *HashedCellReader) ReadCell(f CellFormat) (Cell, error) {
 	}
 
 	return c, nil
-}
-
-func (h *HashedCellReader) Sum(b []byte) []byte {
-	return h.h.Sum(b)
 }

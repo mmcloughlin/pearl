@@ -68,6 +68,19 @@ func publicKeyHash(k *rsa.PublicKey, h hash.Hash) ([]byte, error) {
 // SignRSASHA1 signs data with k. This is the RSA encryption of the SHA-1 hash
 // of data, with PKCS#1 v1.5 padding.
 func SignRSASHA1(data []byte, k *rsa.PrivateKey) ([]byte, error) {
-	digest := sha1.Sum(data)
-	return rsa.SignPKCS1v15(nil, k, 0, digest[:])
+	return signRSA(data, k, sha1.New())
+}
+
+// SignRSASHA256 signs data with k. This is the RSA encryption of the SHA-256
+// hash of data, with PKCS#1 v1.5 padding.
+func SignRSASHA256(data []byte, k *rsa.PrivateKey) ([]byte, error) {
+	return signRSA(data, k, sha256.New())
+}
+
+func signRSA(data []byte, k *rsa.PrivateKey, h hash.Hash) ([]byte, error) {
+	_, err := h.Write(data)
+	if err != nil {
+		return nil, err
+	}
+	return rsa.SignPKCS1v15(nil, k, 0, h.Sum(nil))
 }

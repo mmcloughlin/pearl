@@ -299,32 +299,47 @@ func (a AuthRSASHA256TLSSecret) Body() ([]byte, error) {
 
 	io.CopyN(&buf, cryptorand.Reader, 24)
 
-	//	       SIG: A signature of a SHA256 hash of all the previous fields
-	//	         using the initiator's "Authenticate" key as presented.  (As
-	//	         always in Tor, we use OAEP-MGF1 padding; see tor-spec.txt
-	//	         section 0.3.)
-	// TODO(mbm): I'm not sure what OAEP means here. TvdW seems to be using PKCS padding.
-	digest := sha256.Sum256(buf.Bytes())
-	sig, err := rsa.SignPKCS1v15(nil, a.AuthKey, 0, digest[:])
-	if err != nil {
-		return nil, err
-	}
-	buf.Write(sig)
-
 	return buf.Bytes(), nil
 }
 
-func (a AuthRSASHA256TLSSecret) Cell(f CellFormat) (Cell, error) {
+func (a AuthRSASHA256TLSSecret) SignedBody() ([]byte, error) {
 	body, err := a.Body()
 	if err != nil {
 		return nil, err
 	}
 
-	debug.DumpBytes("auth_body", body)
+	sig, err := torcrypto.SignRSASHA256(body, a.AuthKey)
+	if err != nil {
+		return nil, err
+	}
+
+	return append(body, sig...), nil
+}
+
+func (a AuthRSASHA256TLSSecret) Cell(f CellFormat) (Cell, error) {
+	body, err := a.SignedBody()
+	if err != nil {
+		return nil, err
+	}
 
 	c := &AuthenticateCell{
 		Method:         AuthMethodRSASHA256TLSSecret,
 		Authentication: body,
 	}
 	return c.Cell(f)
+}
+
+func (a AuthRSASHA256TLSSecret) GoString() string {
+	s := "AuthRSASHA256TLSSecret{\n"
+	s += "\tAuthKey: " + debug.GoStringRSAPrivateKey(a.AuthKey) + ",\n"
+	s += "\tClientIdentityKey: " + debug.GoStringRSAPublicKey(a.ClientIdentityKey) + ",\n"
+	s += "\tServerIdentityKey: " + debug.GoStringRSAPublicKey(a.ServerIdentityKey) + ",\n"
+	s += "\tServerLogHash: " + debug.GoStringByteArray(a.ServerLogHash) + ",\n"
+	s += "\tClientLogHash: " + debug.GoStringByteArray(a.ClientLogHash) + ",\n"
+	s += "\tServerLinkCert: " + debug.GoStringByteArray(a.ServerLinkCert) + ",\n"
+	s += "\tTLSMasterSecret: " + debug.GoStringByteArray(a.TLSMasterSecret) + ",\n"
+	s += "\tTLSClientRandom: " + debug.GoStringByteArray(a.TLSClientRandom) + ",\n"
+	s += "\tTLSServerRandom: " + debug.GoStringByteArray(a.TLSServerRandom) + ",\n"
+	s += "}"
+	return s
 }

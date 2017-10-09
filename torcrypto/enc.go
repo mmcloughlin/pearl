@@ -10,6 +10,20 @@ import (
 	"github.com/pkg/errors"
 )
 
+func MustRSAPrivateKey(k *rsa.PrivateKey, err error) *rsa.PrivateKey {
+	if err != nil {
+		panic(err)
+	}
+	return k
+}
+
+func MustRSAPublicKey(k *rsa.PublicKey, err error) *rsa.PublicKey {
+	if err != nil {
+		panic(err)
+	}
+	return k
+}
+
 // MarshalRSAPrivateKeyPKCS1DER encodes k as PKCS#1 DER.
 func MarshalRSAPrivateKeyPKCS1DER(k *rsa.PrivateKey) []byte {
 	return x509.MarshalPKCS1PrivateKey(k)
