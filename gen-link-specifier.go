@@ -4,10 +4,10 @@ package pearl
 
 import "fmt"
 
-// LinkSpecifier describes how to connect to the next node in a circuit.
-type LinkSpecifier byte
+// LinkSpecType describes how to connect to the next node in a circuit.
+type LinkSpecType byte
 
-// All possible LinkSpecifier values.
+// All possible LinkSpecType values.
 //
 // Reference: https://github.com/torproject/torspec/blob/8aaa36d1a062b20ca263b6ac613b77a3ba1eb113/tor-spec.txt#L954-L964
 //
@@ -24,29 +24,29 @@ type LinkSpecifier byte
 //	           be listed.
 //
 const (
-	LinkSpecifierTLSTCPIPv4      LinkSpecifier = 0
-	LinkSpecifierTLSTCPIPv6      LinkSpecifier = 1
-	LinkSpecifierLegacyIdentity  LinkSpecifier = 2
-	LinkSpecifierEd25519Identity LinkSpecifier = 3
+	LinkSpecTLSTCPIPv4      LinkSpecType = 0
+	LinkSpecTLSTCPIPv6      LinkSpecType = 1
+	LinkSpecLegacyIdentity  LinkSpecType = 2
+	LinkSpecEd25519Identity LinkSpecType = 3
 )
 
-var stringsLinkSpecifier = map[LinkSpecifier]string{
+var stringsLinkSpecType = map[LinkSpecType]string{
 	0: "TLS_TCP_IPv4",
 	1: "TLS_TCP_IPv6",
 	2: "LEGACY_IDENTITY",
 	3: "ED25519_IDENTITY",
 }
 
-func (l LinkSpecifier) String() string {
-	s, ok := stringsLinkSpecifier[l]
+func (l LinkSpecType) String() string {
+	s, ok := stringsLinkSpecType[l]
 	if ok {
 		return s
 	}
-	return fmt.Sprintf("LinkSpecifier(%d)", byte(l))
+	return fmt.Sprintf("LinkSpecType(%d)", byte(l))
 }
 
-// IsLinkSpecifier determines whether l is a possible LinkSpecifier value.
-func IsLinkSpecifier(l byte) bool {
-	_, ok := stringsLinkSpecifier[LinkSpecifier(l)]
+// IsLinkSpecType determines whether l is a possible LinkSpecType value.
+func IsLinkSpecType(l byte) bool {
+	_, ok := stringsLinkSpecType[LinkSpecType(l)]
 	return ok
 }

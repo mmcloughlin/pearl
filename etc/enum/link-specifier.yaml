@@ -1,7 +1,7 @@
 pkg: pearl
-doc: LinkSpecifier describes how to connect to the next node in a circuit.
-name: LinkSpecifier
-prefix: LinkSpecifier
+doc: LinkSpecType describes how to connect to the next node in a circuit.
+name: LinkSpecType
+prefix: LinkSpec
 type: byte
 ref: https://github.com/torproject/torspec/blob/8aaa36d1a062b20ca263b6ac613b77a3ba1eb113/tor-spec.txt#L954-L964
 codes:
