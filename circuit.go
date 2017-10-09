@@ -2,11 +2,23 @@ package pearl
 
 import (
 	"crypto/cipher"
+	"encoding/binary"
 	"errors"
 	"sync"
 
 	"github.com/mmcloughlin/pearl/torcrypto"
 )
+
+// GenerateCircID generates a circuit ID with the given most significant bit.
+func GenerateCircID(f CellFormat, msb uint32) CircID {
+	b := torcrypto.Rand(4)
+	x := binary.BigEndian.Uint32(b)
+	x = (x >> 1) | (msb << 31)
+	if f.CircIDLen() == 2 {
+		x >>= 16
+	}
+	return CircID(x)
+}
 
 type CircuitDirectionState struct {
 	digest []byte
