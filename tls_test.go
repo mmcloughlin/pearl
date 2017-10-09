@@ -8,9 +8,19 @@ import (
 	"testing"
 	"time"
 
+	"github.com/mmcloughlin/pearl/torkeys"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+func TestRSA1024(t *testing.T) {
+	id, err := torkeys.GenerateRSA()
+	require.NoError(t, err)
+	ctx, err := NewTLSContext(id)
+	require.NoError(t, err)
+	assert.Equal(t, 1024, torkeys.RSAKeySize(ctx.AuthKey))
+	assert.Equal(t, 1024, torkeys.RSAKeySize(ctx.LinkKey))
+}
 
 func TestRandomHostname(t *testing.T) {
 	rand.Seed(1)

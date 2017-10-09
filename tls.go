@@ -106,7 +106,7 @@ func NewTLSContext(idKey *rsa.PrivateKey) (*TLSContext, error) {
 	// certificates.
 	lifetime := generateCertificateLifetime()
 
-	// Generate link certificate.
+	// Generate link certificate. Note link and auth keys must be 1024-bit.
 	//
 	// Reference: https://github.com/torproject/tor/blob/master/src/common/tortls.c#L1080-L1082
 	//
@@ -114,8 +114,15 @@ func NewTLSContext(idKey *rsa.PrivateKey) (*TLSContext, error) {
 	//	    cert = tor_tls_create_certificate(rsa, identity, nickname, nn2,
 	//	                                      key_lifetime);
 	//
+	// Reference: https://github.com/torproject/tor/blob/51e47481fc6f131d4e421de061029459ccbb033e/src/or/torcert.c#L505-L508
+	//
+	//	    if (! tor_tls_cert_is_valid(LOG_PROTOCOL_WARN, auth_cert, id_cert, now, 1))
+	//	      ERR("The authentication certificate was not valid");
+	//	    if (! tor_tls_cert_is_valid(LOG_PROTOCOL_WARN, id_cert, id_cert, now, 1))
+	//	      ERR("The ID certificate was not valid");
+	//
 
-	ctx.LinkKey, err = torkeys.GenerateRSAWithBits(2048)
+	ctx.LinkKey, err = torkeys.GenerateRSA()
 	if err != nil {
 		return nil, err
 	}
@@ -132,7 +139,7 @@ func NewTLSContext(idKey *rsa.PrivateKey) (*TLSContext, error) {
 
 	// Generate auth certificate.
 
-	ctx.AuthKey, err = torkeys.GenerateRSAWithBits(2048)
+	ctx.AuthKey, err = torkeys.GenerateRSA()
 	if err != nil {
 		return nil, err
 	}

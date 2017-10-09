@@ -12,6 +12,7 @@ import (
 func TestGenerateRSA(t *testing.T) {
 	k, err := GenerateRSA()
 	require.NoError(t, err)
+	assert.Equal(t, 1024, RSAKeySize(k))
 	// spec requires that exponent is 65537
 	assert.Equal(t, 65537, k.E)
 }

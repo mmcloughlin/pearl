@@ -26,6 +26,11 @@ func GenerateRSAWithBits(bits int) (*rsa.PrivateKey, error) {
 	return rsa.GenerateKey(cryptorand.Reader, bits)
 }
 
+// RSAKeySize returns the modulus size of an RSA private key.
+func RSAKeySize(k *rsa.PrivateKey) int {
+	return k.N.BitLen()
+}
+
 // Fingerprint computes the SHA-1 hash of a public key referred to as a
 // fingerprint.
 func Fingerprint(k *rsa.PublicKey) ([]byte, error) {
