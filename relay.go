@@ -2,9 +2,7 @@ package pearl
 
 import (
 	"encoding/binary"
-	"encoding/hex"
 	"errors"
-	"fmt"
 
 	"github.com/mmcloughlin/pearl/log"
 )
@@ -61,11 +59,11 @@ func NewRelayCellFromBytes(b []byte) RelayCell {
 	return relayCell(b)
 }
 
-func LogRelayCell(l log.Logger, r RelayCell) {
+func RelayCellLogger(l log.Logger, r RelayCell) log.Logger {
 	l = l.With("relaycmd", r.RelayCommand()).With("streamid", r.StreamID())
 	l = log.WithBytes(l, "digest", r.Digest())
 	l = log.WithBytes(l, "relaydata", r.RelayData())
-	l.Debug("received relay cell")
+	return l
 }
 
 func RelayHandler(conn *Connection, c Cell) error {
@@ -80,13 +78,19 @@ func RelayHandler(conn *Connection, c Cell) error {
 	p := c.Payload()
 	circ.Forward.XORKeyStream(p, p)
 
-	fmt.Println(hex.Dump(p))
-
 	// Parse as relay cell.
 	r := NewRelayCellFromBytes(p)
-	LogRelayCell(conn.logger, r)
+	logger := RelayCellLogger(conn.logger, r)
+	logger.Debug("received relay cell")
 
 	// TODO(mbm): relay cell recognized and digest handling
+	logger.Error("digest handling not implemented")
+
+	// TODO(mbm): Director pattern for relay cells?
+	switch r.RelayCommand() {
+	default:
+		logger.Warn("no handler registered")
+	}
 
 	return nil
 }

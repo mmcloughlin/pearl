@@ -288,8 +288,6 @@ func (a AuthRSASHA256TLSSecret) Body() ([]byte, error) {
 
 	buf.Write(a.ServerLogHash)
 
-	debug.DumpBytes("SLOG", a.ServerLogHash)
-
 	buf.Write(a.ClientLogHash)
 
 	scert := a.SCERT()
