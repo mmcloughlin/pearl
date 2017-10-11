@@ -51,6 +51,28 @@ func NewLinkSpecLegacyID(id []byte) LinkSpec {
 	}
 }
 
+// Address converts the LinkSpec into an address. Returns nil if that is not
+// possible, for example in the case of LinkSpecLegacyIdentity or
+// LinkSpecEd25519Identity.
+func (s LinkSpec) Address() (net.Addr, error) {
+	n := 0
+	switch s.Type {
+	case LinkSpecTLSTCPIPv4:
+		n = 4
+	case LinkSpecTLSTCPIPv6:
+		n = 16
+	default:
+		return nil, nil
+	}
+	if len(s.Spec) != n+2 {
+		return nil, errors.New("bad spec length")
+	}
+	return &net.TCPAddr{
+		IP:   net.IP(s.Spec[:n]),
+		Port: int(binary.BigEndian.Uint16(s.Spec[n:])),
+	}, nil
+}
+
 type Extend2Payload struct {
 	LinkSpecs     []LinkSpec
 	HandshakeData []byte

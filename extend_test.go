@@ -35,6 +35,53 @@ func TestNewLinkSpecTCPUnexpected(t *testing.T) {
 	})
 }
 
+func TestLinkSpecAddressIPv4(t *testing.T) {
+	s := LinkSpec{
+		Type: LinkSpecTLSTCPIPv4,
+		Spec: []byte{23, 123, 43, 1, 1, 1},
+	}
+	addr, err := s.Address()
+	require.NoError(t, err)
+	require.NotNil(t, addr)
+	assert.Equal(t, "23.123.43.1:257", addr.String())
+}
+
+func TestLinkSpecAddressIPv6(t *testing.T) {
+	s := LinkSpec{
+		Type: LinkSpecTLSTCPIPv6,
+		Spec: []byte{
+			0, 1, 2, 3, 4, 5, 6, 7,
+			0, 1, 2, 3, 4, 5, 6, 7,
+			1, 1,
+		},
+	}
+	addr, err := s.Address()
+	require.NoError(t, err)
+	require.NotNil(t, addr)
+	assert.Equal(t, "[1:203:405:607:1:203:405:607]:257", addr.String())
+}
+
+func TestLinkSpecAddressNil(t *testing.T) {
+	for _, lt := range []LinkSpecType{
+		LinkSpecLegacyIdentity,
+		LinkSpecEd25519Identity,
+	} {
+		s := LinkSpec{Type: lt}
+		addr, err := s.Address()
+		assert.NoError(t, err)
+		assert.Nil(t, addr)
+	}
+}
+
+func TestLinkSpecAddressBadLength(t *testing.T) {
+	s := LinkSpec{
+		Type: LinkSpecTLSTCPIPv4,
+		Spec: []byte{0, 1, 2, 3, 4, 5, 6},
+	}
+	_, err := s.Address()
+	assert.Error(t, err)
+}
+
 func AssertLinkSpecEqual(t *testing.T, expect, got LinkSpec) {
 	assert.Equal(t, expect.Type, got.Type)
 	assert.Equal(t, expect.Spec, got.Spec)
