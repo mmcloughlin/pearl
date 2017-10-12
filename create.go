@@ -186,7 +186,11 @@ func ProcessHandshakeNTOR(conn *Connection, c *Create2Cell) error {
 	}
 
 	// Record results
-	circ, err := BuildCircuitNTOR(c.CircID, ntor.KDF(h))
+	circ := &Circuit{
+		ID:       c.CircID,
+		Previous: conn,
+	}
+	err = SetCircuitKeysNTOR(circ, ntor.KDF(h))
 	if err != nil {
 		return errors.Wrap(err, "failed to build circuit")
 	}
@@ -210,12 +214,7 @@ func ProcessHandshakeNTOR(conn *Connection, c *Create2Cell) error {
 		HandshakeData: hd,
 	}
 
-	cell, err := reply.Cell(conn.proto.CellFormat())
-	if err != nil {
-		return errors.Wrap(err, "error building created2 cell")
-	}
-
-	_, err = conn.tlsConn.Write(cell.Bytes())
+	err = conn.sendCell(reply)
 	if err != nil {
 		return errors.Wrap(err, "could not send created2 cell")
 	}
@@ -225,8 +224,8 @@ func ProcessHandshakeNTOR(conn *Connection, c *Create2Cell) error {
 	return nil
 }
 
-// BuildCircuitNTOR constructs a Circuit reading key material from r.
-func BuildCircuitNTOR(id CircID, r io.Reader) (*Circuit, error) {
+// SetCircuitKeysNTOR populates Circuit key material from r.
+func SetCircuitKeysNTOR(circ *Circuit, r io.Reader) error {
 	// Reference: https://github.com/torproject/torspec/blob/8aaa36d1a062b20ca263b6ac613b77a3ba1eb113/tor-spec.txt#L1210-L1214
 	//
 	//	   When used in the ntor handshake, the first HASH_LEN bytes form the
@@ -238,13 +237,12 @@ func BuildCircuitNTOR(id CircID, r io.Reader) (*Circuit, error) {
 	var k [72]byte
 	_, err := io.ReadFull(r, k[:])
 	if err != nil {
-		return nil, errors.Wrap(err, "short read for circuit key material")
+		return errors.Wrap(err, "short read for circuit key material")
 	}
-	return &Circuit{
-		ID:       id,
-		Forward:  NewCircuitDirectionState(k[:20], k[40:56]),
-		Backward: NewCircuitDirectionState(k[20:40], k[56:72]),
-	}, nil
+
+	circ.Forward = NewCircuitCryptoState(k[:20], k[40:56])
+	circ.Backward = NewCircuitCryptoState(k[20:40], k[56:72])
+	return nil
 }
 
 // ServerHandshakeDataNTOR represents server handshake data for the NTOR handshake.

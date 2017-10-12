@@ -107,6 +107,18 @@ type CellBuilder interface {
 	Cell(CellFormat) (Cell, error)
 }
 
+type FixedCellBuilder struct {
+	CircID  CircID
+	Command Command
+	Payload []byte
+}
+
+func (c FixedCellBuilder) Cell(f CellFormat) (Cell, error) {
+	cell := NewCellEmptyPayload(f, c.CircID, c.Command, uint16(len(c.Payload)))
+	copy(cell.Payload(), c.Payload)
+	return cell, nil
+}
+
 // cell is a concrete implemenation of Cell.
 type cell struct {
 	format CellFormat

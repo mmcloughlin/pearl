@@ -20,13 +20,13 @@ func GenerateCircID(f CellFormat, msb uint32) CircID {
 	return CircID(x)
 }
 
-type CircuitDirectionState struct {
+type CircuitCryptoState struct {
 	digest []byte
 	cipher.Stream
 }
 
-func NewCircuitDirectionState(d, k []byte) CircuitDirectionState {
-	return CircuitDirectionState{
+func NewCircuitCryptoState(d, k []byte) CircuitCryptoState {
+	return CircuitCryptoState{
 		digest: d,
 		Stream: torcrypto.NewStream(k),
 	}
@@ -34,8 +34,10 @@ func NewCircuitDirectionState(d, k []byte) CircuitDirectionState {
 
 type Circuit struct {
 	ID       CircID
-	Forward  CircuitDirectionState
-	Backward CircuitDirectionState
+	Previous *Connection
+	Next     *Connection
+	Forward  CircuitCryptoState
+	Backward CircuitCryptoState
 }
 
 // CircuitManager manages a collection of circuits.
@@ -48,6 +50,36 @@ type CircuitManager struct {
 func NewCircuitManager() *CircuitManager {
 	return &CircuitManager{
 		circuits: make(map[CircID]*Circuit),
+	}
+}
+
+func (m *CircuitManager) NewCircuit(f CellFormat, outbound bool) *Circuit {
+	m.Lock()
+	defer m.Unlock()
+
+	// Reference: https://github.com/torproject/torspec/blob/4074b891e53e8df951fc596ac6758d74da290c60/tor-spec.txt#L931-L933
+	//
+	//	   In link protocol version 4 or higher, whichever node initiated the
+	//	   connection sets its MSB to 1, and whichever node didn't initiate the
+	//	   connection sets its MSB to 0.
+	//
+	msb := uint32(0)
+	if outbound {
+		msb = uint32(1)
+	}
+
+	// BUG(mbm): potential infinite (or at least long) loop to find a new circuit id
+	for {
+		id := GenerateCircID(f, msb)
+		_, exists := m.circuits[id]
+		if exists {
+			continue
+		}
+		circ := &Circuit{
+			ID: id,
+		}
+		m.circuits[id] = circ
+		return circ
 	}
 }
 

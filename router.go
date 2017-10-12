@@ -18,11 +18,12 @@ import (
 type Router struct {
 	config *torconfig.Config
 
-	idKey    *rsa.PrivateKey
-	onionKey *rsa.PrivateKey
-	ntorKey  *torcrypto.Curve25519KeyPair
-
+	idKey       *rsa.PrivateKey
+	onionKey    *rsa.PrivateKey
+	ntorKey     *torcrypto.Curve25519KeyPair
 	fingerprint []byte
+
+	connections *ConnectionManager
 
 	logger log.Logger
 }
@@ -60,6 +61,7 @@ func NewRouter(config *torconfig.Config, logger log.Logger) (*Router, error) {
 		onionKey:    onionKey,
 		ntorKey:     ntorKey,
 		fingerprint: fingerprint,
+		connections: NewConnectionManager(),
 		logger:      logger,
 	}, nil
 }
@@ -116,6 +118,36 @@ func (r *Router) Connect(raddr string) (*Connection, error) {
 	}
 
 	return c, nil
+}
+
+// Connection returns a connection to the indicated relay. Returns an existing
+// connection, if it exists. Otherwise opens a connection and returns it.
+func (r *Router) Connection(hint ConnectionHint) (*Connection, error) {
+	fp, err := hint.Fingerprint()
+	if err != nil {
+		return nil, errors.Wrap(err, "missing fingerprint from connection hint")
+	}
+
+	if conn, ok := r.connections.Connection(fp); ok {
+		return conn, nil
+	}
+
+	addrs, err := hint.Addresses()
+	if err != nil {
+		return nil, errors.Wrap(err, "no addresses provided")
+	}
+
+	for _, addr := range addrs {
+		raddr := addr.String()
+		conn, err := r.Connect(raddr)
+		if err != nil {
+			log.WithErr(r.logger, err).Warn("connection attempt failed")
+			continue
+		}
+		return conn, nil
+	}
+
+	return nil, errors.New("all connection attempts failed")
 }
 
 // Descriptor returns a server descriptor for this router.

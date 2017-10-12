@@ -16,9 +16,11 @@ import (
 
 // Connection encapsulates a router connection.
 type Connection struct {
-	router  *Router
-	tlsCtx  *TLSContext
-	tlsConn *tls.Conn
+	router      *Router
+	tlsCtx      *TLSContext
+	tlsConn     *tls.Conn
+	fingerprint []byte
+	outbound    bool
 
 	proto    LinkProtocolVersion
 	circuits *CircuitManager
@@ -38,7 +40,9 @@ func NewServer(r *Router, conn net.Conn, logger log.Logger) (*Connection, error)
 		return nil, err
 	}
 	tlsConn := tlsCtx.ServerConn(conn)
-	return newConnection(r, tlsCtx, tlsConn, logger.With("role", "server")), nil
+	c := newConnection(r, tlsCtx, tlsConn, logger.With("role", "server"))
+	c.outbound = false
+	return c, nil
 }
 
 // NewClient constructs a client-side connection.
@@ -48,7 +52,9 @@ func NewClient(r *Router, conn net.Conn, logger log.Logger) (*Connection, error)
 		return nil, err
 	}
 	tlsConn := tlsCtx.ClientConn(conn)
-	return newConnection(r, tlsCtx, tlsConn, logger.With("role", "client")), nil
+	c := newConnection(r, tlsCtx, tlsConn, logger.With("role", "client"))
+	c.outbound = true
+	return c, nil
 }
 
 func newConnection(r *Router, tlsCtx *TLSContext, tlsConn *tls.Conn, logger log.Logger) *Connection {
@@ -58,9 +64,10 @@ func newConnection(r *Router, tlsCtx *TLSContext, tlsConn *tls.Conn, logger log.
 	wr := io.MultiWriter(tlsConn, outboundHash)
 
 	return &Connection{
-		router:  r,
-		tlsCtx:  tlsCtx,
-		tlsConn: tlsConn,
+		router:      r,
+		tlsCtx:      tlsCtx,
+		tlsConn:     tlsConn,
+		fingerprint: nil,
 
 		proto:    LinkProtocolNone,
 		circuits: NewCircuitManager(),
@@ -72,6 +79,19 @@ func newConnection(r *Router, tlsCtx *TLSContext, tlsConn *tls.Conn, logger log.
 
 		logger: log.ForConn(logger, tlsConn),
 	}
+}
+
+// Fingerprint returns the fingerprint of the connected peer.
+func (c *Connection) Fingerprint() (Fingerprint, error) {
+	if c.fingerprint == nil {
+		return Fingerprint{}, errors.New("peer fingerprint not established")
+	}
+	return NewFingerprintFromBytes(c.fingerprint)
+}
+
+func (c *Connection) newCircuit() *Circuit {
+	// BUG(mbm): what if c.proto has not been established
+	return c.circuits.NewCircuit(c.proto.CellFormat(), c.outbound)
 }
 
 // Handle handles the full lifecycle of the connection.
@@ -138,6 +158,8 @@ func (c *Connection) serverHandshake() error {
 		return err
 	}
 
+	// TODO(mbm): register server connection with router ConnectionManager
+
 	// Enter main loop
 	err = c.execute(RunLoopHandler)
 	if err != nil {
@@ -194,6 +216,26 @@ func (c *Connection) clientHandshake() error {
 	c.logger.With("numcerts", len(peerCertsCell.Certs)).Debug("received certs cell")
 	c.logger.Error("certificate cell verification not implemented")
 
+	serverLinkCert := peerCertsCell.Lookup(CertTypeLink)
+	if serverLinkCert == nil {
+		return errors.New("missing server link cert")
+	}
+
+	serverIDCertDER := peerCertsCell.Lookup(CertTypeIdentity)
+	if serverIDCertDER == nil {
+		return errors.New("missing server identity cert")
+	}
+
+	serverIDKey, err := torcrypto.ParseRSAPublicKeyFromCertificateDER(serverIDCertDER)
+	if err != nil {
+		return errors.Wrap(err, "failed to extract server identity key")
+	}
+
+	c.fingerprint, err = torcrypto.Fingerprint(serverIDKey)
+	if err != nil {
+		return errors.Wrap(err, "failed to compute server fingerprint")
+	}
+
 	// Receive AUTH_CHALLENGE cell
 	cell, err = c.cellReader.ReadCell(c.proto.CellFormat())
 	if err != nil {
@@ -238,21 +280,6 @@ func (c *Connection) clientHandshake() error {
 	// TODO(mbm): send AUTHENTICATE cell in client handshake
 	if !authChallengeCell.SupportsMethod(AuthMethodRSASHA256TLSSecret) {
 		return errors.New("server does not support auth method")
-	}
-
-	serverLinkCert := peerCertsCell.Lookup(CertTypeLink)
-	if serverLinkCert == nil {
-		return errors.New("missing server link cert")
-	}
-
-	serverIDCertDER := peerCertsCell.Lookup(CertTypeIdentity)
-	if serverIDCertDER == nil {
-		return errors.New("missing server identity cert")
-	}
-
-	serverIDKey, err := torcrypto.ParseRSAPublicKeyFromCertificateDER(serverIDCertDER)
-	if err != nil {
-		return errors.Wrap(err, "failed to extract server identity key")
 	}
 
 	cs := c.tlsConn.ConnectionState()

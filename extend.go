@@ -78,6 +78,8 @@ type Extend2Payload struct {
 	HandshakeData []byte
 }
 
+var _ ConnectionHint = new(Extend2Payload)
+
 func (e *Extend2Payload) UnmarshalBinary(p []byte) error {
 	if len(p) < 1 {
 		return ErrShortCellPayload
@@ -112,4 +114,27 @@ func (e *Extend2Payload) UnmarshalBinary(p []byte) error {
 	e.HandshakeData = p
 
 	return nil
+}
+
+func (e *Extend2Payload) Fingerprint() (Fingerprint, error) {
+	for _, ls := range e.LinkSpecs {
+		if ls.Type == LinkSpecLegacyIdentity {
+			return NewFingerprintFromBytes(ls.Spec)
+		}
+	}
+	return Fingerprint{}, errors.New("no fingerprint provided in extend cell")
+}
+
+func (e *Extend2Payload) Addresses() ([]net.Addr, error) {
+	var addrs []net.Addr
+	for _, ls := range e.LinkSpecs {
+		addr, err := ls.Address()
+		if err != nil {
+			return nil, err
+		}
+		if addr != nil {
+			addrs = append(addrs, addr)
+		}
+	}
+	return addrs, nil
 }

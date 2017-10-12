@@ -20,7 +20,11 @@ func WithBytes(logger Logger, key string, data []byte) Logger {
 	return logger.With(key, hex.EncodeToString(data))
 }
 
+func WithErr(logger Logger, err error) Logger {
+	return logger.With("err", err.Error())
+}
+
 // Err logs an error with an additional message.
 func Err(logger Logger, err error, msg string) {
-	logger.With("err", err.Error()).Error(msg)
+	WithErr(logger, err).Error(msg)
 }
