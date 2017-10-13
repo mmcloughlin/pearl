@@ -186,19 +186,24 @@ func ProcessHandshakeNTOR(conn *Connection, c *Create2Cell) error {
 	}
 
 	// Record results
-	circ := &Circuit{
-		ID:       c.CircID,
-		Previous: conn,
+	lk, err := conn.NewCircuitLink(c.CircID)
+	if err != nil {
+		return errors.Wrap(err, "failed to open circuit link")
 	}
-	err = SetCircuitKeysNTOR(circ, ntor.KDF(h))
+
+	fwd, back, err := BuildCircuitKeysNTOR(ntor.KDF(h))
 	if err != nil {
 		return errors.Wrap(err, "failed to build circuit")
 	}
 
-	err = conn.circuits.AddCircuit(circ)
-	if err != nil {
-		return errors.Wrap(err, "failed to register circuit")
+	circ := &TransverseCircuit{
+		Router:   conn.router,
+		Prev:     lk,
+		Forward:  fwd,
+		Backward: back,
+		logger:   conn.logger.With("circid", c.CircID),
 	}
+	go circ.ProcessForward()
 
 	// Send reply
 	//
@@ -224,8 +229,8 @@ func ProcessHandshakeNTOR(conn *Connection, c *Create2Cell) error {
 	return nil
 }
 
-// SetCircuitKeysNTOR populates Circuit key material from r.
-func SetCircuitKeysNTOR(circ *Circuit, r io.Reader) error {
+// BuildCircuitKeysNTOR generates Circuit key material from r.
+func BuildCircuitKeysNTOR(r io.Reader) (CircuitCryptoState, CircuitCryptoState, error) {
 	// Reference: https://github.com/torproject/torspec/blob/8aaa36d1a062b20ca263b6ac613b77a3ba1eb113/tor-spec.txt#L1210-L1214
 	//
 	//	   When used in the ntor handshake, the first HASH_LEN bytes form the
@@ -235,14 +240,16 @@ func SetCircuitKeysNTOR(circ *Circuit, r io.Reader) error {
 	//	   hidden service protocol.  Excess bytes from K are discarded.
 	//
 	var k [72]byte
+	var s CircuitCryptoState
 	_, err := io.ReadFull(r, k[:])
 	if err != nil {
-		return errors.Wrap(err, "short read for circuit key material")
+		return s, s, errors.Wrap(err, "short read for circuit key material")
 	}
 
-	circ.Forward = NewCircuitCryptoState(k[:20], k[40:56])
-	circ.Backward = NewCircuitCryptoState(k[20:40], k[56:72])
-	return nil
+	forward := NewCircuitCryptoState(k[:20], k[40:56])
+	backward := NewCircuitCryptoState(k[20:40], k[56:72])
+
+	return forward, backward, nil
 }
 
 // ServerHandshakeDataNTOR represents server handshake data for the NTOR handshake.

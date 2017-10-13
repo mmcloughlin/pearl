@@ -3,10 +3,10 @@ package pearl
 import (
 	"crypto/cipher"
 	"encoding/binary"
-	"errors"
-	"sync"
 
+	"github.com/mmcloughlin/pearl/log"
 	"github.com/mmcloughlin/pearl/torcrypto"
+	"github.com/pkg/errors"
 )
 
 // GenerateCircID generates a circuit ID with the given most significant bit.
@@ -32,71 +32,97 @@ func NewCircuitCryptoState(d, k []byte) CircuitCryptoState {
 	}
 }
 
-type Circuit struct {
-	ID       CircID
-	Previous *Connection
-	Next     *Connection
+// TransverseCircuit is a circuit transiting through the relay.
+type TransverseCircuit struct {
+	Router   *Router
+	Prev     CircuitLink
+	Next     CircuitLink
 	Forward  CircuitCryptoState
 	Backward CircuitCryptoState
+	logger   log.Logger
 }
 
-// CircuitManager manages a collection of circuits.
-type CircuitManager struct {
-	circuits map[CircID]*Circuit
-
-	sync.RWMutex
-}
-
-func NewCircuitManager() *CircuitManager {
-	return &CircuitManager{
-		circuits: make(map[CircID]*Circuit),
-	}
-}
-
-func (m *CircuitManager) NewCircuit(f CellFormat, outbound bool) *Circuit {
-	m.Lock()
-	defer m.Unlock()
-
-	// Reference: https://github.com/torproject/torspec/blob/4074b891e53e8df951fc596ac6758d74da290c60/tor-spec.txt#L931-L933
-	//
-	//	   In link protocol version 4 or higher, whichever node initiated the
-	//	   connection sets its MSB to 1, and whichever node didn't initiate the
-	//	   connection sets its MSB to 0.
-	//
-	msb := uint32(0)
-	if outbound {
-		msb = uint32(1)
-	}
-
-	// BUG(mbm): potential infinite (or at least long) loop to find a new circuit id
+// ProcessForward executes a runloop processing cells intended for this circuit.
+func (t TransverseCircuit) ProcessForward() error {
 	for {
-		id := GenerateCircID(f, msb)
-		_, exists := m.circuits[id]
-		if exists {
-			continue
+		cell, err := t.Prev.ReceiveCell()
+		if err != nil {
+			return err
 		}
-		circ := &Circuit{
-			ID: id,
+
+		switch cell.Command() {
+		case Relay:
+		case RelayEarly:
+			t.handleForwardRelay(cell) // XXX error return
+		default:
+			t.logger.Error("unrecognized cell")
 		}
-		m.circuits[id] = circ
-		return circ
 	}
 }
 
-func (m *CircuitManager) AddCircuit(c *Circuit) error {
-	m.Lock()
-	defer m.Unlock()
-	_, exists := m.circuits[c.ID]
-	if exists {
-		return errors.New("cannot override existing circuit id")
+func (t TransverseCircuit) handleForwardRelay(c Cell) error {
+	// Decrypt.
+	p := c.Payload()
+	t.Forward.XORKeyStream(p, p)
+
+	// Parse as relay cell.
+	r := NewRelayCellFromBytes(p)
+	logger := RelayCellLogger(t.logger, r)
+	logger.Debug("received relay cell")
+
+	// TODO(mbm): relay cell recognized and digest handling
+	logger.Error("digest handling not implemented")
+
+	switch r.RelayCommand() {
+	case RelayExtend2:
+		return t.handleRelayExtend2(r)
+	default:
+		logger.Error("no handler registered")
 	}
-	m.circuits[c.ID] = c
+
 	return nil
 }
 
-func (m *CircuitManager) Circuit(id CircID) (*Circuit, bool) {
-	m.RLock()
-	defer m.RUnlock()
-	c, ok := m.circuits[id]
-	return c, ok
+func (t TransverseCircuit) handleRelayExtend2(r RelayCell) error {
+	// Reference: https://github.com/torproject/torspec/blob/8aaa36d1a062b20ca263b6ac613b77a3ba1eb113/tor-spec.txt#L1253-L1260
+	//
+	//	   When an onion router receives an EXTEND relay cell, it sends a CREATE
+	//	   cell to the next onion router, with the enclosed onion skin as its
+	//	   payload.  As special cases, if the extend cell includes a digest of
+	//	   all zeroes, or asks to extend back to the relay that sent the extend
+	//	   cell, the circuit will fail and be torn down. The initiating onion
+	//	   router chooses some circID not yet used on the connection between the
+	//	   two onion routers.  (But see section 5.1.1 above, concerning choosing
+	//	   circIDs based on lexicographic order of nicknames.)
+	//
+
+	if t.Next != nil {
+		return errors.New("circuit already has a next hop established")
+	}
+
+	// Parse payload
+	ext := &Extend2Payload{}
+	err := ext.UnmarshalBinary(r.RelayData())
+	if err != nil {
+		return errors.Wrap(err, "bad EXTEND2 payload")
+	}
+
+	// Obtain connection to referenced node.
+	nextConn, err := t.Router.Connection(ext)
+	if err != nil {
+		return errors.Wrap(err, "could not obtain connection to extend node")
+	}
+
+	// Initialize circuit on the next connection
+	t.Next = nextConn.GenerateCircuitLink()
+
+	// Send CREATE2 cell
+	b := &FixedCellBuilder{
+		CircID:  t.Next.CircID(),
+		Command: Create2,
+		Payload: ext.HandshakeData,
+	}
+	cell := NewCe
+
+	return t.Next.SendCell(b)
 }

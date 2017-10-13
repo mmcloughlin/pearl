@@ -11,7 +11,7 @@ import (
 
 // MaxPayloadLength is the longest allowable cell payload.
 //
-// Reference: https://github.com/torproject/torspec/blob/master/tor-spec.txt#L65
+// Reference: https://github.com/torproject/torspec/blob/4074b891e53e8df951fc596ac6758d74da290c60/tor-spec.txt#L65
 //
 //	   PAYLOAD_LEN -- The longest allowable cell payload, in bytes. (509)
 //

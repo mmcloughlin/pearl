@@ -6,6 +6,7 @@ import (
 	"hash"
 	"io"
 	"net"
+	"sync"
 
 	"github.com/mmcloughlin/pearl/tls"
 	"github.com/mmcloughlin/pearl/torcrypto"
@@ -13,6 +14,68 @@ import (
 	"github.com/mmcloughlin/pearl/log"
 	"github.com/pkg/errors"
 )
+
+// CellSender can send a Cell.
+type CellSender interface {
+	SendCell(Cell) error
+}
+
+// CellReceiver can receive Cells.
+type CellReceiver interface {
+	ReceiveCell() (Cell, error)
+}
+
+// Link is a Cell communication layer.
+type Link interface {
+	CellSender
+	CellReceiver
+}
+
+type link struct {
+	CellSender
+	CellReceiver
+}
+
+func NewLink(s CellSender, r CellReceiver) Link {
+	return link{
+		CellSender:   s,
+		CellReceiver: r,
+	}
+}
+
+type CellChan chan Cell
+
+func (ch CellChan) SendCell(cell Cell) error {
+	ch <- cell
+	return nil
+}
+
+func (ch CellChan) ReceiveCell() (Cell, error) {
+	cell, ok := <-ch
+	if !ok {
+		return nil, errors.New("closed channel") // XXX correct return?
+	}
+	return cell, nil
+}
+
+type CircuitLink interface {
+	CircID() CircID
+	Link
+}
+
+type circLink struct {
+	id CircID
+	Link
+}
+
+func NewCircuitLink(id CircID, lk Link) CircuitLink {
+	return circLink{
+		id:   id,
+		Link: lk,
+	}
+}
+
+func (c circLink) CircID() CircID { return c.id }
 
 // Connection encapsulates a router connection.
 type Connection struct {
@@ -23,7 +86,7 @@ type Connection struct {
 	outbound    bool
 
 	proto    LinkProtocolVersion
-	circuits *CircuitManager
+	channels *ChannelManager
 
 	wr           io.Writer
 	cellReader   CellReader
@@ -32,6 +95,8 @@ type Connection struct {
 
 	logger log.Logger
 }
+
+var _ CellSender = new(Connection)
 
 // NewServer constructs a server connection.
 func NewServer(r *Router, conn net.Conn, logger log.Logger) (*Connection, error) {
@@ -70,7 +135,7 @@ func newConnection(r *Router, tlsCtx *TLSContext, tlsConn *tls.Conn, logger log.
 		fingerprint: nil,
 
 		proto:    LinkProtocolNone,
-		circuits: NewCircuitManager(),
+		channels: NewChannelManager(),
 
 		wr:           wr,
 		cellReader:   NewHashedCellReader(NewCellReader(tlsConn, logger), inboundHash),
@@ -87,11 +152,6 @@ func (c *Connection) Fingerprint() (Fingerprint, error) {
 		return Fingerprint{}, errors.New("peer fingerprint not established")
 	}
 	return NewFingerprintFromBytes(c.fingerprint)
-}
-
-func (c *Connection) newCircuit() *Circuit {
-	// BUG(mbm): what if c.proto has not been established
-	return c.circuits.NewCircuit(c.proto.CellFormat(), c.outbound)
 }
 
 // Handle handles the full lifecycle of the connection.
@@ -152,21 +212,50 @@ func (c *Connection) serverHandshake() error {
 		return errors.Wrap(err, "failed to send net info")
 	}
 
-	// Process handshake cells
-	err = c.execute(HandshakeHandler)
+	// Receive CERTS cell
+	cell, err := c.cellReader.ReadCell(c.proto.CellFormat())
 	if err != nil {
-		return err
+		return errors.Wrap(err, "could not read cell")
 	}
+
+	peerCertsCell, err := ParseCertsCell(cell)
+	if err != nil {
+		return errors.Wrap(err, "could not parse certs cell")
+	}
+
+	c.logger.With("numcerts", len(peerCertsCell.Certs)).Debug("received certs cell")
+	c.logger.Error("certificate cell verification not implemented")
+
+	// Receive AUTHENTICATE cell
+	cell, err = c.cellReader.ReadCell(c.proto.CellFormat())
+	if err != nil {
+		return errors.Wrap(err, "could not read cell")
+	}
+
+	_, err = ParseAuthenticateCell(cell)
+	if err != nil {
+		return errors.Wrap(err, "could not parse authenticate cell")
+	}
+	c.logger.Error("authenticate cell processing not implemented")
+
+	// Receive NETINFO cell
+	cell, err = c.cellReader.ReadCell(c.proto.CellFormat())
+	if err != nil {
+		return errors.Wrap(err, "could not read cell")
+	}
+
+	netInfoCell, err := ParseNetInfoCell(cell)
+	if err != nil {
+		return errors.Wrap(err, "could not parse netinfo cell")
+	}
+
+	c.logger.With("receiver_addr", netInfoCell.ReceiverAddress).Debug("received net info cell")
+	c.logger.Error("net info processing not implemented")
 
 	// TODO(mbm): register server connection with router ConnectionManager
 
 	// Enter main loop
-	err = c.execute(RunLoopHandler)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return c.readLoop()
 }
 
 func (c *Connection) clientHandshake() error {
@@ -393,7 +482,7 @@ func (c *Connection) sendCell(b CellBuilder) error {
 		return errors.Wrap(err, "error building cell")
 	}
 
-	_, err = c.wr.Write(cell.Bytes())
+	err = c.SendCell(cell)
 	if err != nil {
 		return errors.Wrap(err, "could not send cell")
 	}
@@ -403,7 +492,12 @@ func (c *Connection) sendCell(b CellBuilder) error {
 	return nil
 }
 
-func (c *Connection) execute(h Handler) error {
+func (c *Connection) SendCell(cell Cell) error {
+	_, err := c.wr.Write(cell.Bytes())
+	return err
+}
+
+func (c *Connection) readLoop() error {
 	var err error
 	var cell Cell
 	for {
@@ -412,16 +506,48 @@ func (c *Connection) execute(h Handler) error {
 			return errors.Wrap(err, "could not read cell")
 		}
 
-		CellLogger(c.logger, cell).Trace("received cell")
+		logger := CellLogger(c.logger, cell)
+		logger.Trace("received cell")
 
-		err = h.HandleCell(c, cell)
-		if err == EOH {
-			return nil
-		}
-		if err != nil {
-			return err
+		switch cell.Command() {
+		// Cells to be handled by this Connection
+		case Create2:
+			Create2Handler(c, cell) // XXX error return
+		// Cells related to a circuit
+		case Relay:
+		case RelayEarly:
+			ch, ok := c.channels.Channel(cell.CircID())
+			if !ok {
+				// BUG(mbm): is logging the correct behavior
+				logger.Error("unrecognized circ id")
+				continue
+			}
+			ch <- cell
+		// Cells to be ignored
+		case Padding:
+		case Vpadding:
+			logger.Debug("skipping padding cell")
+		// Something which shouldn't happen
+		default:
+			logger.Error("no handler registered")
 		}
 	}
+}
+
+// GenerateCircuitLink
+func (c *Connection) GenerateCircuitLink() CircuitLink {
+	// BUG(mbm): what if c.proto has not been established
+	id, ch := c.channels.New(c.proto.CellFormat(), c.outbound)
+	return NewCircuitLink(id, NewLink(c, CellChan(ch)))
+}
+
+// NewCircuitLink
+func (c *Connection) NewCircuitLink(id CircID) (CircuitLink, error) {
+	ch, err := c.channels.NewWithID(id)
+	if err != nil {
+		return nil, err
+	}
+	return NewCircuitLink(id, NewLink(c, CellChan(ch))), nil
 }
 
 func CellLogger(l log.Logger, cell Cell) log.Logger {
@@ -430,80 +556,69 @@ func CellLogger(l log.Logger, cell Cell) log.Logger {
 		With("bytes", hex.EncodeToString(cell.Bytes()))
 }
 
-// HandshakeHandler handles cells during server side handshake.
-var HandshakeHandler = NewDirector(map[Command]Handler{
-	Padding:      IgnoreHandler,
-	Certs:        NotImplementedHandler,
-	Authenticate: NotImplementedHandler,
-	Netinfo:      HandlerFunc(func(_ *Connection, _ Cell) error { return EOH }),
-})
+// ChannelManager manages a collection of cell channels.
+type ChannelManager struct {
+	channels map[CircID]chan Cell
 
-// HandshakeHandler handles cells during handshake.
-var RunLoopHandler = NewDirector(map[Command]Handler{
-	Padding:    IgnoreHandler,
-	Create2:    HandlerFunc(Create2Handler),
-	Create:     NotImplementedHandler,
-	Destroy:    NotImplementedHandler,
-	RelayEarly: HandlerFunc(RelayHandler),
-})
-
-// EOH is a special error type used to indicate that cell handling should stop.
-var EOH = errors.New("end of handlers")
-
-// Handler is something that can handle a cell.
-type Handler interface {
-	HandleCell(*Connection, Cell) error
+	sync.RWMutex
 }
 
-// HandlerFunc allows implementation of Handler interface with a plain function.
-type HandlerFunc func(*Connection, Cell) error
-
-// HandleCell calls f.
-func (f HandlerFunc) HandleCell(conn *Connection, c Cell) error {
-	return f(conn, c)
-}
-
-// LoggingHander builds a Handler that logs a Cell and does nothing else.
-func LoggingHander(lvl log.Level, msg string) Handler {
-	return HandlerFunc(func(conn *Connection, c Cell) error {
-		log.Log(conn.logger.With("cmd", c.Command()), lvl, msg)
-		return nil
-	})
-}
-
-// Convenience logging handlers.
-var (
-	IgnoreHandler         = LoggingHander(log.LevelDebug, "ignoring cell")
-	NotImplementedHandler = LoggingHander(log.LevelError, "cell handler not implemented")
-)
-
-// Director is a Handler that routes Cells to sub-handlers based on command type.
-type Director struct {
-	handlers map[Command]Handler
-}
-
-// NewDirector builds a Director with the given handlers.
-func NewDirector(handlers map[Command]Handler) *Director {
-	return &Director{
-		handlers: handlers,
+func NewChannelManager() *ChannelManager {
+	return &ChannelManager{
+		channels: make(map[CircID]chan Cell),
 	}
 }
 
-// NewDirectorEmpty builds a Director with no handlers.
-func NewDirectorEmpty() *Director {
-	return NewDirector(make(map[Command]Handler))
-}
+func (m *ChannelManager) New(f CellFormat, outbound bool) (CircID, chan Cell) {
+	m.Lock()
+	defer m.Unlock()
 
-// AddHandler adds a handler for the given command type.
-func (d *Director) AddHandler(cmd Command, h Handler) {
-	d.handlers[cmd] = h
-}
-
-// HandleCell handles c.
-func (d *Director) HandleCell(conn *Connection, c Cell) error {
-	h, found := d.handlers[c.Command()]
-	if !found {
-		return ErrUnexpectedCommand
+	// Reference: https://github.com/torproject/torspec/blob/4074b891e53e8df951fc596ac6758d74da290c60/tor-spec.txt#L931-L933
+	//
+	//	   In link protocol version 4 or higher, whichever node initiated the
+	//	   connection sets its MSB to 1, and whichever node didn't initiate the
+	//	   connection sets its MSB to 0.
+	//
+	msb := uint32(0)
+	if outbound {
+		msb = uint32(1)
 	}
-	return h.HandleCell(conn, c)
+
+	// BUG(mbm): potential infinite (or at least long) loop to find a new id
+	for {
+		id := GenerateCircID(f, msb)
+		// 0 is reserved
+		if id == 0 {
+			continue
+		}
+		_, exists := m.channels[id]
+		if exists {
+			continue
+		}
+		ch := m.newWithID(id)
+		return id, ch
+	}
+}
+
+func (m *ChannelManager) NewWithID(id CircID) (chan Cell, error) {
+	m.Lock()
+	defer m.Unlock()
+	_, exists := m.channels[id]
+	if exists {
+		return nil, errors.New("cannot override existing channel id")
+	}
+	return m.newWithID(id), nil
+}
+
+func (m *ChannelManager) newWithID(id CircID) chan Cell {
+	ch := make(chan Cell)
+	m.channels[id] = ch
+	return ch
+}
+
+func (m *ChannelManager) Channel(id CircID) (chan Cell, bool) {
+	m.RLock()
+	defer m.RUnlock()
+	ch, ok := m.channels[id]
+	return ch, ok
 }
