@@ -23,58 +23,10 @@ var ErrUnknownCommand = errors.New("unknown command")
 // CircID is a circuit ID.
 type CircID uint32
 
-// CellFormat represents a format for serializing cells.
-type CellFormat interface {
-	CircIDLen() int
-	CircID([]byte) CircID
-	PutCircID([]byte, CircID)
-}
-
-// CircID2Format is the (older) cell format with 2-byte circuit IDs.
-type CircID2Format struct{}
-
-// CircIDLen returns 2.
-func (c CircID2Format) CircIDLen() int {
-	return 2
-}
-
-// CircID extracts the circuit ID from cell bytes in x.
-func (c CircID2Format) CircID(x []byte) CircID {
-	return CircID(binary.BigEndian.Uint16(x))
-}
-
-// PutCircID inserts the CircID into x.
-func (c CircID2Format) PutCircID(x []byte, id CircID) {
-	// BUG(mmcloughlin): potential overflow in CircID2Format.PutCircID with a
-	// 32-bit circ id value.
-	binary.BigEndian.PutUint16(x, uint16(id))
-}
-
-// CircID4Format is the 4-byte cell ID format for link protocol versions 4 and newer.
-type CircID4Format struct{}
-
-// CircIDLen returns 4.
-func (c CircID4Format) CircIDLen() int {
-	return 4
-}
-
-// CircID extracts the circuit ID from cell bytes in x.
-func (c CircID4Format) CircID(x []byte) CircID {
-	return CircID(binary.BigEndian.Uint32(x))
-}
-
-// PutCircID inserts the CircID into x.
-func (c CircID4Format) PutCircID(x []byte, id CircID) {
-	binary.BigEndian.PutUint32(x, uint32(id))
-}
-
-// VersionsCellFormat is the cell format for VERSIONS cells.
-var VersionsCellFormat CellFormat = CircID2Format{}
-
 // IsCommandVariableLength determines whether a cell for the given command
 // code is variable length.
-func IsCommandVariableLength(c Command) bool {
-	// Reference: https://github.com/torproject/torspec/blob/master/tor-spec.txt#L406-L409
+func (c Command) IsVariableLength() bool {
+	// Reference: https://github.com/torproject/torspec/blob/4074b891e53e8df951fc596ac6758d74da290c60/tor-spec.txt#L433-L436
 	//
 	//	   On a version 2 connection, variable-length cells are indicated by a
 	//	   command byte equal to 7 ("VERSIONS").  On a version 3 or
@@ -85,13 +37,12 @@ func IsCommandVariableLength(c Command) bool {
 }
 
 // PayloadOffset computes the payload offset from the start of cell data for the
-// given cell format and command.
-func PayloadOffset(f CellFormat, cmd Command) int {
-	offset := f.CircIDLen() + 1
-	if IsCommandVariableLength(cmd) {
-		offset += 2
+// given command.
+func (c Command) PayloadOffset() int {
+	if c.IsVariableLength() {
+		return 7
 	}
-	return offset
+	return 5
 }
 
 // Cell represents a cell.
@@ -102,93 +53,66 @@ type Cell interface {
 	Bytes() []byte
 }
 
-// CellBuilder can build a cell in a given format.
+// CellBuilder can build a cell.
 type CellBuilder interface {
-	Cell(CellFormat) (Cell, error)
+	Cell() (Cell, error)
 }
 
-type FixedCellBuilder struct {
-	CircID  CircID
-	Command Command
-	Payload []byte
-}
-
-func (c FixedCellBuilder) Cell(f CellFormat) (Cell, error) {
-	cell := NewCellEmptyPayload(f, c.CircID, c.Command, uint16(len(c.Payload)))
-	copy(cell.Payload(), c.Payload)
-	return cell, nil
-}
-
-// cell is a concrete implemenation of Cell.
-type cell struct {
-	format CellFormat
-	data   []byte
-}
-
-var _ Cell = new(cell)
+// cell is an implemenation of Cell backed by a byte array.
+type cell []byte
 
 // NewCellFromBuffer builds a Cell from the given bytes.
-func NewCellFromBuffer(f CellFormat, x []byte) Cell {
-	return cell{
-		format: f,
-		data:   x,
-	}
+func NewCellFromBuffer(x []byte) Cell {
+	return cell(c)
 }
 
 // NewCellEmptyPayload builds a variable-length Cell with an empty payload of
 // size n bytes.
-func NewCellEmptyPayload(f CellFormat, circID CircID, cmd Command, n uint16) Cell {
-	// BUG(mmcloughlin): NewCellEmptyPayload should use sync.Pool to allocate
-	// cell buffers.
-	alloc := f.CircIDLen() + 1 + 2 + int(n)
-	data := make([]byte, alloc) // assumes we need 2 bytes for length (but we may not)
-	ptr := 0
-
-	f.PutCircID(data[ptr:], circID)
-	ptr += f.CircIDLen()
-
-	data[f.CircIDLen()] = byte(cmd)
-	ptr++
-
-	if IsCommandVariableLength(cmd) {
-		binary.BigEndian.PutUint16(data[ptr:], n)
+func NewCellEmptyPayload(circID CircID, cmd Command, n uint16) Cell {
+	if !cmd.IsVariableLength() {
+		panic("cannot build fixed length cell")
 	}
 
-	return NewCellFromBuffer(f, data)
+	// BUG(mmcloughlin): NewCellEmptyPayload should use sync.Pool to allocate
+	// cell buffers.
+	data := make([]byte, 7+int(n))
+
+	binary.BigEndian.PutUint32(data, circID)
+	data[4] = byte(cmd)
+	binary.BigEndian.PutUint16(data[5:], n)
+
+	return NewCellFromBuffer(data)
 }
 
 // NewFixedCell builds a fixed-size cell.
-func NewFixedCell(f CellFormat, circID CircID, cmd Command) Cell {
-	if IsCommandVariableLength(cmd) {
+func NewFixedCell(circID CircID, cmd Command) Cell {
+	if cmd.IsVariableLength() {
 		panic("command is requires variable length cell")
 	}
 
 	// BUG(mmcloughlin): NewFixedCell should use sync.Pool to allocate
 	// cell buffers.
-	alloc := f.CircIDLen() + 1 + MaxPayloadLength
-	data := make([]byte, alloc) // assumes we need 2 bytes for length (but we may not)
+	data := make([]byte, 5+MaxPayloadLength)
 
-	f.PutCircID(data, circID)
-
-	data[f.CircIDLen()] = byte(cmd)
+	binary.BigEndian.PutUint32(data, circID)
+	data[4] = byte(cmd)
 
 	return NewCellFromBuffer(f, data)
 }
 
 // CircID returns the circuit ID from the cell.
 func (c cell) CircID() CircID {
-	return c.format.CircID(c.data)
+	return CircID(binary.BigEndian.Uint32(c))
 }
 
 // Command returns the cell command.
 func (c cell) Command() Command {
-	return Command(c.data[c.format.CircIDLen()])
+	return Command(c[4])
 }
 
 // Payload returns the cell payload.
 func (c cell) Payload() []byte {
-	offset := PayloadOffset(c.format, c.Command())
-	return c.data[offset:]
+	return c[PayloadOffset(c.Command()):]
 }
 
 // Bytes returns the whole cell in bytes.
@@ -196,41 +120,35 @@ func (c cell) Bytes() []byte {
 	return c.data
 }
 
-// CellReader can read cells. Parallel to the io.Reader interface.
-type CellReader interface {
-	ReadCell(CellFormat) (Cell, error)
-}
-
-// CellReaderFunc implements CellReader with a plain functions.
-type CellReaderFunc func(CellFormat) (Cell, error)
-
-// ReadCell calls r.
-func (r CellReaderFunc) ReadCell(f CellFormat) (Cell, error) {
-	return r(f)
-}
-
 // cellReader reads cells from an io.Reader.
 type cellReader struct {
-	reader io.Reader
-
-	buf    *bufio.Reader
-	logger log.Logger
+	reader    io.Reader
+	circIDLen int
+	buf       *bufio.Reader
+	logger    log.Logger
 }
 
-var _ CellReader = new(cellReader)
+// NewCellReader builds a CellReceiver reading from r.
+func NewCellReader(r io.Reader, logger log.Logger) CellReceiver {
+	return newCellReader(r, 4, logger)
+}
 
-// NewCellReader builds a CellReader reading from r.
-func NewCellReader(r io.Reader, logger log.Logger) CellReader {
+// NewLegacyCellReader builds an old-style CellReceiver (for length 2 CircIDs).
+func NewLegacyCellReader(r io.Reader, logger log.Logger) CellReceiver {
+	return newCellReader(r, 2, logger)
+}
+
+func newCellReader(r io.Reader, circIDLen int, logger log.Logger) CellReceiver {
 	return cellReader{
-		reader: r,
-
-		buf:    bufio.NewReader(r),
-		logger: log.ForComponent(logger, "cellreader"),
+		reader:    r,
+		circIDLen: circIDLen,
+		buf:       bufio.NewReader(r),
+		logger:    log.ForComponent(logger, "cellreader"),
 	}
 }
 
 // ReadCell reads a cell of the given format.
-func (r cellReader) ReadCell(format CellFormat) (Cell, error) {
+func (r cellReader) ReadCell() (Cell, error) {
 	// Reference: https://github.com/torproject/torspec/blob/master/tor-spec.txt#L391-L404
 	//
 	//	   On a version 1 connection, each cell contains the following
@@ -249,18 +167,16 @@ func (r cellReader) ReadCell(format CellFormat) (Cell, error) {
 	//	        Payload                               [Length bytes]
 	//
 
-	circIDLen := format.CircIDLen()
-
 	// Read cell header
-	n := circIDLen + 1 + 2
-	hdr, err := r.buf.Peek(n)
+	n := r.circIDLen + 1 + 2
+	hdr, err := r.buf.Peek(7)
 	if err != nil {
 		return nil, errors.Wrap(err, "could not peek cell header")
 	}
 	r.logger.With("hdr", hdr).Trace("peek cell header")
 
 	// command byte
-	cmdByte := hdr[circIDLen]
+	cmdByte := hdr[r.circIDLen]
 	if !IsCommand(cmdByte) {
 		return nil, ErrUnknownCommand
 	}
@@ -269,10 +185,10 @@ func (r cellReader) ReadCell(format CellFormat) (Cell, error) {
 
 	// fixed vs. variable cell
 	payloadLen := uint16(MaxPayloadLength)
-	if IsCommandVariableLength(cmd) {
-		payloadLen = binary.BigEndian.Uint16(hdr[circIDLen+1:])
+	if cmd.IsVariableLength() {
+		payloadLen = binary.BigEndian.Uint16(hdr[r.circIDLen+1:])
 	}
-	payloadOffset := PayloadOffset(format, cmd)
+	payloadOffset := PayloadOffset(cmd)
 
 	// actually read the cell
 	cellLength := payloadOffset + int(payloadLen)
@@ -281,10 +197,11 @@ func (r cellReader) ReadCell(format CellFormat) (Cell, error) {
 	// BUG(mmcloughlin) cellReader.ReadCell allocates new buffer every time
 	// (should use sync.Pool)
 	cellBuf := make([]byte, cellLength)
-	_, err = io.ReadFull(r.buf, cellBuf)
+	offset := 4 - r.circIDLen
+	_, err = io.ReadFull(r.buf, cellBuf[offset:])
 	if err != nil {
 		return nil, errors.Wrap(err, "could not read full cell")
 	}
 
-	return NewCellFromBuffer(format, cellBuf), nil
+	return NewCellFromBuffer(cellBuf), nil
 }
