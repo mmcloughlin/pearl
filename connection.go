@@ -410,6 +410,9 @@ func (c *Connection) clientHandshake() error {
 	c.logger.With("receiver_addr", netInfoCell.ReceiverAddress).Debug("received net info cell")
 	c.logger.Error("net info processing not implemented")
 
+	// TODO(mbm): need some more sane management of goroutines
+	go c.readLoop()
+
 	return nil
 }
 
@@ -517,6 +520,7 @@ func (c *Connection) readLoop() error {
 		case Create2:
 			Create2Handler(c, cell) // XXX error return
 		// Cells related to a circuit
+		case Created2:
 		case Relay:
 		case RelayEarly:
 			ch, ok := c.channels.Channel(cell.CircID())

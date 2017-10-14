@@ -117,5 +117,22 @@ func (t TransverseCircuit) handleRelayExtend2(r RelayCell) error {
 	cell := NewFixedCell(t.Next.CircID(), Create2)
 	copy(cell.Payload(), ext.HandshakeData) // BUG(mbm): overflow risk
 
-	return t.Next.SendCell(cell)
+	err = t.Next.SendCell(cell)
+	if err != nil {
+		return errors.Wrap(err, "failed to send create cell")
+	}
+
+	// Wait for CREATED2 cell
+	cell, err = t.Next.ReceiveCell()
+	if err != nil {
+		return errors.Wrap(err, "failed to receive cell")
+	}
+
+	if cell.Command() != Created2 {
+		return ErrUnexpectedCommand
+	}
+
+	// Relay back
+
+	return nil
 }
