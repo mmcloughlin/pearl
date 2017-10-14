@@ -491,13 +491,12 @@ func (c *Connection) sendCell(b CellBuilder) error {
 		return errors.Wrap(err, "could not send cell")
 	}
 
-	CellLogger(c.logger, cell).Trace("sent cell")
-
 	return nil
 }
 
 func (c *Connection) SendCell(cell Cell) error {
 	_, err := c.wr.Write(cell.Bytes())
+	CellLogger(c.logger, cell).Trace("sent cell")
 	return err
 }
 

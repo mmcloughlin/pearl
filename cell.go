@@ -119,6 +119,21 @@ func (c cell) Bytes() []byte {
 	return c
 }
 
+type legacyCell struct {
+	Cell
+}
+
+func NewLegacyCell(c Cell) Cell {
+	return legacyCell{
+		Cell: c,
+	}
+}
+
+func (l legacyCell) Bytes() []byte {
+	b := l.Cell.Bytes()
+	return b[2:]
+}
+
 // cellReader reads cells from an io.Reader.
 type cellReader struct {
 	rd        io.Reader

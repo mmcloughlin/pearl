@@ -93,5 +93,5 @@ func (v VersionsCell) Cell() (Cell, error) {
 	for i, version := range v.SupportedVersions {
 		binary.BigEndian.PutUint16(payload[2*i:2*i+2], uint16(version))
 	}
-	return c, nil
+	return NewLegacyCell(c), nil
 }
