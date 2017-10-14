@@ -100,7 +100,7 @@ func (c *CertsCell) Lookup(t CertType) []byte {
 }
 
 // Cell builds the cell.
-func (c CertsCell) Cell(f CellFormat) (Cell, error) {
+func (c CertsCell) Cell() (Cell, error) {
 	// Reference: https://github.com/torproject/torspec/blob/master/tor-spec.txt#L549-L553
 	//
 	//	        N: Number of certs in cell            [1 octet]
@@ -119,7 +119,7 @@ func (c CertsCell) Cell(f CellFormat) (Cell, error) {
 		length += 3 + len(entry.CertDER)
 	}
 
-	cell := NewCellEmptyPayload(f, 0, Certs, uint16(length))
+	cell := NewCellEmptyPayload(0, Certs, uint16(length))
 	payload := cell.Payload()
 
 	payload[0] = byte(N)

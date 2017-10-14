@@ -1,7 +1,6 @@
 package pearl
 
 import (
-	"bufio"
 	"encoding/binary"
 	"io"
 
@@ -63,7 +62,7 @@ type cell []byte
 
 // NewCellFromBuffer builds a Cell from the given bytes.
 func NewCellFromBuffer(x []byte) Cell {
-	return cell(c)
+	return cell(x)
 }
 
 // NewCellEmptyPayload builds a variable-length Cell with an empty payload of
@@ -77,7 +76,7 @@ func NewCellEmptyPayload(circID CircID, cmd Command, n uint16) Cell {
 	// cell buffers.
 	data := make([]byte, 7+int(n))
 
-	binary.BigEndian.PutUint32(data, circID)
+	binary.BigEndian.PutUint32(data, uint32(circID))
 	data[4] = byte(cmd)
 	binary.BigEndian.PutUint16(data[5:], n)
 
@@ -94,10 +93,10 @@ func NewFixedCell(circID CircID, cmd Command) Cell {
 	// cell buffers.
 	data := make([]byte, 5+MaxPayloadLength)
 
-	binary.BigEndian.PutUint32(data, circID)
+	binary.BigEndian.PutUint32(data, uint32(circID))
 	data[4] = byte(cmd)
 
-	return NewCellFromBuffer(f, data)
+	return NewCellFromBuffer(data)
 }
 
 // CircID returns the circuit ID from the cell.
@@ -112,19 +111,18 @@ func (c cell) Command() Command {
 
 // Payload returns the cell payload.
 func (c cell) Payload() []byte {
-	return c[PayloadOffset(c.Command()):]
+	return c[c.Command().PayloadOffset():]
 }
 
 // Bytes returns the whole cell in bytes.
 func (c cell) Bytes() []byte {
-	return c.data
+	return c
 }
 
 // cellReader reads cells from an io.Reader.
 type cellReader struct {
-	reader    io.Reader
+	rd        io.Reader
 	circIDLen int
-	buf       *bufio.Reader
 	logger    log.Logger
 }
 
@@ -140,15 +138,14 @@ func NewLegacyCellReader(r io.Reader, logger log.Logger) CellReceiver {
 
 func newCellReader(r io.Reader, circIDLen int, logger log.Logger) CellReceiver {
 	return cellReader{
-		reader:    r,
+		rd:        r,
 		circIDLen: circIDLen,
-		buf:       bufio.NewReader(r),
 		logger:    log.ForComponent(logger, "cellreader"),
 	}
 }
 
 // ReadCell reads a cell of the given format.
-func (r cellReader) ReadCell() (Cell, error) {
+func (r cellReader) ReceiveCell() (Cell, error) {
 	// Reference: https://github.com/torproject/torspec/blob/master/tor-spec.txt#L391-L404
 	//
 	//	   On a version 1 connection, each cell contains the following
@@ -167,16 +164,18 @@ func (r cellReader) ReadCell() (Cell, error) {
 	//	        Payload                               [Length bytes]
 	//
 
+	offset := 4 - r.circIDLen
+
 	// Read cell header
-	n := r.circIDLen + 1 + 2
-	hdr, err := r.buf.Peek(7)
+	var hdr [7]byte
+	_, err := io.ReadFull(r.rd, hdr[offset:])
 	if err != nil {
-		return nil, errors.Wrap(err, "could not peek cell header")
+		return nil, errors.Wrap(err, "could not read cell header")
 	}
 	r.logger.With("hdr", hdr).Trace("peek cell header")
 
 	// command byte
-	cmdByte := hdr[r.circIDLen]
+	cmdByte := hdr[4]
 	if !IsCommand(cmdByte) {
 		return nil, ErrUnknownCommand
 	}
@@ -186,19 +185,19 @@ func (r cellReader) ReadCell() (Cell, error) {
 	// fixed vs. variable cell
 	payloadLen := uint16(MaxPayloadLength)
 	if cmd.IsVariableLength() {
-		payloadLen = binary.BigEndian.Uint16(hdr[r.circIDLen+1:])
+		payloadLen = binary.BigEndian.Uint16(hdr[5:])
 	}
-	payloadOffset := PayloadOffset(cmd)
+	payloadOffset := cmd.PayloadOffset()
 
 	// actually read the cell
 	cellLength := payloadOffset + int(payloadLen)
 	r.logger.With("len", cellLength).Trace("reading cell")
 
-	// BUG(mmcloughlin) cellReader.ReadCell allocates new buffer every time
+	// BUG(mmcloughlin) cellReader.ReceiveCell allocates new buffer every time
 	// (should use sync.Pool)
 	cellBuf := make([]byte, cellLength)
-	offset := 4 - r.circIDLen
-	_, err = io.ReadFull(r.buf, cellBuf[offset:])
+	copy(cellBuf, hdr[:])
+	_, err = io.ReadFull(r.rd, cellBuf[7:])
 	if err != nil {
 		return nil, errors.Wrap(err, "could not read full cell")
 	}

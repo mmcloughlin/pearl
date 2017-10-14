@@ -89,7 +89,8 @@ type Connection struct {
 	channels *ChannelManager
 
 	wr           io.Writer
-	cellReader   CellReader
+	rd           io.Reader
+	cellReader   CellReceiver
 	inboundHash  hash.Hash
 	outboundHash hash.Hash
 
@@ -126,6 +127,7 @@ func newConnection(r *Router, tlsCtx *TLSContext, tlsConn *tls.Conn, logger log.
 	// BUG(mbm): massively inefficient to always hash io (only required for AUTH_CHALLENGE/AUTHENTICATE)
 	inboundHash := sha256.New()
 	outboundHash := sha256.New()
+	rd := io.TeeReader(tlsConn, inboundHash)
 	wr := io.MultiWriter(tlsConn, outboundHash)
 
 	return &Connection{
@@ -138,7 +140,8 @@ func newConnection(r *Router, tlsCtx *TLSContext, tlsConn *tls.Conn, logger log.
 		channels: NewChannelManager(),
 
 		wr:           wr,
-		cellReader:   NewHashedCellReader(NewCellReader(tlsConn, logger), inboundHash),
+		rd:           rd,
+		cellReader:   NewCellReader(rd, logger),
 		inboundHash:  inboundHash,
 		outboundHash: outboundHash,
 
@@ -213,7 +216,7 @@ func (c *Connection) serverHandshake() error {
 	}
 
 	// Receive CERTS cell
-	cell, err := c.cellReader.ReadCell(c.proto.CellFormat())
+	cell, err := c.cellReader.ReceiveCell()
 	if err != nil {
 		return errors.Wrap(err, "could not read cell")
 	}
@@ -227,7 +230,7 @@ func (c *Connection) serverHandshake() error {
 	c.logger.Error("certificate cell verification not implemented")
 
 	// Receive AUTHENTICATE cell
-	cell, err = c.cellReader.ReadCell(c.proto.CellFormat())
+	cell, err = c.cellReader.ReceiveCell()
 	if err != nil {
 		return errors.Wrap(err, "could not read cell")
 	}
@@ -239,7 +242,7 @@ func (c *Connection) serverHandshake() error {
 	c.logger.Error("authenticate cell processing not implemented")
 
 	// Receive NETINFO cell
-	cell, err = c.cellReader.ReadCell(c.proto.CellFormat())
+	cell, err = c.cellReader.ReceiveCell()
 	if err != nil {
 		return errors.Wrap(err, "could not read cell")
 	}
@@ -292,7 +295,7 @@ func (c *Connection) clientHandshake() error {
 	c.establishVersion(serverVersions, SupportedLinkProtocolVersions)
 
 	// Receive CERTS cell
-	cell, err := c.cellReader.ReadCell(c.proto.CellFormat())
+	cell, err := c.cellReader.ReceiveCell()
 	if err != nil {
 		return errors.Wrap(err, "could not read cell")
 	}
@@ -326,7 +329,7 @@ func (c *Connection) clientHandshake() error {
 	}
 
 	// Receive AUTH_CHALLENGE cell
-	cell, err = c.cellReader.ReadCell(c.proto.CellFormat())
+	cell, err = c.cellReader.ReceiveCell()
 	if err != nil {
 		return errors.Wrap(err, "could not read cell")
 	}
@@ -394,7 +397,7 @@ func (c *Connection) clientHandshake() error {
 	c.sendNetInfoCell()
 
 	// Receive NETINFO cell
-	cell, err = c.cellReader.ReadCell(c.proto.CellFormat())
+	cell, err = c.cellReader.ReceiveCell()
 	if err != nil {
 		return errors.Wrap(err, "could not read cell")
 	}
@@ -422,7 +425,8 @@ func (c *Connection) receiveVersions() ([]LinkProtocolVersion, error) {
 	//	   is 4 for link protocol version 4 or higher.  The VERSIONS cell itself
 	//	   always has CIRCID_LEN == 2 for backward compatibility.
 	//
-	cell, err := c.cellReader.ReadCell(VersionsCellFormat)
+	rd := NewLegacyCellReader(c.rd, c.logger)
+	cell, err := rd.ReceiveCell()
 	if err != nil {
 		return nil, errors.Wrap(err, "could not read cell")
 	}
@@ -477,7 +481,7 @@ func (c *Connection) sendNetInfoCell() error {
 }
 
 func (c *Connection) sendCell(b CellBuilder) error {
-	cell, err := b.Cell(c.proto.CellFormat())
+	cell, err := b.Cell()
 	if err != nil {
 		return errors.Wrap(err, "error building cell")
 	}
@@ -501,7 +505,7 @@ func (c *Connection) readLoop() error {
 	var err error
 	var cell Cell
 	for {
-		cell, err = c.cellReader.ReadCell(c.proto.CellFormat())
+		cell, err = c.cellReader.ReceiveCell()
 		if err != nil {
 			return errors.Wrap(err, "could not read cell")
 		}
@@ -537,7 +541,7 @@ func (c *Connection) readLoop() error {
 // GenerateCircuitLink
 func (c *Connection) GenerateCircuitLink() CircuitLink {
 	// BUG(mbm): what if c.proto has not been established
-	id, ch := c.channels.New(c.proto.CellFormat(), c.outbound)
+	id, ch := c.channels.New(c.outbound)
 	return NewCircuitLink(id, NewLink(c, CellChan(ch)))
 }
 
@@ -569,7 +573,7 @@ func NewChannelManager() *ChannelManager {
 	}
 }
 
-func (m *ChannelManager) New(f CellFormat, outbound bool) (CircID, chan Cell) {
+func (m *ChannelManager) New(outbound bool) (CircID, chan Cell) {
 	m.Lock()
 	defer m.Unlock()
 
@@ -586,7 +590,7 @@ func (m *ChannelManager) New(f CellFormat, outbound bool) (CircID, chan Cell) {
 
 	// BUG(mbm): potential infinite (or at least long) loop to find a new id
 	for {
-		id := GenerateCircID(f, msb)
+		id := GenerateCircID(msb)
 		// 0 is reserved
 		if id == 0 {
 			continue

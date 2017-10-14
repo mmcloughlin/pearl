@@ -24,11 +24,11 @@ func TestNetInfoCell(t *testing.T) {
 		},
 	}
 
-	c, err := n.Cell(CircID2Format{})
+	c, err := n.Cell()
 	require.NoError(t, err)
 
 	payload := []byte{
-		0, 0, // circid
+		0, 0, 0, 0, // circid
 		8,                      // command
 		0xbe, 0xef, 0xca, 0xfe, // timestamp
 		4, 4, 0x11, 0x22, 0x33, 0x44, // receiver addr
@@ -36,7 +36,7 @@ func TestNetInfoCell(t *testing.T) {
 		4, 4, 16, 32, 64, 128, // first sender addr
 		6, 16, 0xbb, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0xee, // second sender addr
 	}
-	expect := make([]byte, 512)
+	expect := make([]byte, 514)
 	copy(expect, payload)
 
 	assert.Equal(t, expect, c.Bytes())
@@ -52,7 +52,7 @@ func TestNetInfoCellUnencodableAddress(t *testing.T) {
 	}
 
 	for _, n := range netInfoCells {
-		_, err := n.Cell(CircID2Format{})
+		_, err := n.Cell()
 		assert.Equal(t, ErrUnencodableAddress, err)
 	}
 }
@@ -122,7 +122,7 @@ func TestParseNetInfoCell(t *testing.T) {
 		0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0,
 		0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0,
 	}
-	c := NewCellFromBuffer(CircID4Format{}, data)
+	c := NewCellFromBuffer(data)
 	ni, err := ParseNetInfoCell(c)
 	require.NoError(t, err)
 
@@ -133,7 +133,7 @@ func TestParseNetInfoCell(t *testing.T) {
 }
 
 func TestParseNetInfoCellBadCommand(t *testing.T) {
-	c := NewFixedCell(CircID4Format{}, 0, Destroy)
+	c := NewFixedCell(0, Destroy)
 	_, err := ParseNetInfoCell(c)
 	assert.Error(t, err)
 }
@@ -144,7 +144,7 @@ func TestParseNetInfoCellErrors(t *testing.T) {
 		{1, 2, 3, 4, 4, 4, 127, 0, 0, 1, 2, 0, 0},
 	}
 	for _, b := range cases {
-		c := NewFixedCell(CircID4Format{}, 0, Netinfo)
+		c := NewFixedCell(0, Netinfo)
 		copy(c.Payload(), b)
 		_, err := ParseNetInfoCell(c)
 		assert.Error(t, err)

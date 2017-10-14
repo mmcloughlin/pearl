@@ -46,11 +46,10 @@ func TestAuthenticateCellRoundTrip(t *testing.T) {
 		0x89, 0xff, 0xdb, 0x06, 0x65, 0xf0, 0xee, 0xb2, 0x55, 0xfa, 0x84, 0x7a,
 		0xdf, 0x65, 0xa7,
 	}
-	f := CircID4Format{}
-	c := NewCellFromBuffer(f, data)
+	c := NewCellFromBuffer(data)
 	a, err := ParseAuthenticateCell(c)
 	require.NoError(t, err)
-	c2, err := a.Cell(f)
+	c2, err := a.Cell()
 	require.NoError(t, err)
 	assert.Equal(t, c.Bytes(), c2.Bytes())
 }

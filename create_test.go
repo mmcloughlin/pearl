@@ -53,11 +53,10 @@ func TestParseCreate2Cell(t *testing.T) {
 		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 	}
-	f := CircID4Format{}
-	start := NewCellFromBuffer(f, data)
+	start := NewCellFromBuffer(data)
 	c, err := ParseCreate2Cell(start)
 	require.NoError(t, err)
-	end, err := c.Cell(f)
+	end, err := c.Cell()
 	require.NoError(t, err)
 	assert.Equal(t, start.Bytes(), end.Bytes())
 }

@@ -15,14 +15,6 @@ var (
 	LinkProtocolNone LinkProtocolVersion
 )
 
-// CellFormat returns the cell format used by this link protocol version.
-func (v LinkProtocolVersion) CellFormat() CellFormat {
-	if v > 3 {
-		return CircID4Format{}
-	}
-	return CircID2Format{}
-}
-
 // ErrNoCommonVersion is returned from ResolveVersion when the two lists of
 // supported versions do not have any versions in common.
 var ErrNoCommonVersion = errors.New("no common version found")

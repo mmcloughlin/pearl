@@ -9,14 +9,11 @@ import (
 	"github.com/pkg/errors"
 )
 
-// GenerateCircID generates a circuit ID with the given most significant bit.
-func GenerateCircID(f CellFormat, msb uint32) CircID {
+// GenerateCircID generates a 4-byte circuit ID with the given most significant bit.
+func GenerateCircID(msb uint32) CircID {
 	b := torcrypto.Rand(4)
 	x := binary.BigEndian.Uint32(b)
 	x = (x >> 1) | (msb << 31)
-	if f.CircIDLen() == 2 {
-		x >>= 16
-	}
 	return CircID(x)
 }
 
@@ -117,12 +114,8 @@ func (t TransverseCircuit) handleRelayExtend2(r RelayCell) error {
 	t.Next = nextConn.GenerateCircuitLink()
 
 	// Send CREATE2 cell
-	b := &FixedCellBuilder{
-		CircID:  t.Next.CircID(),
-		Command: Create2,
-		Payload: ext.HandshakeData,
-	}
-	cell := NewCe
+	cell := NewFixedCell(t.Next.CircID(), Create2)
+	copy(cell.Payload(), ext.HandshakeData) // BUG(mbm): overflow risk
 
-	return t.Next.SendCell(b)
+	return t.Next.SendCell(cell)
 }

@@ -124,10 +124,10 @@ func (a AuthChallengeCell) SupportsMethod(m AuthMethod) bool {
 }
 
 // Cell constructs the cell bytes.
-func (a AuthChallengeCell) Cell(f CellFormat) (Cell, error) {
+func (a AuthChallengeCell) Cell() (Cell, error) {
 	m := len(a.Methods)
 	n := 32 + 2 + 2*m
-	c := NewCellEmptyPayload(f, 0, AuthChallenge, uint16(n))
+	c := NewCellEmptyPayload(0, AuthChallenge, uint16(n))
 	payload := c.Payload()
 
 	copy(payload, a.Challenge[:])
@@ -180,7 +180,7 @@ func ParseAuthenticateCell(c Cell) (*AuthenticateCell, error) {
 }
 
 // Cell builds a cell from the AuthenticateCell payload.
-func (a AuthenticateCell) Cell(f CellFormat) (Cell, error) {
+func (a AuthenticateCell) Cell() (Cell, error) {
 	// Reference: https://github.com/torproject/torspec/blob/8aaa36d1a062b20ca263b6ac613b77a3ba1eb113/tor-spec.txt#L727-L731
 	//
 	//	   An AUTHENTICATE cell contains the following:
@@ -190,7 +190,7 @@ func (a AuthenticateCell) Cell(f CellFormat) (Cell, error) {
 	//	        Authentication                        [AuthLen octets]
 	//
 	authLen := len(a.Authentication)
-	c := NewCellEmptyPayload(f, 0, Authenticate, uint16(4+authLen))
+	c := NewCellEmptyPayload(0, Authenticate, uint16(4+authLen))
 	payload := c.Payload()
 
 	binary.BigEndian.PutUint16(payload, uint16(a.Method))
@@ -314,7 +314,7 @@ func (a AuthRSASHA256TLSSecret) SignedBody() ([]byte, error) {
 	return append(body, sig...), nil
 }
 
-func (a AuthRSASHA256TLSSecret) Cell(f CellFormat) (Cell, error) {
+func (a AuthRSASHA256TLSSecret) Cell() (Cell, error) {
 	body, err := a.SignedBody()
 	if err != nil {
 		return nil, err
@@ -324,7 +324,7 @@ func (a AuthRSASHA256TLSSecret) Cell(f CellFormat) (Cell, error) {
 		Method:         AuthMethodRSASHA256TLSSecret,
 		Authentication: body,
 	}
-	return c.Cell(f)
+	return c.Cell()
 }
 
 func (a AuthRSASHA256TLSSecret) GoString() string {

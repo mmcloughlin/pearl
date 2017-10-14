@@ -111,8 +111,8 @@ func ParseNetInfoCell(c Cell) (*NetInfoCell, error) {
 }
 
 // Cell actually constructs the cell.
-func (n NetInfoCell) Cell(f CellFormat) (Cell, error) {
-	c := NewFixedCell(f, 0, Netinfo)
+func (n NetInfoCell) Cell() (Cell, error) {
+	c := NewFixedCell(0, Netinfo)
 	payload := c.Payload()
 
 	// timestamp
