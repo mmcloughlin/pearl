@@ -93,6 +93,39 @@ type Created2Cell struct {
 	HandshakeData []byte
 }
 
+func ParseCreated2Cell(c Cell) (*Created2Cell, error) {
+	if c.Command() != Created2 {
+		return nil, ErrUnexpectedCommand
+	}
+
+	p := c.Payload()
+	n := len(p)
+
+	if n < 2 {
+		return nil, errors.New("created2 cell too short")
+	}
+
+	hlen := binary.BigEndian.Uint16(p)
+
+	if n < int(2+hlen) {
+		return nil, errors.New("inconsistent created2 cell length")
+	}
+
+	return &Created2Cell{
+		CircID:        c.CircID(),
+		HandshakeData: p[2 : 2+hlen],
+	}, nil
+}
+
+// Payload returns just the payload part of the CREATED2 cell.
+func (c Created2Cell) Payload() []byte {
+	n := len(c.HandshakeData)
+	p := make([]byte, 2+n)
+	binary.BigEndian.PutUint16(p, uint16(n))
+	copy(p[2:], c.HandshakeData)
+	return p
+}
+
 // Cell builds a cell from the CREATED2 payload.
 func (c Created2Cell) Cell() (Cell, error) {
 	cell := NewFixedCell(c.CircID, Created2)
@@ -203,6 +236,7 @@ func ProcessHandshakeNTOR(conn *Connection, c *Create2Cell) error {
 		Backward: back,
 		logger:   conn.logger.With("circid", c.CircID),
 	}
+	// TODO(mbm): goroutine management
 	go circ.ProcessForward()
 
 	// Send reply
@@ -230,7 +264,7 @@ func ProcessHandshakeNTOR(conn *Connection, c *Create2Cell) error {
 }
 
 // BuildCircuitKeysNTOR generates Circuit key material from r.
-func BuildCircuitKeysNTOR(r io.Reader) (CircuitCryptoState, CircuitCryptoState, error) {
+func BuildCircuitKeysNTOR(r io.Reader) (*CircuitCryptoState, *CircuitCryptoState, error) {
 	// Reference: https://github.com/torproject/torspec/blob/8aaa36d1a062b20ca263b6ac613b77a3ba1eb113/tor-spec.txt#L1210-L1214
 	//
 	//	   When used in the ntor handshake, the first HASH_LEN bytes form the
@@ -240,10 +274,9 @@ func BuildCircuitKeysNTOR(r io.Reader) (CircuitCryptoState, CircuitCryptoState, 
 	//	   hidden service protocol.  Excess bytes from K are discarded.
 	//
 	var k [72]byte
-	var s CircuitCryptoState
 	_, err := io.ReadFull(r, k[:])
 	if err != nil {
-		return s, s, errors.Wrap(err, "short read for circuit key material")
+		return nil, nil, errors.Wrap(err, "short read for circuit key material")
 	}
 
 	forward := NewCircuitCryptoState(k[:20], k[40:56])

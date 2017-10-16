@@ -2,7 +2,6 @@ package pearl
 
 import (
 	"crypto/sha256"
-	"encoding/hex"
 	"hash"
 	"io"
 	"net"
@@ -498,8 +497,8 @@ func (c *Connection) sendCell(b CellBuilder) error {
 }
 
 func (c *Connection) SendCell(cell Cell) error {
+	CellLogger(c.logger, cell).Trace("sending cell")
 	_, err := c.wr.Write(cell.Bytes())
-	CellLogger(c.logger, cell).Trace("sent cell")
 	return err
 }
 
@@ -520,9 +519,8 @@ func (c *Connection) readLoop() error {
 		case Create2:
 			Create2Handler(c, cell) // XXX error return
 		// Cells related to a circuit
-		case Created2:
-		case Relay:
-		case RelayEarly:
+		case Created2, Relay, RelayEarly:
+			logger.Trace("directing cell to circuit channel")
 			ch, ok := c.channels.Channel(cell.CircID())
 			if !ok {
 				// BUG(mbm): is logging the correct behavior
@@ -531,8 +529,7 @@ func (c *Connection) readLoop() error {
 			}
 			ch <- cell
 		// Cells to be ignored
-		case Padding:
-		case Vpadding:
+		case Padding, Vpadding:
 			logger.Debug("skipping padding cell")
 		// Something which shouldn't happen
 		default:
@@ -558,9 +555,7 @@ func (c *Connection) NewCircuitLink(id CircID) (CircuitLink, error) {
 }
 
 func CellLogger(l log.Logger, cell Cell) log.Logger {
-	return l.With("cmd", cell.Command()).
-		With("circid", cell.CircID()).
-		With("bytes", hex.EncodeToString(cell.Bytes()))
+	return l.With("cmd", cell.Command()).With("circid", cell.CircID())
 }
 
 // ChannelManager manages a collection of cell channels.

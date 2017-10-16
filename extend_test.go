@@ -134,9 +134,10 @@ func TestExtend2UnmarshalBinary(t *testing.T) {
 		0x00, 0x00, 0x00, 0x00, 0x00,
 	}
 	rc := NewRelayCellFromBytes(payload)
-	data := rc.RelayData()
+	data, err := rc.RelayData()
+	require.NoError(t, err)
 	e := Extend2Payload{}
-	err := e.UnmarshalBinary(data)
+	err = e.UnmarshalBinary(data)
 	require.NoError(t, err)
 
 	assert.Len(t, e.LinkSpecs, 2)
