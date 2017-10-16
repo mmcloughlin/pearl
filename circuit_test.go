@@ -21,9 +21,9 @@ func TestGenerateCircID4Rand(t *testing.T) {
 func TestCircuitCryptoStateRewind(t *testing.T) {
 	d := []byte("He thought he saw an Elephant")
 	s := NewCircuitCryptoState(d, make([]byte, 16))
-	s.Encrypt([]byte("That practised on a fife:"))
+	s.EncryptOrigin([]byte("That practised on a fife:"))
 	expect := s.Sum()
-	s.Encrypt([]byte("He looked again, and found it was"))
+	s.EncryptOrigin([]byte("He looked again, and found it was"))
 	assert.NotEqual(t, expect, s.Sum())
 	s.RewindDigest()
 	assert.Equal(t, expect, s.Sum())
@@ -32,7 +32,7 @@ func TestCircuitCryptoStateRewind(t *testing.T) {
 func TestCircuitCryptoStateDigestUint32Extraction(t *testing.T) {
 	d := make([]byte, 32)
 	s := NewCircuitCryptoState(d, make([]byte, 16))
-	s.Encrypt(d)
+	s.EncryptOrigin(d)
 	// $ head -c 64 /dev/zero | sha1sum
 	// c8d7d0ef0eedfa82d2ea1aa592845b9a6d4b02b7  -
 	assert.Equal(t, "c8d7d0ef0eedfa82d2ea1aa592845b9a6d4b02b7", hex.EncodeToString(s.Sum()))
@@ -54,7 +54,7 @@ func TestCircuitCryptoStateDigestRoundTrip(t *testing.T) {
 	b := make([]byte, n)
 	copy(b, plain)
 
-	s1.Encrypt(b)
+	s1.EncryptOrigin(b)
 	s2.Decrypt(b)
 
 	// Ensure the digests are the same on both states, and it was correctly

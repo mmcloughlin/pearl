@@ -61,7 +61,7 @@ func (c *CircuitCryptoState) Decrypt(b []byte) {
 	r.SetDigest(d)
 }
 
-func (c *CircuitCryptoState) Encrypt(b []byte) {
+func (c *CircuitCryptoState) EncryptOrigin(b []byte) {
 	// Backup digest
 	c.prev = c.digest.Clone()
 
@@ -73,6 +73,10 @@ func (c *CircuitCryptoState) Encrypt(b []byte) {
 	// Set correct value of the digest field
 	r.SetDigest(c.Digest())
 
+	c.Encrypt(b)
+}
+
+func (c *CircuitCryptoState) Encrypt(b []byte) {
 	c.stream.XORKeyStream(b, b)
 }
 
@@ -87,7 +91,7 @@ type TransverseCircuit struct {
 }
 
 // ProcessForward executes a runloop processing cells intended for this circuit.
-func (t TransverseCircuit) ProcessForward() error {
+func (t *TransverseCircuit) ProcessForward() error {
 	for {
 		cell, err := t.Prev.ReceiveCell()
 		if err != nil {
@@ -108,7 +112,7 @@ func (t TransverseCircuit) ProcessForward() error {
 	}
 }
 
-func (t TransverseCircuit) handleForwardRelay(c Cell) error {
+func (t *TransverseCircuit) handleForwardRelay(c Cell) error {
 	// Decrypt payload.
 	p := c.Payload()
 	t.Forward.Decrypt(p)
@@ -144,7 +148,7 @@ func (t TransverseCircuit) handleForwardRelay(c Cell) error {
 }
 
 // handleUnrecognizedCell passes an unrecognized cell onto the next hop.
-func (t TransverseCircuit) handleUnrecognizedCell(c Cell) error {
+func (t *TransverseCircuit) handleUnrecognizedCell(c Cell) error {
 	if t.Next == nil {
 		// TODO(mbm): send DESTROY cell for unrecognized cell with no next hop
 		return errors.New("no next hop configured")
@@ -159,7 +163,7 @@ func (t TransverseCircuit) handleUnrecognizedCell(c Cell) error {
 	return t.Next.SendCell(f)
 }
 
-func (t TransverseCircuit) handleRelayExtend2(r RelayCell) error {
+func (t *TransverseCircuit) handleRelayExtend2(r RelayCell) error {
 	// Reference: https://github.com/torproject/torspec/blob/8aaa36d1a062b20ca263b6ac613b77a3ba1eb113/tor-spec.txt#L1253-L1260
 	//
 	//	   When an onion router receives an EXTEND relay cell, it sends a CREATE
@@ -225,14 +229,57 @@ func (t TransverseCircuit) handleRelayExtend2(r RelayCell) error {
 	cell = NewFixedCell(t.Prev.CircID(), Relay)
 	ext2 := NewRelayCell(RelayExtended2, 0, created2.Payload())
 	copy(cell.Payload(), ext2.Bytes())
-	t.Backward.Encrypt(cell.Payload())
+	t.Backward.EncryptOrigin(cell.Payload())
 
 	err = t.Prev.SendCell(cell)
 	if err != nil {
 		return errors.Wrap(err, "failed to send relay extend cell")
 	}
 
+	// TODO(mbm): better goroutine management
+	// Process cells received from the next hop
+	go t.ProcessBackward()
+
 	return nil
+}
+
+// ProcessBackward executes a runloop processing cells to be sent back in the
+// direction of the originator of the circuit.
+func (t *TransverseCircuit) ProcessBackward() error {
+	t.logger.Debug("starting process backward loop")
+
+	for {
+		cell, err := t.Next.ReceiveCell()
+		if err != nil {
+			return err
+		}
+
+		switch cell.Command() {
+		case Relay, RelayEarly:
+			// TODO(mbm): count relay early cells
+			// XXX error handling
+			err = t.handleBackwardRelay(cell)
+			if err != nil {
+				log.Err(t.logger, err, "backward relay failed")
+			}
+		default:
+			t.logger.Error("unrecognized cell")
+		}
+	}
+}
+
+func (t *TransverseCircuit) handleBackwardRelay(c Cell) error {
+	// Encrypt payload.
+	p := c.Payload()
+	t.Backward.Encrypt(p)
+
+	// Clone the cell but swap out the circuit ID.
+	// TODO(mbm): forwarding relay cell should not require a copy, rather just
+	// a modification of the incoming cell
+	f := NewFixedCell(t.Prev.CircID(), c.Command())
+	copy(f.Payload(), c.Payload())
+
+	return t.Prev.SendCell(f)
 }
 
 func relayCellIsRecogized(r RelayCell, cs *CircuitCryptoState) bool {
