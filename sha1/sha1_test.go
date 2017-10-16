@@ -74,9 +74,9 @@ func TestGolden(t *testing.T) {
 				sum = c.Sum(nil)
 			case 3:
 				io.WriteString(c, g.in[0:len(g.in)/2])
-				c.(*Digest).ConstantTimeSum(nil)
+				c.ConstantTimeSum(nil)
 				io.WriteString(c, g.in[len(g.in)/2:])
-				sum = c.(*Digest).ConstantTimeSum(nil)
+				sum = c.ConstantTimeSum(nil)
 			}
 			s := fmt.Sprintf("%x", sum)
 			if s != g.out {
@@ -104,7 +104,7 @@ func TestBlockSize(t *testing.T) {
 // Tests that blockGeneric (pure Go) and block (in assembly for some architectures) match.
 func TestBlockGeneric(t *testing.T) {
 	for i := 1; i < 30; i++ { // arbitrary factor
-		gen, asm := New().(*Digest), New().(*Digest)
+		gen, asm := New(), New()
 		buf := make([]byte, BlockSize*i)
 		rand.Read(buf)
 		blockGeneric(gen, buf)

@@ -5,15 +5,6 @@
 // Package sha1 implements the SHA1 hash algorithm as defined in RFC 3174.
 package sha1
 
-import (
-	"crypto"
-	"hash"
-)
-
-func init() {
-	crypto.RegisterHash(crypto.SHA1, New)
-}
-
 // The size of a SHA1 checksum in bytes.
 const Size = 20
 
@@ -48,7 +39,7 @@ func (d *Digest) Reset() {
 }
 
 // New returns a new hash.Hash computing the SHA1 checksum.
-func New() hash.Hash {
+func New() *Digest {
 	d := new(Digest)
 	d.Reset()
 	return d
