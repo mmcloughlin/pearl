@@ -4,8 +4,8 @@ import (
 	"crypto/cipher"
 	"encoding/binary"
 
-	"github.com/TvdW/gotor/sha1"
 	"github.com/mmcloughlin/pearl/log"
+	"github.com/mmcloughlin/pearl/sha1"
 	"github.com/mmcloughlin/pearl/torcrypto"
 	"github.com/pkg/errors"
 )
