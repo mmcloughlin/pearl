@@ -9,7 +9,7 @@ import (
 
 type RelayCell interface {
 	RelayCommand() RelayCommand
-	Recognized() []byte
+	Recognized() uint16
 	StreamID() uint16
 	Digest() uint32
 	RelayData() ([]byte, error)
@@ -42,8 +42,8 @@ func (r relayCell) SetRelayCommand(cmd RelayCommand) {
 	r[0] = byte(cmd)
 }
 
-func (r relayCell) Recognized() []byte {
-	return r[1:3]
+func (r relayCell) Recognized() uint16 {
+	return binary.BigEndian.Uint16(r[1:])
 }
 
 func (r relayCell) ClearRecognized() {
@@ -97,11 +97,6 @@ func (r relayCell) SetData(data []byte) error {
 	return nil
 }
 
-func RelayCellHasRecognizedZero(r RelayCell) bool {
-	rec := r.Recognized()
-	return rec[0] == 0 && rec[1] == 0
-}
-
 func NewRelayCellFromBytes(b []byte) RelayCell {
 	if len(b) != MaxPayloadLength {
 		panic("relay cell payload expected to be max payload length")
@@ -125,5 +120,6 @@ func NewRelayCell(cmd RelayCommand, streamID uint16, data []byte) RelayCell {
 func RelayCellLogger(l log.Logger, r RelayCell) log.Logger {
 	return l.With("relaycmd", r.RelayCommand()).
 		With("streamid", r.StreamID()).
-		With("digest", r.Digest())
+		With("digest", r.Digest()).
+		With("recognized", r.Recognized())
 }

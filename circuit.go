@@ -95,8 +95,7 @@ func (t TransverseCircuit) ProcessForward() error {
 		}
 
 		switch cell.Command() {
-		case Relay:
-		case RelayEarly:
+		case Relay, RelayEarly:
 			// TODO(mbm): count relay early cells
 			// XXX error handling
 			err = t.handleForwardRelay(cell)
@@ -119,11 +118,19 @@ func (t TransverseCircuit) handleForwardRelay(c Cell) error {
 	logger := RelayCellLogger(t.logger, r)
 	logger.Debug("received relay cell")
 
-	// Should the cell be forwarded?
+	// Reference: https://github.com/torproject/torspec/blob/4074b891e53e8df951fc596ac6758d74da290c60/tor-spec.txt#L1369-L1375
+	//
+	//	   The OR then decides whether it recognizes the relay cell, by
+	//	   inspecting the payload as described in section 6.1 below.  If the OR
+	//	   recognizes the cell, it processes the contents of the relay cell.
+	//	   Otherwise, it passes the decrypted relay cell along the circuit if
+	//	   the circuit continues.  If the OR at the end of the circuit
+	//	   encounters an unrecognized relay cell, an error has occurred: the OR
+	//	   sends a DESTROY cell to tear down the circuit.
+	//
 	if !relayCellIsRecogized(r, t.Forward) {
-		// TODO(mbm): forward cell
-		logger.Error("cell not recognized")
-		return nil
+		logger.Debug("forwarding unrecognized cell")
+		return t.handleUnrecognizedCell(c)
 	}
 
 	switch r.RelayCommand() {
@@ -134,6 +141,22 @@ func (t TransverseCircuit) handleForwardRelay(c Cell) error {
 	}
 
 	return nil
+}
+
+// handleUnrecognizedCell passes an unrecognized cell onto the next hop.
+func (t TransverseCircuit) handleUnrecognizedCell(c Cell) error {
+	if t.Next == nil {
+		// TODO(mbm): send DESTROY cell for unrecognized cell with no next hop
+		return errors.New("no next hop configured")
+	}
+
+	// Clone the cell but swap out the circuit ID.
+	// TODO(mbm): forwarding relay cell should not require a copy, rather just
+	// a modification of the incoming cell
+	f := NewFixedCell(t.Next.CircID(), c.Command())
+	copy(f.Payload(), c.Payload())
+
+	return t.Next.SendCell(f)
 }
 
 func (t TransverseCircuit) handleRelayExtend2(r RelayCell) error {
@@ -224,7 +247,7 @@ func relayCellIsRecogized(r RelayCell, cs *CircuitCryptoState) bool {
 	//	   field set to zero).
 	//
 
-	if !RelayCellHasRecognizedZero(r) {
+	if r.Recognized() != 0 {
 		return false
 	}
 
