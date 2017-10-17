@@ -156,6 +156,7 @@ func (r *Router) Descriptor() *tordir.ServerDescriptor {
 	s := tordir.NewServerDescriptor()
 	s.SetRouter(r.config.Nickname, net.IPv4(127, 0, 0, 1), r.config.ORPort, 0)
 	s.SetPlatform(r.config.Platform)
+	s.SetContact(r.config.Contact)
 	s.SetBandwidth(1000, 2000, 500)
 	s.SetPublishedTime(time.Now())
 	s.SetExitPolicy(torexitpolicy.RejectAllPolicy)

@@ -33,6 +33,7 @@ func serve() error {
 		Nickname: nickname,
 		ORPort:   uint16(port),
 		Platform: meta.Platform.String(),
+		Contact:  "https://github.com/mmcloughlin/pearl",
 	}
 
 	logger := log.NewDebug()

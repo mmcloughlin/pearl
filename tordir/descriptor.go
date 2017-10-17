@@ -33,6 +33,7 @@ const (
 	ntorOnionKeyKeyword    = "ntor-onion-key"
 	platformKeyword        = "platform"
 	protoKeyword           = "proto"
+	contactKeyword         = "contact"
 )
 
 var requiredKeywords = []string{
@@ -218,6 +219,12 @@ func (d *ServerDescriptor) SetExitPolicy(policy *torexitpolicy.Policy) error {
 func (d *ServerDescriptor) SetProtocols(p protover.SupportedProtocols) error {
 	d.addItem(NewItem(protoKeyword, p.Strings()))
 	return nil
+}
+
+// SetContact sets contact information for the server administrator.
+func (d *ServerDescriptor) SetContact(c string) {
+	// Insert: https://github.com/torproject/torspec/blob/4074b891e53e8df951fc596ac6758d74da290c60/dir-spec.txt#L2012-L2018
+	d.addItem(NewItem(contactKeyword, []string{c}))
 }
 
 // SetNtorOnionKey sets the key used for ntor circuit extended handshake.
