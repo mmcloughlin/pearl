@@ -339,7 +339,6 @@ func (c *Connection) clientHandshake() error {
 	}
 
 	log.WithBytes(c.logger, "challenge", authChallengeCell.Challenge[:]).Debug("received auth challenge cell")
-	c.logger.Error("auth challenge reply not implemented")
 
 	// Send CERTS cell:
 	//
