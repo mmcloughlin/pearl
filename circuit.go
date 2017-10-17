@@ -4,6 +4,7 @@ import (
 	"crypto/cipher"
 	"encoding/binary"
 
+	multierror "github.com/hashicorp/go-multierror"
 	"github.com/mmcloughlin/pearl/log"
 	"github.com/mmcloughlin/pearl/sha1"
 	"github.com/mmcloughlin/pearl/torcrypto"
@@ -90,9 +91,15 @@ type TransverseCircuit struct {
 	logger   log.Logger
 }
 
+func (t *TransverseCircuit) free() error {
+	// TODO(mbm): implement resource freeing after circuit destroy
+	return nil
+}
+
 // ProcessForward executes a runloop processing cells intended for this circuit.
 func (t *TransverseCircuit) ProcessForward() error {
 	for {
+		var err error
 		cell, err := t.Prev.ReceiveCell()
 		if err != nil {
 			return err
@@ -101,13 +108,16 @@ func (t *TransverseCircuit) ProcessForward() error {
 		switch cell.Command() {
 		case Relay, RelayEarly:
 			// TODO(mbm): count relay early cells
-			// XXX error handling
 			err = t.handleForwardRelay(cell)
-			if err != nil {
-				log.Err(t.logger, err, "forward relay failed")
-			}
+		case Destroy:
+			err = t.handleForwardDestroy(cell)
 		default:
 			t.logger.Error("unrecognized cell")
+		}
+
+		// TODO(mbm): error handling, send destroy?
+		if err != nil {
+			log.Err(t.logger, err, "circuit handling failed")
 		}
 	}
 }
@@ -243,9 +253,28 @@ func (t *TransverseCircuit) handleRelayExtend2(r RelayCell) error {
 	return nil
 }
 
+func (t *TransverseCircuit) handleForwardDestroy(c Cell) error {
+	t.logger.Info("destroying circuit")
+
+	d, err := ParseDestroyCell(c)
+	if err != nil {
+		return err
+	}
+
+	if t.Next != nil {
+		err := announceDestroy(d.Reason, t.Next)
+		if err != nil {
+			return err
+		}
+	}
+
+	return t.free()
+}
+
 // ProcessBackward executes a runloop processing cells to be sent back in the
 // direction of the originator of the circuit.
 func (t *TransverseCircuit) ProcessBackward() error {
+	// TODO(mbm): duped code from forward processing loop?
 	t.logger.Debug("starting process backward loop")
 
 	for {
@@ -280,6 +309,17 @@ func (t *TransverseCircuit) handleBackwardRelay(c Cell) error {
 	copy(f.Payload(), c.Payload())
 
 	return t.Prev.SendCell(f)
+}
+
+func announceDestroy(reason CircuitErrorCode, hops ...CircuitLink) error {
+	var result error
+	for _, hop := range hops {
+		d := NewDestroyCell(hop.CircID(), reason)
+		if err := hop.SendCell(d.Cell()); err != nil {
+			result = multierror.Append(result, err)
+		}
+	}
+	return result
 }
 
 func relayCellIsRecogized(r RelayCell, cs *CircuitCryptoState) bool {

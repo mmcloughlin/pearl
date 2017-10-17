@@ -519,7 +519,7 @@ func (c *Connection) readLoop() error {
 		case Create2:
 			Create2Handler(c, cell) // XXX error return
 		// Cells related to a circuit
-		case Created2, Relay, RelayEarly:
+		case Created2, Relay, RelayEarly, Destroy:
 			logger.Trace("directing cell to circuit channel")
 			ch, ok := c.channels.Channel(cell.CircID())
 			if !ok {
