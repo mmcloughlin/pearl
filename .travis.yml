@@ -9,5 +9,5 @@ install:
   - go get github.com/mattn/goveralls
 script:
   - go install github.com/mmcloughlin/pearl/cmd/...
-  - overalls -project=github.com/mmcloughlin/pearl -- -v
+  - overalls -project=github.com/mmcloughlin/pearl -ignore .git,vendor,sha1,tls -- -v
   - goveralls -coverprofile=overalls.coverprofile -service=travis-ci
