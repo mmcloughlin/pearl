@@ -15,6 +15,7 @@ import (
 
 	"github.com/pkg/errors"
 
+	"github.com/mmcloughlin/pearl/protover"
 	"github.com/mmcloughlin/pearl/torcrypto"
 	"github.com/mmcloughlin/pearl/torexitpolicy"
 )
@@ -31,6 +32,7 @@ const (
 	rejectKeyword          = "reject"
 	ntorOnionKeyKeyword    = "ntor-onion-key"
 	platformKeyword        = "platform"
+	protoKeyword           = "proto"
 )
 
 var requiredKeywords = []string{
@@ -209,6 +211,12 @@ func (d *ServerDescriptor) SetExitPolicy(policy *torexitpolicy.Policy) error {
 		args := []string{rule.Pattern.Describe()}
 		d.addItem(NewItem(keyword, args))
 	}
+	return nil
+}
+
+// SetProtocols specifies which sub-protocols the router supports.
+func (d *ServerDescriptor) SetProtocols(p protover.SupportedProtocols) error {
+	d.addItem(NewItem(protoKeyword, p.Strings()))
 	return nil
 }
 

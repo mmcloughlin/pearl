@@ -120,13 +120,17 @@ func (s SupportedProtocols) Supports(n ProtocolName, v VersionRange) {
 	s[n] = append(s[n], v)
 }
 
-func (s SupportedProtocols) String() string {
+func (s SupportedProtocols) Strings() []string {
 	var parts []string
 	for n, ranges := range s {
 		parts = append(parts, string(n)+"="+versionRangesString(ranges))
 	}
 	sort.Strings(parts)
-	return strings.Join(parts, " ")
+	return parts
+}
+
+func (s SupportedProtocols) String() string {
+	return strings.Join(s.Strings(), " ")
 }
 
 func versionRangesString(ranges []VersionRange) string {

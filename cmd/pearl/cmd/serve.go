@@ -3,6 +3,7 @@ package cmd
 import (
 	"github.com/mmcloughlin/pearl"
 	"github.com/mmcloughlin/pearl/log"
+	"github.com/mmcloughlin/pearl/meta"
 	"github.com/mmcloughlin/pearl/torconfig"
 	"github.com/spf13/cobra"
 )
@@ -28,11 +29,10 @@ func init() {
 }
 
 func serve() error {
-	platform := torconfig.NewPlatformHostOS("Tor", "0.2.9.9")
 	config := &torconfig.Config{
 		Nickname: nickname,
 		ORPort:   uint16(port),
-		Platform: platform.String(),
+		Platform: meta.Platform.String(),
 	}
 
 	logger := log.NewDebug()

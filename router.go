@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/mmcloughlin/pearl/log"
+	"github.com/mmcloughlin/pearl/meta"
 	"github.com/mmcloughlin/pearl/torconfig"
 	"github.com/mmcloughlin/pearl/torcrypto"
 	"github.com/mmcloughlin/pearl/tordir"
@@ -158,6 +159,7 @@ func (r *Router) Descriptor() *tordir.ServerDescriptor {
 	s.SetBandwidth(1000, 2000, 500)
 	s.SetPublishedTime(time.Now())
 	s.SetExitPolicy(torexitpolicy.RejectAllPolicy)
+	s.SetProtocols(meta.Protocols)
 	s.SetSigningKey(r.IdentityKey())
 	s.SetOnionKey(&r.onionKey.PublicKey)
 	s.SetNtorOnionKey(r.ntorKey)
