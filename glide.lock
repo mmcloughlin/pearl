@@ -1,5 +1,5 @@
-hash: 57999ab55ba21c140fa161dc2d6cb0a10e5b3605befce7deb65351d09f4ea305
-updated: 2017-10-16T22:31:46.711462385-07:00
+hash: f711a09d95a3dc558e5a8ca0596f5b5237865807813dc4da91ced134f8ee5104
+updated: 2017-10-16T22:32:51.666967317-07:00
 imports:
 - name: github.com/davecgh/go-spew
   version: 6d212800a42e8ab5c146b8ace3490ee17e5225f9
@@ -9,6 +9,8 @@ imports:
   version: cbf36867527f94681035fbdc84e384627dcd2eb3
 - name: github.com/go-stack/stack
   version: 817915b46b97fd7bb80e8ab6b69f01a53ac3eebf
+- name: github.com/hashicorp/go-multierror
+  version: 83588e72410abfbe4df460eeb6f30841ae47d4c4
 - name: github.com/inconshreveable/log15
   version: 0e4443bab83dd915f5a6d36d8c650b180744b8ce
   subpackages:
