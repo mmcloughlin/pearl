@@ -61,23 +61,27 @@ func (ch CellChan) ReceiveCell() (Cell, error) {
 }
 
 type CircuitLink interface {
-	CircID() CircID
 	Link
+	CircID() CircID
+	io.Closer
 }
 
 type circLink struct {
-	id CircID
 	Link
+	id CircID
+	m  *ChannelManager
 }
 
-func NewCircuitLink(id CircID, lk Link) CircuitLink {
+func NewCircuitLink(id CircID, lk Link, m *ChannelManager) CircuitLink {
 	return circLink{
 		id:   id,
 		Link: lk,
+		m:    m,
 	}
 }
 
 func (c circLink) CircID() CircID { return c.id }
+func (c circLink) Close() error   { return c.m.Close(c.id) }
 
 // Connection encapsulates a router connection.
 type Connection struct {
@@ -233,7 +237,7 @@ func (c *Connection) readLoop() error {
 func (c *Connection) GenerateCircuitLink() CircuitLink {
 	// BUG(mbm): what if c.proto has not been established
 	id, ch := c.channels.New(c.outbound)
-	return NewCircuitLink(id, NewLink(c, CellChan(ch)))
+	return NewCircuitLink(id, NewLink(c, CellChan(ch)), c.channels)
 }
 
 // NewCircuitLink
@@ -242,7 +246,7 @@ func (c *Connection) NewCircuitLink(id CircID) (CircuitLink, error) {
 	if err != nil {
 		return nil, err
 	}
-	return NewCircuitLink(id, NewLink(c, CellChan(ch))), nil
+	return NewCircuitLink(id, NewLink(c, CellChan(ch)), c.channels), nil
 }
 
 func CellLogger(l log.Logger, cell Cell) log.Logger {
@@ -314,4 +318,19 @@ func (m *ChannelManager) Channel(id CircID) (chan Cell, bool) {
 	defer m.RUnlock()
 	ch, ok := m.channels[id]
 	return ch, ok
+}
+
+func (m *ChannelManager) Close(id CircID) error {
+	m.Lock()
+	defer m.Unlock()
+
+	ch, ok := m.channels[id]
+	if !ok {
+		return errors.New("unknown circuit")
+	}
+
+	close(ch)
+	delete(m.channels, id)
+
+	return nil
 }

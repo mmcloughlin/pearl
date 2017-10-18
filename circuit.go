@@ -3,6 +3,7 @@ package pearl
 import (
 	"crypto/cipher"
 	"encoding/binary"
+	"io"
 
 	multierror "github.com/hashicorp/go-multierror"
 	"github.com/mmcloughlin/pearl/log"
@@ -92,8 +93,18 @@ type TransverseCircuit struct {
 }
 
 func (t *TransverseCircuit) free() error {
-	// TODO(mbm): implement resource freeing after circuit destroy
-	return nil
+	var result error
+
+	for _, c := range []io.Closer{t.Prev, t.Next} {
+		if c == nil {
+			continue
+		}
+		if err := c.Close(); err != nil {
+			result = multierror.Append(result, err)
+		}
+	}
+
+	return result
 }
 
 // ProcessForward executes a runloop processing cells intended for this circuit.
@@ -103,6 +114,9 @@ func (t *TransverseCircuit) ProcessForward() error {
 		cell, err := t.Prev.ReceiveCell()
 		if err != nil {
 			return err
+		}
+		if cell == nil {
+			break
 		}
 
 		switch cell.Command() {
@@ -120,6 +134,9 @@ func (t *TransverseCircuit) ProcessForward() error {
 			log.Err(t.logger, err, "circuit handling failed")
 		}
 	}
+
+	t.logger.Info("process forward loop exit")
+	return nil
 }
 
 func (t *TransverseCircuit) handleForwardRelay(c Cell) error {
@@ -284,6 +301,9 @@ func (t *TransverseCircuit) ProcessBackward() error {
 		if err != nil {
 			return err // XXX
 		}
+		if cell == nil {
+			break
+		}
 
 		switch cell.Command() {
 		case Relay, RelayEarly:
@@ -300,6 +320,9 @@ func (t *TransverseCircuit) ProcessBackward() error {
 			log.Err(t.logger, err, "backward relay failed")
 		}
 	}
+
+	t.logger.Info("ending process backward loop")
+	return nil
 }
 
 func (t *TransverseCircuit) handleBackwardRelay(c Cell) error {
