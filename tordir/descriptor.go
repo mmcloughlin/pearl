@@ -223,7 +223,16 @@ func (d *ServerDescriptor) SetProtocols(p protover.SupportedProtocols) error {
 
 // SetContact sets contact information for the server administrator.
 func (d *ServerDescriptor) SetContact(c string) {
-	// Insert: https://github.com/torproject/torspec/blob/4074b891e53e8df951fc596ac6758d74da290c60/dir-spec.txt#L2012-L2018
+	// Reference: https://github.com/torproject/torspec/blob/4074b891e53e8df951fc596ac6758d74da290c60/dir-spec.txt#L2012-L2018
+	//
+	//	    "contact" SP string NL
+	//	
+	//	        [Exactly once]
+	//	
+	//	        An arbitrary string describing how to contact the directory
+	//	        server's administrator.  Administrators should include at least an
+	//	        email address and a PGP fingerprint.
+	//
 	d.addItem(NewItem(contactKeyword, []string{c}))
 }
 

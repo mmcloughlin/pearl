@@ -18,8 +18,8 @@ func TestRSA1024(t *testing.T) {
 	require.NoError(t, err)
 	ctx, err := NewTLSContext(id)
 	require.NoError(t, err)
-	assert.Equal(t, 1024, torcrypto.RSAKeySize(ctx.AuthKey))
-	assert.Equal(t, 1024, torcrypto.RSAKeySize(ctx.LinkKey))
+	assert.Equal(t, 1024, torcrypto.RSAPrivateKeySize(ctx.AuthKey))
+	assert.Equal(t, 1024, torcrypto.RSAPrivateKeySize(ctx.LinkKey))
 }
 
 func TestRandomHostname(t *testing.T) {

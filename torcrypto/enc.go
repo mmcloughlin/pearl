@@ -113,11 +113,13 @@ func ParseRSAPublicKeyFromCertificateDER(der []byte) (*rsa.PublicKey, error) {
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to parse DER-encoded certificate")
 	}
+	return ExtractRSAPublicKeyFromCertificate(cert)
+}
 
+func ExtractRSAPublicKeyFromCertificate(cert *x509.Certificate) (*rsa.PublicKey, error) {
 	k, ok := cert.PublicKey.(*rsa.PublicKey)
 	if !ok {
 		return nil, errors.New("non-RSA public key")
 	}
-
 	return k, nil
 }

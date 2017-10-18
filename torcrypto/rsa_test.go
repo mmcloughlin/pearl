@@ -1,7 +1,9 @@
 package torcrypto
 
 import (
+	"crypto/rsa"
 	"encoding/hex"
+	"math/big"
 	"strings"
 	"testing"
 
@@ -12,9 +14,39 @@ import (
 func TestGenerateRSA(t *testing.T) {
 	k, err := GenerateRSA()
 	require.NoError(t, err)
-	assert.Equal(t, 1024, RSAKeySize(k))
+	assert.Equal(t, 1024, RSAPrivateKeySize(k))
 	// spec requires that exponent is 65537
 	assert.Equal(t, 65537, k.E)
+}
+
+func TestRSAPublicKeysEqualRandom(t *testing.T) {
+	k1, err := GenerateRSA()
+	require.NoError(t, err)
+	k2, err := GenerateRSA()
+	require.NoError(t, err)
+	p1 := &k1.PublicKey
+	p2 := &k2.PublicKey
+	assert.True(t, RSAPublicKeysEqual(p1, p1))
+	assert.True(t, RSAPublicKeysEqual(p2, p2))
+	assert.False(t, RSAPublicKeysEqual(p1, p2))
+}
+
+func TestRSAPublicKeysEqualE(t *testing.T) {
+	p1 := &rsa.PublicKey{E: 3}
+	p2 := &rsa.PublicKey{E: 5}
+	assert.False(t, RSAPublicKeysEqual(p1, p2))
+}
+
+func TestRSAPublicKeysEqualN(t *testing.T) {
+	p1 := &rsa.PublicKey{
+		E: 3,
+		N: big.NewInt(7 * 11),
+	}
+	p2 := &rsa.PublicKey{
+		E: 3,
+		N: big.NewInt(7 * 13),
+	}
+	assert.False(t, RSAPublicKeysEqual(p1, p2))
 }
 
 func TestFingerprint(t *testing.T) {

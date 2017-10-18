@@ -110,7 +110,7 @@ func (t *TransverseCircuit) ProcessForward() error {
 			// TODO(mbm): count relay early cells
 			err = t.handleForwardRelay(cell)
 		case Destroy:
-			err = t.handleForwardDestroy(cell)
+			err = t.handleDestroy(cell, t.Next)
 		default:
 			t.logger.Error("unrecognized cell")
 		}
@@ -253,7 +253,7 @@ func (t *TransverseCircuit) handleRelayExtend2(r RelayCell) error {
 	return nil
 }
 
-func (t *TransverseCircuit) handleForwardDestroy(c Cell) error {
+func (t *TransverseCircuit) handleDestroy(c Cell, other CircuitLink) error {
 	t.logger.Info("destroying circuit")
 
 	d, err := ParseDestroyCell(c)
@@ -261,11 +261,9 @@ func (t *TransverseCircuit) handleForwardDestroy(c Cell) error {
 		return err
 	}
 
-	if t.Next != nil {
-		err := announceDestroy(d.Reason, t.Next)
-		if err != nil {
-			return err
-		}
+	err = announceDestroy(d.Reason, other)
+	if err != nil {
+		return err
 	}
 
 	return t.free()
@@ -274,13 +272,15 @@ func (t *TransverseCircuit) handleForwardDestroy(c Cell) error {
 // ProcessBackward executes a runloop processing cells to be sent back in the
 // direction of the originator of the circuit.
 func (t *TransverseCircuit) ProcessBackward() error {
-	// TODO(mbm): duped code from forward processing loop?
+	// TODO(mbm): duped code from forward processing loop
 	t.logger.Debug("starting process backward loop")
 
 	for {
+		var err error
+
 		cell, err := t.Next.ReceiveCell()
 		if err != nil {
-			return err
+			return err // XXX
 		}
 
 		switch cell.Command() {
@@ -288,11 +288,14 @@ func (t *TransverseCircuit) ProcessBackward() error {
 			// TODO(mbm): count relay early cells
 			// XXX error handling
 			err = t.handleBackwardRelay(cell)
-			if err != nil {
-				log.Err(t.logger, err, "backward relay failed")
-			}
+		case Destroy:
+			err = t.handleDestroy(cell, t.Prev)
 		default:
 			t.logger.Error("unrecognized cell")
+		}
+
+		if err != nil {
+			log.Err(t.logger, err, "backward relay failed")
 		}
 	}
 }
@@ -314,6 +317,9 @@ func (t *TransverseCircuit) handleBackwardRelay(c Cell) error {
 func announceDestroy(reason CircuitErrorCode, hops ...CircuitLink) error {
 	var result error
 	for _, hop := range hops {
+		if hop == nil {
+			continue
+		}
 		d := NewDestroyCell(hop.CircID(), reason)
 		if err := hop.SendCell(d.Cell()); err != nil {
 			result = multierror.Append(result, err)

@@ -226,7 +226,11 @@ func (c *Connection) serverHandshake() error {
 	}
 
 	c.logger.With("numcerts", len(peerCertsCell.Certs)).Debug("received certs cell")
-	c.logger.Error("certificate cell verification not implemented")
+
+	err = peerCertsCell.ValidateInitiatorRSAOnly()
+	if err != nil {
+		return errors.Wrap(err, "certs cell failed validation")
+	}
 
 	// Receive AUTHENTICATE cell
 	cell, err = c.cellReader.ReceiveCell()
@@ -252,7 +256,7 @@ func (c *Connection) serverHandshake() error {
 	}
 
 	c.logger.With("receiver_addr", netInfoCell.ReceiverAddress).Debug("received net info cell")
-	c.logger.Error("net info processing not implemented")
+	c.logger.Warn("net info processing not implemented")
 
 	// TODO(mbm): register server connection with router ConnectionManager
 
@@ -305,16 +309,22 @@ func (c *Connection) clientHandshake() error {
 	}
 
 	c.logger.With("numcerts", len(peerCertsCell.Certs)).Debug("received certs cell")
-	c.logger.Error("certificate cell verification not implemented")
 
-	serverLinkCert := peerCertsCell.Lookup(CertTypeLink)
-	if serverLinkCert == nil {
-		return errors.New("missing server link cert")
+	cs := c.tlsConn.ConnectionState()
+
+	err = peerCertsCell.ValidateResponderRSAOnly(cs.PeerCertificates)
+	if err != nil {
+		return errors.Wrap(err, "certs cell failed validation")
 	}
 
-	serverIDCertDER := peerCertsCell.Lookup(CertTypeIdentity)
-	if serverIDCertDER == nil {
-		return errors.New("missing server identity cert")
+	serverLinkCert, err := peerCertsCell.Lookup(CertTypeLink)
+	if err != nil {
+		return err
+	}
+
+	serverIDCertDER, err := peerCertsCell.Lookup(CertTypeIdentity)
+	if err != nil {
+		return err
 	}
 
 	serverIDKey, err := torcrypto.ParseRSAPublicKeyFromCertificateDER(serverIDCertDER)
@@ -372,8 +382,6 @@ func (c *Connection) clientHandshake() error {
 		return errors.New("server does not support auth method")
 	}
 
-	cs := c.tlsConn.ConnectionState()
-
 	a := &AuthRSASHA256TLSSecret{
 		AuthKey:           c.tlsCtx.AuthKey,
 		ClientIdentityKey: &c.router.idKey.PublicKey,
@@ -406,7 +414,7 @@ func (c *Connection) clientHandshake() error {
 	}
 
 	c.logger.With("receiver_addr", netInfoCell.ReceiverAddress).Debug("received net info cell")
-	c.logger.Error("net info processing not implemented")
+	c.logger.Warn("net info processing not implemented")
 
 	// TODO(mbm): need some more sane management of goroutines
 	go c.readLoop()
