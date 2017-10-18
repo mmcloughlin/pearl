@@ -167,8 +167,16 @@ func (c *Handshake) Server() error {
 		return errors.New("unexpected auth payload")
 	}
 
-	// TODO(mbm): verify signature
-	c.logger.Error("must verify signature in authenticate cell")
+	// Verify authenticate cell signature
+	clientAuthKey, err := peerCertsCell.LookupPublicKey(CertTypeAuth)
+	if err != nil {
+		return err
+	}
+
+	err = torcrypto.VerifyRSASHA256(clientAuthKey, authPayload.ToBeSigned(), authPayload.Signature())
+	if err != nil {
+		return errors.Wrap(err, "bad authenticate signature")
+	}
 
 	// Send NETINFO
 	err = c.sendNetInfoCell()
