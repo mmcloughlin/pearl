@@ -1,6 +1,9 @@
 package cmd
 
 import (
+	"os"
+
+	"github.com/inconshreveable/log15"
 	"github.com/mmcloughlin/pearl"
 	"github.com/mmcloughlin/pearl/log"
 	"github.com/mmcloughlin/pearl/meta"
@@ -19,11 +22,13 @@ var serveCmd = &cobra.Command{
 var (
 	nickname string
 	port     int
+	logfile  string
 )
 
 func init() {
 	serveCmd.Flags().StringVarP(&nickname, "nickname", "n", "pearl", "nickname")
 	serveCmd.Flags().IntVarP(&port, "port", "p", 9111, "relay port")
+	serveCmd.Flags().StringVarP(&logfile, "logfile", "l", "pearl.json", "log file")
 
 	rootCmd.AddCommand(serveCmd)
 }
@@ -36,7 +41,18 @@ func serve() error {
 		Contact:  "https://github.com/mmcloughlin/pearl",
 	}
 
-	logger := log.NewDebug()
+	base := log15.New()
+	fh, err := log15.FileHandler(logfile, log15.JsonFormat())
+	if err != nil {
+		return err
+	}
+	base.SetHandler(log15.MultiHandler(
+		log15.LvlFilterHandler(log15.LvlInfo,
+			log15.StreamHandler(os.Stdout, log15.TerminalFormat()),
+		),
+		fh,
+	))
+	logger := log.NewLog15(base)
 
 	r, err := pearl.NewRouter(config, logger)
 	if err != nil {
