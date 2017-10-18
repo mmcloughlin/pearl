@@ -327,13 +327,13 @@ func (a AuthRSASHA256TLSSecret) Body() ([]byte, error) {
 func (a AuthRSASHA256TLSSecret) SignedBody() ([]byte, error) {
 	var buf bytes.Buffer
 
-	io.CopyN(&buf, cryptorand.Reader, 24)
-
 	body, err := a.Body()
 	if err != nil {
 		return nil, err
 	}
 	buf.Write(body)
+
+	io.CopyN(&buf, cryptorand.Reader, 24)
 
 	if a.AuthKey == nil {
 		return nil, errors.New("cannot sign without auth key")

@@ -175,7 +175,7 @@ func (c *Connection) StartClient() error {
 	h := c.newHandshake()
 	err := h.Client()
 	if err != nil {
-		log.Err(c.logger, err, "client handshake failed")
+		return errors.Wrap(err, "client handshake failed")
 	}
 
 	// TODO(mbm): register connection

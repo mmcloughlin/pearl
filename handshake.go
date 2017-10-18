@@ -7,7 +7,6 @@ import (
 	"hash"
 	"io"
 
-	"github.com/mmcloughlin/pearl/debug"
 	"github.com/mmcloughlin/pearl/log"
 	"github.com/mmcloughlin/pearl/tls"
 	"github.com/mmcloughlin/pearl/torcrypto"
@@ -144,8 +143,6 @@ func (c *Handshake) Server() error {
 		return err
 	}
 
-	debug.DumpBytes("auth_payload_expected", expectedAuth)
-
 	// Receive AUTHENTICATE cell
 	cell, err = c.Link.ReceiveCell()
 	if err != nil {
@@ -165,8 +162,6 @@ func (c *Handshake) Server() error {
 	if err != nil {
 		return err
 	}
-
-	debug.DumpBytes("auth_payload_got", authPayload.Body())
 
 	if !bytes.Equal(authPayload.Body(), expectedAuth) {
 		return errors.New("unexpected auth payload")
