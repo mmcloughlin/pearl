@@ -407,7 +407,7 @@ func (c *Handshake) establishVersion(a, b []LinkProtocolVersion) error {
 		return errors.Wrap(err, "could not agree on link protocol version")
 	}
 
-	c.logger.With("version", proto).Info("determined link protocol version")
+	c.logger.With("version", proto).Debug("determined link protocol version")
 
 	return nil
 }

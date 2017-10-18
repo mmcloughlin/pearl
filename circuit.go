@@ -220,7 +220,7 @@ func (t *TransverseCircuit) handleRelayExtend2(r RelayCell) error {
 	}
 
 	// Wait for CREATED2 cell
-	t.logger.Info("waiting for CREATED2")
+	t.logger.Debug("waiting for CREATED2")
 	cell, err = t.Next.ReceiveCell()
 	if err != nil {
 		return errors.Wrap(err, "failed to receive cell")
@@ -249,6 +249,8 @@ func (t *TransverseCircuit) handleRelayExtend2(r RelayCell) error {
 	// TODO(mbm): better goroutine management
 	// Process cells received from the next hop
 	go t.ProcessBackward()
+
+	t.logger.Info("circuit extended")
 
 	return nil
 }

@@ -157,7 +157,7 @@ func (c *Connection) Fingerprint() (Fingerprint, error) {
 }
 
 func (c *Connection) Serve() error {
-	c.logger.Info("handle")
+	c.logger.Info("serving new connection")
 
 	h := c.newHandshake()
 	err := h.Server()
@@ -165,6 +165,8 @@ func (c *Connection) Serve() error {
 		log.Err(c.logger, err, "server handshake failed")
 		return nil
 	}
+
+	c.logger.Info("handshake complete")
 
 	// TODO(mbm): register connection
 
@@ -177,6 +179,8 @@ func (c *Connection) StartClient() error {
 	if err != nil {
 		return errors.Wrap(err, "client handshake failed")
 	}
+
+	c.logger.Info("handshake complete")
 
 	// TODO(mbm): register connection
 
@@ -201,7 +205,10 @@ func (c *Connection) readLoop() error {
 		switch cell.Command() {
 		// Cells to be handled by this Connection
 		case Create2:
-			Create2Handler(c, cell) // XXX error return
+			err = Create2Handler(c, cell) // XXX error return
+			if err != nil {
+				log.Err(logger, err, "failed to handle create2")
+			}
 		// Cells related to a circuit
 		case Created2, Relay, RelayEarly, Destroy:
 			logger.Trace("directing cell to circuit channel")

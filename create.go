@@ -258,7 +258,7 @@ func ProcessHandshakeNTOR(conn *Connection, c *Create2Cell) error {
 		return errors.Wrap(err, "could not send created2 cell")
 	}
 
-	conn.logger.Info("sent created2 cell")
+	conn.logger.Info("circuit created")
 
 	return nil
 }
