@@ -95,3 +95,23 @@ func signRSA(data []byte, k *rsa.PrivateKey, h hash.Hash) ([]byte, error) {
 	}
 	return rsa.SignPKCS1v15(nil, k, 0, h.Sum(nil))
 }
+
+// VerifyRSASHA1 verifies an RSA signature based on SHA1 hash, as produced by
+// SignRSASHA1.
+func VerifyRSASHA1(k *rsa.PublicKey, data, sig []byte) error {
+	return verifyRSA(k, data, sig, sha1.New())
+}
+
+// VerifyRSASHA256 verifies an RSA signature based on SHA256 hash, as produced
+// by SignRSASHA256.
+func VerifyRSASHA256(k *rsa.PublicKey, data, sig []byte) error {
+	return verifyRSA(k, data, sig, sha256.New())
+}
+
+func verifyRSA(k *rsa.PublicKey, data, sig []byte, h hash.Hash) error {
+	_, err := h.Write(data)
+	if err != nil {
+		return err
+	}
+	return rsa.VerifyPKCS1v15(k, 0, h.Sum(nil), sig)
+}

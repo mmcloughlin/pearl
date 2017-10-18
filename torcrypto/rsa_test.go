@@ -107,3 +107,17 @@ Wf3oMS8BAJD0D+tSgvm+KQsXL0eIDb/rH9k6ligAhfz1
 
 	assert.Equal(t, expect, got)
 }
+
+func TestSignVerifyRSA(t *testing.T) {
+	k, err := GenerateRSA()
+	require.NoError(t, err)
+	data := Rand(128)
+
+	sig, err := SignRSASHA1(data, k)
+	require.NoError(t, err)
+	assert.NoError(t, VerifyRSASHA1(&k.PublicKey, data, sig))
+
+	sig, err = SignRSASHA256(data, k)
+	require.NoError(t, err)
+	assert.NoError(t, VerifyRSASHA256(&k.PublicKey, data, sig))
+}
