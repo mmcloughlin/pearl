@@ -59,15 +59,19 @@ func NewNetInfoCell(r net.IP, s []net.IP) *NetInfoCell {
 	}
 }
 
-// NewNetInfoCellFromConn constructs a NetInfoCell with local and remote
-// addresses from conn.
-func NewNetInfoCellFromConn(conn net.Conn) (*NetInfoCell, error) {
-	remote := addrToIP(conn.RemoteAddr())
-	local := addrToIP(conn.LocalAddr())
+func NewNetInfoCellFromAddresses(raddr, laddr net.Addr) (*NetInfoCell, error) {
+	remote := addrToIP(raddr)
+	local := addrToIP(laddr)
 	if remote == nil || local == nil {
 		return nil, ErrParseIPFromAddress
 	}
 	return NewNetInfoCell(remote, []net.IP{local}), nil
+}
+
+// NewNetInfoCellFromConn constructs a NetInfoCell with local and remote
+// addresses from conn.
+func NewNetInfoCellFromConn(conn net.Conn) (*NetInfoCell, error) {
+	return NewNetInfoCellFromAddresses(conn.RemoteAddr(), conn.LocalAddr())
 }
 
 func ParseNetInfoCell(c Cell) (*NetInfoCell, error) {

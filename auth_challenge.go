@@ -238,6 +238,32 @@ func (a AuthenticateCell) Cell() (Cell, error) {
 //	          [variable length]
 //
 
+type AuthRSASHA256TLSSecretPayload []byte
+
+func NewAuthRSASHA256TLSSecretPayload(b []byte) (AuthRSASHA256TLSSecretPayload, error) {
+	p := AuthRSASHA256TLSSecretPayload(b)
+	if len(b) <= 224 {
+		return p, errors.New("payload too short")
+	}
+	return p, nil
+}
+
+func (p AuthRSASHA256TLSSecretPayload) Body() []byte {
+	return p[:200]
+}
+
+func (p AuthRSASHA256TLSSecretPayload) Random() []byte {
+	return p[200:224]
+}
+
+func (p AuthRSASHA256TLSSecretPayload) ToBeSigned() []byte {
+	return p[:224]
+}
+
+func (p AuthRSASHA256TLSSecretPayload) Signature() []byte {
+	return p[224:]
+}
+
 type AuthRSASHA256TLSSecret struct {
 	AuthKey           *rsa.PrivateKey
 	ClientIdentityKey *rsa.PublicKey
@@ -295,23 +321,31 @@ func (a AuthRSASHA256TLSSecret) Body() ([]byte, error) {
 
 	buf.Write(a.TLSSecrets())
 
-	io.CopyN(&buf, cryptorand.Reader, 24)
-
 	return buf.Bytes(), nil
 }
 
 func (a AuthRSASHA256TLSSecret) SignedBody() ([]byte, error) {
+	var buf bytes.Buffer
+
+	io.CopyN(&buf, cryptorand.Reader, 24)
+
 	body, err := a.Body()
 	if err != nil {
 		return nil, err
 	}
+	buf.Write(body)
 
-	sig, err := torcrypto.SignRSASHA256(body, a.AuthKey)
+	if a.AuthKey == nil {
+		return nil, errors.New("cannot sign without auth key")
+	}
+
+	sig, err := torcrypto.SignRSASHA256(buf.Bytes(), a.AuthKey)
 	if err != nil {
 		return nil, err
 	}
+	buf.Write(sig)
 
-	return append(body, sig...), nil
+	return buf.Bytes(), nil
 }
 
 func (a AuthRSASHA256TLSSecret) Cell() (Cell, error) {

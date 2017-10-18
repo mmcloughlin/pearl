@@ -97,7 +97,7 @@ func (r *Router) Serve() error {
 			return errors.Wrap(err, "error building connection")
 		}
 
-		go c.Handle()
+		go c.Serve()
 	}
 }
 
@@ -113,9 +113,9 @@ func (r *Router) Connect(raddr string) (*Connection, error) {
 	}
 
 	// TODO(mbm): should we be calling this here?
-	err = c.clientHandshake()
+	err = c.StartClient()
 	if err != nil {
-		return nil, errors.Wrap(err, "handshake failed")
+		return nil, errors.Wrap(err, "error starting client")
 	}
 
 	return c, nil

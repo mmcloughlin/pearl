@@ -1,6 +1,7 @@
 package pearl
 
 import (
+	"crypto/rsa"
 	"crypto/x509"
 	"encoding/binary"
 	"time"
@@ -136,6 +137,15 @@ func (c *CertsCell) LookupX509(t CertType) (*x509.Certificate, error) {
 		return nil, err
 	}
 	return x509.ParseCertificate(der)
+}
+
+// LookupPublicKey is like Lookup but it returns only the public key.
+func (c *CertsCell) LookupPublicKey(t CertType) (*rsa.PublicKey, error) {
+	der, err := c.Lookup(t)
+	if err != nil {
+		return nil, err
+	}
+	return torcrypto.ParseRSAPublicKeyFromCertificateDER(der)
 }
 
 // Cell builds the cell.

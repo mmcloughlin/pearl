@@ -136,31 +136,28 @@ func (l legacyCell) Bytes() []byte {
 
 // cellReader reads cells from an io.Reader.
 type cellReader struct {
-	rd        io.Reader
-	circIDLen int
-	logger    log.Logger
+	rd     io.Reader
+	logger log.Logger
 }
 
 // NewCellReader builds a CellReceiver reading from r.
-func NewCellReader(r io.Reader, logger log.Logger) CellReceiver {
-	return newCellReader(r, 4, logger)
-}
-
-// NewLegacyCellReader builds an old-style CellReceiver (for length 2 CircIDs).
-func NewLegacyCellReader(r io.Reader, logger log.Logger) CellReceiver {
-	return newCellReader(r, 2, logger)
-}
-
-func newCellReader(r io.Reader, circIDLen int, logger log.Logger) CellReceiver {
+func NewCellReader(r io.Reader, logger log.Logger) LegacyCellReceiver {
 	return cellReader{
-		rd:        r,
-		circIDLen: circIDLen,
-		logger:    log.ForComponent(logger, "cellreader"),
+		rd:     r,
+		logger: log.ForComponent(logger, "cellreader"),
 	}
 }
 
-// ReadCell reads a cell of the given format.
+// ReceiveCell reads a cell from the underlying io.Reader.
 func (r cellReader) ReceiveCell() (Cell, error) {
+	return r.receiveCell(4)
+}
+
+func (r cellReader) ReceiveLegacyCell() (Cell, error) {
+	return r.receiveCell(2)
+}
+
+func (r cellReader) receiveCell(circIDLen int) (Cell, error) {
 	// Reference: https://github.com/torproject/torspec/blob/master/tor-spec.txt#L391-L404
 	//
 	//	   On a version 1 connection, each cell contains the following
@@ -179,7 +176,7 @@ func (r cellReader) ReceiveCell() (Cell, error) {
 	//	        Payload                               [Length bytes]
 	//
 
-	offset := 4 - r.circIDLen
+	offset := 4 - circIDLen
 
 	// Read cell header
 	var hdr [7]byte
@@ -218,4 +215,38 @@ func (r cellReader) ReceiveCell() (Cell, error) {
 	}
 
 	return NewCellFromBuffer(cellBuf), nil
+}
+
+// cellWriter writes Cells to an io.Writer.
+type cellWriter struct {
+	wr     io.Writer
+	logger log.Logger
+}
+
+func NewCellWriter(w io.Writer, l log.Logger) CellSender {
+	return cellWriter{
+		wr:     w,
+		logger: l,
+	}
+}
+
+func (w cellWriter) SendCell(cell Cell) error {
+	CellLogger(w.logger, cell).Trace("sending cell")
+	_, err := w.wr.Write(cell.Bytes())
+	return err
+}
+
+func BuildAndSend(s CellSender, b CellBuilder) error {
+	cell, err := b.Cell()
+	if err != nil {
+		return errors.Wrap(err, "error building cell")
+	}
+
+	err = s.SendCell(cell)
+	if err != nil {
+		return errors.Wrap(err, "could not send cell")
+	}
+
+	return nil
+
 }

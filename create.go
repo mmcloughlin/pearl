@@ -253,7 +253,7 @@ func ProcessHandshakeNTOR(conn *Connection, c *Create2Cell) error {
 		HandshakeData: hd,
 	}
 
-	err = conn.sendCell(reply)
+	err = BuildAndSend(conn, reply)
 	if err != nil {
 		return errors.Wrap(err, "could not send created2 cell")
 	}
