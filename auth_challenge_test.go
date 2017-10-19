@@ -55,10 +55,17 @@ func TestAuthenticateCellRoundTrip(t *testing.T) {
 }
 
 func TestAuthRSASHA256TLSSecret(t *testing.T) {
+	authKey, err := torcrypto.LoadRSAPrivateKeyFromPEMFile("testdata/auth_key")
+	require.NoError(t, err)
+	clientIdentityKey, err := torcrypto.LoadRSAPublicKeyFromPEMFile("testdata/client_identity_key")
+	require.NoError(t, err)
+	serverIdentityKey, err := torcrypto.LoadRSAPublicKeyFromPEMFile("testdata/server_identity_key")
+	require.NoError(t, err)
+
 	a := AuthRSASHA256TLSSecret{
-		AuthKey:           torcrypto.MustRSAPrivateKey(torcrypto.ParseRSAPrivateKeyPKCS1PEM([]byte("-----BEGIN RSA PRIVATE KEY-----\nMIICXAIBAAKBgQDHtMM+7VEvWllFC7xoW96CaSIkgCOJiNtCKylUV86iD3qziLzE\nXQWgEecDmM5urbu+3tcpLVMqPbCp3gxzkdNozql1eydV0+JUw2AI3Nhbv89cppBA\n3W+MhckQ1VmMlaiJLg9xTOWClAuy4jQzdVnj5QKIi7W3ZT/UvSzvDkP9WwIDAQAB\nAoGBAKAr38jRqCKVkTGqlwMQY+cukT67M0V06X4phe1qu4UJaz0hd1z6yq82jJU6\n8p6cYw9URTd2bdRcRBwJxuzOUcK8AvRUUA7TXU8dG0/6pF5ScI+E2VKvBHgGIXQM\ni+Meogk2Fkt4RoVQRPobFxgXfsp8d6/pCX+MBMxE7F1VYHrZAkEA4oyTEr05UwHC\nMh7xWO6RZtzGvnmuux1FhtWqbNHLcgcggzv6UcvyH0s+R1hjpjaiT/dXk/PO9UaD\nJlFNQ/MNRwJBAOGq3jGXjQ4Y3dTqeOrlH/MYOUuDHlcFzY5HIpB8ptT4Al11R4B/\nqdElTI5Ej/EAdmebf29vOeL0yvHvaMKCiU0CQG4yPp/Q1v9fTZyfnHnLoYJNRYcF\nHU760ATkDX/dFH6kpNXw6LO85kr+iI6fmekRjiYjg7/9yd9YqxaKWXEB2qUCQGyq\nYNA0kAHHy5opRgymRFpEweIwwz1YWAE5E9XLkHJg8pKaVNH1p4pEkba4ITAF7v45\nDIZWYuN8yPTzOdjgDskCQBqkqe1wupf7InCHtRq9UwnB3s3nsbcgmJ80igWfjrGa\nHr3hF+LrpR3nWVwuZcsAcDb4xAI6KvEuFDZ1l+no5m0=\n-----END RSA PRIVATE KEY-----\n"))),
-		ClientIdentityKey: torcrypto.MustRSAPublicKey(torcrypto.ParseRSAPublicKeyPKCS1PEM([]byte("-----BEGIN RSA PUBLIC KEY-----\nMIGJAoGBALaKBJ/sK8zr+0j7ih0YWk7jHLDYnZSBvseoRmUfTOuxkj8LOce8X/GG\nLPYMFJUTNL0ToQApC6TqbEuShzQyQLk9IHWRhVsmSDKYjLZepzdsvJx8gL5QaHea\nf5Ge3nmo+oUKdeX3rDQd07us/nLja3VUL2xKdd+hE81KMxhTjG4RAgMBAAE=\n-----END RSA PUBLIC KEY-----\n"))),
-		ServerIdentityKey: torcrypto.MustRSAPublicKey(torcrypto.ParseRSAPublicKeyPKCS1PEM([]byte("-----BEGIN RSA PUBLIC KEY-----\nMIGJAoGBALMlpknZ4yhwp7TcjAAZjIcgyjqjSd4BJqbLWvhEFWvM5rhO+DWkLfuM\nssdS6FimnN5oItUYVx0W4RPKyuVeqdUK0F2gj+yVtgA5cUXAhhrJUQp4o4JBFrH3\ntivLapYfvNvhpT/Xo6kBeu29LwxYWgVYrKAK/d9RRVE9lJ1SOxuHAgMBAAE=\n-----END RSA PUBLIC KEY-----\n"))),
+		AuthKey:           authKey,
+		ClientIdentityKey: clientIdentityKey,
+		ServerIdentityKey: serverIdentityKey,
 		ServerLogHash: []byte{
 			0x3d, 0xff, 0xfa, 0x23, 0x44, 0x11, 0x38, 0x21, 0x67, 0x22, 0xb5, 0xe3, 0xdb, 0xb8, 0x66, 0x44,
 			0x87, 0x0e, 0x41, 0x15, 0x72, 0x96, 0xde, 0x70, 0x14, 0xe8, 0xc4, 0x72, 0x99, 0x96, 0x8c, 0xa9,

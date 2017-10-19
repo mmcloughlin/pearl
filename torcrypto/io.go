@@ -28,6 +28,28 @@ func SaveRSAPrivateKeyToPEMFile(k *rsa.PrivateKey, filename string) error {
 	return ioutil.WriteFile(filename, data, 0600)
 }
 
+func LoadRSAPublicKeyFromPEMFile(filename string) (*rsa.PublicKey, error) {
+	pem, err := ioutil.ReadFile(filename)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to read file")
+	}
+
+	k, err := ParseRSAPublicKeyPKCS1PEM(pem)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to parse public key")
+	}
+
+	return k, nil
+}
+
+func SaveRSAPublicKeyToPEMFile(k *rsa.PublicKey, filename string) error {
+	data, err := MarshalRSAPublicKeyPKCS1PEM(k)
+	if err != nil {
+		return errors.Wrap(err, "failed to encode public key")
+	}
+	return ioutil.WriteFile(filename, data, 0600)
+}
+
 func LoadCurve25519KeyPairPrivateKeyFromFile(filename, label string) (*Curve25519KeyPair, error) {
 	b, err := ioutil.ReadFile(filename)
 	if err != nil {
