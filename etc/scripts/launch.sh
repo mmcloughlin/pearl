@@ -7,4 +7,5 @@ nick=$(printf "pearl%04x" $RANDOM)
 logfile=${LOGDIR}/${nick}.json
 
 mkdir -p ${LOGDIR}
-go run -race cmd/pearl/main.go serve -n ${nick} -p ${port} -l ${logfile}
+make install-race
+pearl serve -n ${nick} -p ${port} -l ${logfile}
