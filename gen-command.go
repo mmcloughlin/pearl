@@ -25,7 +25,7 @@ type Command byte
 //	         10 -- CREATE2    (Extended CREATE cell)    (See Sec 5.1)
 //	         11 -- CREATED2   (Extended CREATED cell)    (See Sec 5.1)
 //	         12 -- PADDING_NEGOTIATE   (Padding negotiation)    (See Sec 7.2)
-//	
+//
 //	    Variable-length command values are:
 //	         7 -- VERSIONS    (Negotiate proto version) (See Sec 4)
 //	         128 -- VPADDING  (Variable-length padding) (See Sec 7.2)

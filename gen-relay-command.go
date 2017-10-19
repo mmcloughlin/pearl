@@ -27,7 +27,7 @@ type RelayCommand byte
 //	        13 -- RELAY_BEGIN_DIR [forward]
 //	        14 -- RELAY_EXTEND2   [forward]             [control]
 //	        15 -- RELAY_EXTENDED2 [backward]            [control]
-//	
+//
 //	        32..40 -- Used for hidden services; see rend-spec.txt.
 //
 const (

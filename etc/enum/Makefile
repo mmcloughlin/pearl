@@ -4,8 +4,8 @@ all: $(foreach t,$(types),gen-$(t).go)
 
 gen-%.go: makeenum.py %.yaml
 	python $^ >$@
-	goimports -w $@
 	cite process $@
+	goimports -w $@
 	golint $@
 
 install: all
