@@ -2,17 +2,18 @@
   "DisableAll": true,
   "Enable": [
     "goimports",
-    "golint",
     "ineffassign",
     "deadcode",
     "gas",
     "lll",
     "misspell",
-    "goconst"
+    "goconst",
+    "errcheck"
   ],
   "Skip": [
     "mocks",
-    "tls"
+    "tls",
+    "sha1"
   ],
   "LineLength": 130
 }
