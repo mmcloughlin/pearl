@@ -126,6 +126,11 @@ func (c *Handshake) Server() error {
 		return err
 	}
 
+	c.PeerFingerprint, err = torcrypto.Fingerprint(clientIdentityKey)
+	if err != nil {
+		return errors.Wrap(err, "failed to compute client fingerprint")
+	}
+
 	cs := c.Conn.ConnectionState()
 	a := AuthRSASHA256TLSSecret{
 		ClientIdentityKey: clientIdentityKey,

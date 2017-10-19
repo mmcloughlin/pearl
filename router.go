@@ -97,7 +97,12 @@ func (r *Router) Serve() error {
 			return errors.Wrap(err, "error building connection")
 		}
 
-		go c.Serve()
+		go func() {
+			if err := c.Serve(); err != nil {
+				log.Err(r.logger, err, "error serving connection")
+				conn.Close()
+			}
+		}()
 	}
 }
 

@@ -169,10 +169,13 @@ func (c *Connection) Serve() error {
 		log.Err(c.logger, err, "server handshake failed")
 		return nil
 	}
-
+	c.fingerprint = h.PeerFingerprint
 	c.logger.Info("handshake complete")
 
 	// TODO(mbm): register connection
+	if err := c.router.connections.AddConnection(c); err != nil {
+		return err
+	}
 
 	return c.readLoop()
 }
@@ -183,10 +186,13 @@ func (c *Connection) StartClient() error {
 	if err != nil {
 		return errors.Wrap(err, "client handshake failed")
 	}
-
+	c.fingerprint = h.PeerFingerprint
 	c.logger.Info("handshake complete")
 
 	// TODO(mbm): register connection
+	if err := c.router.connections.AddConnection(c); err != nil {
+		return err
+	}
 
 	// TODO(mbm): goroutine management
 	go c.readLoop()

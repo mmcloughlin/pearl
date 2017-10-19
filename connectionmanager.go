@@ -35,6 +35,7 @@ func (m *ConnectionManager) AddConnection(c *Connection) error {
 	if err != nil {
 		return errors.New("unknown connection fingerprint")
 	}
+
 	_, exists := m.connections[fp]
 	if exists {
 		return errors.New("cannot override existing fingerprint")
