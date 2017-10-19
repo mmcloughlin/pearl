@@ -213,7 +213,7 @@ func KDF(h Handshake) io.Reader {
 // exp is a convenience wrapper around curve25519 multiplication so our code can
 // match the EXP() function in the spec.
 //
-// Reference: https://github.com/torproject/torspec/blob/8aaa36d1a062b20ca263b6ac613b77a3ba1eb113/proposals/216-ntor-handshake.txt#L52-L54
+// Reference: https://github.com/torproject/torspec/blob/8aaa36d1a062/proposals/216-ntor-handshake.txt#L52-L54
 //
 //	  Set EXP(a,b) == curve25519(.,b,a), and g == 9 .  Let KEYGEN() do the
 //	  appropriate manipulations when generating the secret key (clearing the

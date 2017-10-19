@@ -28,7 +28,7 @@ type CircuitCryptoState struct {
 
 func NewCircuitCryptoState(d, k []byte) *CircuitCryptoState {
 	h := sha1.New()
-	h.Write(d)
+	torcrypto.HashWrite(h, d)
 	return &CircuitCryptoState{
 		prev:   h,
 		digest: h,
@@ -59,7 +59,7 @@ func (c *CircuitCryptoState) Decrypt(b []byte) {
 	r := relayCell(b)
 	d := r.Digest()
 	r.ClearDigest()
-	c.digest.Write(b)
+	torcrypto.HashWrite(c.digest, b)
 	r.SetDigest(d)
 }
 
@@ -70,7 +70,7 @@ func (c *CircuitCryptoState) EncryptOrigin(b []byte) {
 	// Update digest by hashing the relay cell with digest cleared.
 	r := relayCell(b)
 	r.ClearDigest()
-	c.digest.Write(b)
+	torcrypto.HashWrite(c.digest, b)
 
 	// Set correct value of the digest field
 	r.SetDigest(c.Digest())

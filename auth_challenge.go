@@ -290,9 +290,9 @@ func (a AuthRSASHA256TLSSecret) SCERT() [32]byte {
 
 func (a AuthRSASHA256TLSSecret) TLSSecrets() []byte {
 	h := hmac.New(sha256.New, a.TLSMasterSecret)
-	h.Write(a.TLSClientRandom)
-	h.Write(a.TLSServerRandom)
-	h.Write([]byte("Tor V3 handshake TLS cross-certification\x00"))
+	torcrypto.HashWrite(h, a.TLSClientRandom)
+	torcrypto.HashWrite(h, a.TLSServerRandom)
+	torcrypto.HashWrite(h, []byte("Tor V3 handshake TLS cross-certification\x00"))
 	return h.Sum(nil)
 }
 
@@ -333,7 +333,10 @@ func (a AuthRSASHA256TLSSecret) SignedBody() ([]byte, error) {
 	}
 	buf.Write(body)
 
-	io.CopyN(&buf, cryptorand.Reader, 24)
+	_, err = io.CopyN(&buf, cryptorand.Reader, 24)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to read enough random bytes")
+	}
 
 	if a.AuthKey == nil {
 		return nil, errors.New("cannot sign without auth key")
