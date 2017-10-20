@@ -19,7 +19,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/mmcloughlin/pearl/tls/cipherhw"
+	"github.com/mmcloughlin/pearl/fork/tls/cipherhw"
 )
 
 const (

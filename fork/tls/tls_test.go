@@ -19,7 +19,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/mmcloughlin/pearl/tls/testenv"
+	"github.com/mmcloughlin/pearl/fork/tls/testenv"
 )
 
 var rsaCertPEM = `-----BEGIN CERTIFICATE-----

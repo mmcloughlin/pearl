@@ -11,7 +11,7 @@ import (
 	"net"
 	"time"
 
-	"github.com/mmcloughlin/pearl/tls"
+	"github.com/mmcloughlin/pearl/fork/tls"
 
 	"github.com/mmcloughlin/pearl/torcrypto"
 	"github.com/pkg/errors"

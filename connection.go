@@ -5,7 +5,7 @@ import (
 	"net"
 	"sync"
 
-	"github.com/mmcloughlin/pearl/tls"
+	"github.com/mmcloughlin/pearl/fork/tls"
 
 	"github.com/mmcloughlin/pearl/log"
 	"github.com/pkg/errors"
