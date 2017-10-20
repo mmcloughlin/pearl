@@ -64,7 +64,10 @@ func serve() error {
 	}()
 
 	authority := "127.0.0.1:7000"
-	desc := r.Descriptor()
+	desc, err := r.Descriptor()
+	if err != nil {
+		return err
+	}
 	err = desc.PublishToAuthority(authority)
 	if err != nil {
 		return err
