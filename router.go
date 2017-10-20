@@ -6,6 +6,7 @@ import (
 	"net"
 	"time"
 
+	"github.com/mmcloughlin/pearl/checked"
 	"github.com/mmcloughlin/pearl/log"
 	"github.com/mmcloughlin/pearl/meta"
 	"github.com/mmcloughlin/pearl/torconfig"
@@ -100,8 +101,8 @@ func (r *Router) Serve() error {
 		go func() {
 			if err := c.Serve(); err != nil {
 				log.Err(r.logger, err, "error serving connection")
-				conn.Close()
 			}
+			checked.Close(r.logger, conn)
 		}()
 	}
 }
@@ -173,7 +174,7 @@ func (r *Router) Descriptor() (*tordir.ServerDescriptor, error) {
 	s.SetNtorOnionKey(r.ntorKey)
 	s.SetPlatform(r.config.Platform)
 	s.SetContact(r.config.Contact)
-	s.SetBandwidth(1000, 2000, 500)
+	s.SetBandwidth(1000, 2000, 500) // TODO(mbm): publish real bandwidth values
 	s.SetPublishedTime(time.Now())
 	s.SetExitPolicy(torexitpolicy.RejectAllPolicy)
 	s.SetProtocols(meta.Protocols)

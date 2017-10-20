@@ -36,12 +36,21 @@ pNzJAotYqomSEYacdERb3seT041nfmzDdibOl0xn6iLh7oIk4taIzLlUgQJBAK8l
 
 func BuildValidServerDescriptorWithKey(k *rsa.PrivateKey) *ServerDescriptor {
 	s := NewServerDescriptor()
-	s.SetRouter("nickname", net.IPv4(1, 2, 3, 4), 9001, 0)
+	err := s.SetRouter("nickname", net.IPv4(1, 2, 3, 4), 9001, 0)
+	if err != nil {
+		panic(err)
+	}
 	s.SetBandwidth(1000, 2000, 500)
 	s.SetPublishedTime(time.Unix(0, 0))
 	s.SetExitPolicy(torexitpolicy.RejectAllPolicy)
-	s.SetOnionKey(&k.PublicKey)
-	s.SetSigningKey(k)
+	err = s.SetOnionKey(&k.PublicKey)
+	if err != nil {
+		panic(err)
+	}
+	err = s.SetSigningKey(k)
+	if err != nil {
+		panic(err)
+	}
 	return s
 }
 
@@ -66,7 +75,8 @@ func TestServerDescriptor(t *testing.T) {
 
 	// router (required)
 	assert.Error(t, s.Validate())
-	s.SetRouter("nickname", net.IPv4(1, 2, 3, 4), 9001, 0)
+	err = s.SetRouter("nickname", net.IPv4(1, 2, 3, 4), 9001, 0)
+	require.NoError(t, err)
 
 	// bandwidth (required)
 	assert.Error(t, s.Validate())
@@ -80,11 +90,13 @@ func TestServerDescriptor(t *testing.T) {
 
 	// onion-key (required)
 	assert.Error(t, s.Validate())
-	s.SetOnionKey(&k.PublicKey)
+	err = s.SetOnionKey(&k.PublicKey)
+	require.NoError(t, err)
 
 	// signing-key (required)
 	assert.Error(t, s.Validate())
-	s.SetSigningKey(k)
+	err = s.SetSigningKey(k)
+	require.NoError(t, err)
 
 	// exit policy (required)
 	assert.Error(t, s.Validate())
