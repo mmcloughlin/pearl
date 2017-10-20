@@ -65,3 +65,35 @@ func (m *ConnectionManager) Connection(fp Fingerprint) (*Connection, bool) {
 	}
 	panic("unreachable")
 }
+
+func (m *ConnectionManager) RemoveConnection(c *Connection) error {
+	m.Lock()
+	defer m.Unlock()
+
+	fp, err := c.Fingerprint()
+	if err != nil {
+		return errors.New("unknown connection fingerprint")
+	}
+
+	conns, ok := m.connections[fp]
+	if !ok {
+		return errors.New("connection fingerprint not found")
+	}
+
+	conn, ok := conns[c.ConnID()]
+	if !ok {
+		return errors.New("connection id not found")
+	}
+
+	if conn != c {
+		panic("connection id collision")
+	}
+
+	delete(conns, c.ConnID())
+
+	if len(conns) == 0 {
+		delete(m.connections, fp)
+	}
+
+	return nil
+}
