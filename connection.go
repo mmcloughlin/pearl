@@ -55,7 +55,7 @@ func (ch CellChan) SendCell(cell Cell) error {
 func (ch CellChan) ReceiveCell() (Cell, error) {
 	cell, ok := <-ch
 	if !ok {
-		return nil, errors.New("closed channel") // XXX correct return?
+		return nil, nil
 	}
 	return cell, nil
 }
