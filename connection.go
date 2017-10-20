@@ -177,7 +177,8 @@ func (c *Connection) Serve() error {
 		return err
 	}
 
-	return c.readLoop()
+	c.readLoop()
+	return nil
 }
 
 func (c *Connection) StartClient() error {
@@ -200,13 +201,14 @@ func (c *Connection) StartClient() error {
 	return nil
 }
 
-func (c *Connection) readLoop() error {
+func (c *Connection) readLoop() {
 	var err error
 	var cell Cell
 	for {
 		cell, err = c.ReceiveCell()
 		if err != nil {
-			return errors.Wrap(err, "could not read cell")
+			log.Err(c.logger, err, "receive cell failed")
+			break
 		}
 
 		logger := CellLogger(c.logger, cell)

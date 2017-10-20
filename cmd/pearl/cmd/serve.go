@@ -60,7 +60,9 @@ func serve() error {
 	}
 
 	go func() {
-		r.Serve()
+		if err := r.Serve(); err != nil {
+			logger.Error(err.Error())
+		}
 	}()
 
 	authority := "127.0.0.1:7000"

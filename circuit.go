@@ -108,12 +108,13 @@ func (t *TransverseCircuit) free() error {
 }
 
 // ProcessForward executes a runloop processing cells intended for this circuit.
-func (t *TransverseCircuit) ProcessForward() error {
+func (t *TransverseCircuit) ProcessForward() {
 	for {
 		var err error
 		cell, err := t.Prev.ReceiveCell()
 		if err != nil {
-			return err
+			log.Err(t.logger, err, "failed to receive cell")
+			break
 		}
 		if cell == nil {
 			break
@@ -136,7 +137,6 @@ func (t *TransverseCircuit) ProcessForward() error {
 	}
 
 	t.logger.Info("process forward loop exit")
-	return nil
 }
 
 func (t *TransverseCircuit) handleForwardRelay(c Cell) error {
@@ -290,7 +290,7 @@ func (t *TransverseCircuit) handleDestroy(c Cell, other CircuitLink) error {
 
 // ProcessBackward executes a runloop processing cells to be sent back in the
 // direction of the originator of the circuit.
-func (t *TransverseCircuit) ProcessBackward() error {
+func (t *TransverseCircuit) ProcessBackward() {
 	// TODO(mbm): duped code from forward processing loop
 	t.logger.Debug("starting process backward loop")
 
@@ -299,7 +299,7 @@ func (t *TransverseCircuit) ProcessBackward() error {
 
 		cell, err := t.Next.ReceiveCell()
 		if err != nil {
-			return err // XXX
+			log.Err(t.logger, err, "receive cell failed")
 		}
 		if cell == nil {
 			break
@@ -322,7 +322,6 @@ func (t *TransverseCircuit) ProcessBackward() error {
 	}
 
 	t.logger.Info("ending process backward loop")
-	return nil
 }
 
 func (t *TransverseCircuit) handleBackwardRelay(c Cell) error {
