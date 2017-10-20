@@ -12,8 +12,7 @@
   ],
   "Skip": [
     "mocks",
-    "tls",
-    "sha1"
+    "fork"
   ],
   "LineLength": 130
 }
