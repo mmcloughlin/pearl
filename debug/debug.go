@@ -13,19 +13,20 @@ import (
 	"github.com/mmcloughlin/pearl/torcrypto"
 )
 
-func DumpBytes(name string, data []byte) {
+func DumpBytes(name string, data []byte) error {
 	fmt.Print(hex.Dump(data))
-	ioutil.WriteFile(filename(name), data, 0640)
+	return ioutil.WriteFile(filename(name), data, 0640)
 }
 
-func DumpByteArray(name string, data []byte) {
+func DumpByteArray(name string, data []byte) error {
 	f, err := os.Create(filename(name))
 	if err != nil {
-		panic(err)
+		return err
 	}
-	defer f.Close()
 
 	fmt.Fprint(f, GoStringByteArray(data))
+
+	return f.Close()
 }
 
 func GoStringByteArray(data []byte) string {

@@ -7,6 +7,8 @@ import (
 	"crypto/sha256"
 	"io"
 
+	"github.com/mmcloughlin/pearl/torcrypto"
+
 	"golang.org/x/crypto/curve25519"
 	"golang.org/x/crypto/hkdf"
 )
@@ -228,6 +230,6 @@ func exp(a, b [32]byte) []byte {
 // ntorHMAC performs a HMAC-SHA256 with the given key.
 func ntorHMAC(x []byte, k string) []byte {
 	h := hmac.New(sha256.New, []byte(k))
-	h.Write(x)
+	torcrypto.HashWrite(h, x)
 	return h.Sum(nil)
 }

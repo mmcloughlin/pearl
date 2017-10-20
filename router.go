@@ -157,17 +157,26 @@ func (r *Router) Connection(hint ConnectionHint) (*Connection, error) {
 }
 
 // Descriptor returns a server descriptor for this router.
-func (r *Router) Descriptor() *tordir.ServerDescriptor {
+func (r *Router) Descriptor() (*tordir.ServerDescriptor, error) {
 	s := tordir.NewServerDescriptor()
-	s.SetRouter(r.config.Nickname, net.IPv4(127, 0, 0, 1), r.config.ORPort, 0)
+
+	if err := s.SetRouter(r.config.Nickname, net.IPv4(127, 0, 0, 1), r.config.ORPort, 0); err != nil {
+		return nil, err
+	}
+	if err := s.SetSigningKey(r.IdentityKey()); err != nil {
+		return nil, err
+	}
+	if err := s.SetOnionKey(&r.onionKey.PublicKey); err != nil {
+		return nil, err
+	}
+
+	s.SetNtorOnionKey(r.ntorKey)
 	s.SetPlatform(r.config.Platform)
 	s.SetContact(r.config.Contact)
 	s.SetBandwidth(1000, 2000, 500)
 	s.SetPublishedTime(time.Now())
 	s.SetExitPolicy(torexitpolicy.RejectAllPolicy)
 	s.SetProtocols(meta.Protocols)
-	s.SetSigningKey(r.IdentityKey())
-	s.SetOnionKey(&r.onionKey.PublicKey)
-	s.SetNtorOnionKey(r.ntorKey)
-	return s
+
+	return s, nil
 }

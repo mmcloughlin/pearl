@@ -72,7 +72,10 @@ func (c *Handshake) Server() error {
 		return errors.Wrap(err, "failed to send supported versions")
 	}
 
-	c.establishVersion(clientVersions, SupportedLinkProtocolVersions)
+	err = c.establishVersion(clientVersions, SupportedLinkProtocolVersions)
+	if err != nil {
+		return err
+	}
 
 	// Send certs cell
 	//
@@ -237,7 +240,10 @@ func (c *Handshake) Client() error {
 		return errors.Wrap(err, "failed to determine server versions")
 	}
 
-	c.establishVersion(serverVersions, SupportedLinkProtocolVersions)
+	err = c.establishVersion(serverVersions, SupportedLinkProtocolVersions)
+	if err != nil {
+		return err
+	}
 
 	// Receive CERTS cell
 	cell, err := c.Link.ReceiveCell()
@@ -342,7 +348,10 @@ func (c *Handshake) Client() error {
 	}
 
 	// Send NETINFO cell
-	c.sendNetInfoCell()
+	err = c.sendNetInfoCell()
+	if err != nil {
+		return err
+	}
 
 	// Receive NETINFO cell
 	cell, err = c.Link.ReceiveCell()

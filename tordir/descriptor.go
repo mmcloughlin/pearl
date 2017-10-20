@@ -153,21 +153,19 @@ func (d *ServerDescriptor) SetRouter(nickname string, addr net.IP, orPort, dirPo
 //	       second period in the past day, and another sustained input.  The
 //	       "observed" value is the lesser of these two numbers.
 //
-func (d *ServerDescriptor) SetBandwidth(avg, burst, observed int) error {
+func (d *ServerDescriptor) SetBandwidth(avg, burst, observed int) {
 	args := []string{
 		strconv.Itoa(avg),
 		strconv.Itoa(burst),
 		strconv.Itoa(observed),
 	}
 	d.addItem(NewItem(bandwidthKeyword, args))
-	return nil
 }
 
 // SetPlatform sets the platform (software, version, OS) of the server
 // descriptor.
-func (d *ServerDescriptor) SetPlatform(platform string) error {
+func (d *ServerDescriptor) SetPlatform(platform string) {
 	d.addItem(NewItem(platformKeyword, []string{platform}))
-	return nil
 }
 
 // SetPublishedTime sets the time the descriptor was published.
@@ -181,12 +179,11 @@ func (d *ServerDescriptor) SetPlatform(platform string) error {
 //	       The time, in UTC, when this descriptor (and its corresponding
 //	       extra-info document if any)  was generated.
 //
-func (d *ServerDescriptor) SetPublishedTime(t time.Time) error {
+func (d *ServerDescriptor) SetPublishedTime(t time.Time) {
 	args := []string{
 		t.In(time.UTC).Format("2006-01-02 15:04:05"),
 	}
 	d.addItem(NewItem(publishedKeyword, args))
-	return nil
 }
 
 // SetExitPolicy adds a specification of the given exit policy to the
@@ -206,19 +203,17 @@ func (d *ServerDescriptor) SetPublishedTime(t time.Time) error {
 //	       the address will be accepted.  For clarity, the last such entry SHOULD
 //	       be accept *:* or reject *:*.
 //
-func (d *ServerDescriptor) SetExitPolicy(policy *torexitpolicy.Policy) error {
+func (d *ServerDescriptor) SetExitPolicy(policy *torexitpolicy.Policy) {
 	for _, rule := range policy.Rules() {
 		keyword := rule.Action.Describe()
 		args := []string{rule.Pattern.Describe()}
 		d.addItem(NewItem(keyword, args))
 	}
-	return nil
 }
 
 // SetProtocols specifies which sub-protocols the router supports.
-func (d *ServerDescriptor) SetProtocols(p protover.SupportedProtocols) error {
+func (d *ServerDescriptor) SetProtocols(p protover.SupportedProtocols) {
 	d.addItem(NewItem(protoKeyword, p.Strings()))
-	return nil
 }
 
 // SetContact sets contact information for the server administrator.
@@ -251,12 +246,11 @@ func (d *ServerDescriptor) SetContact(c string) {
 //	       for at least 1 week after any new key is published in a
 //	       subsequent descriptor.
 //
-func (d *ServerDescriptor) SetNtorOnionKey(k *torcrypto.Curve25519KeyPair) error {
+func (d *ServerDescriptor) SetNtorOnionKey(k *torcrypto.Curve25519KeyPair) {
 	args := []string{
 		base64.RawStdEncoding.EncodeToString(k.Public[:]),
 	}
 	d.addItem(NewItem(ntorOnionKeyKeyword, args))
-	return nil
 }
 
 // SetOnionKey sets the "onion key" used to encrypt CREATE cells for this
