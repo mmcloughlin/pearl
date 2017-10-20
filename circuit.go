@@ -6,8 +6,8 @@ import (
 	"io"
 
 	multierror "github.com/hashicorp/go-multierror"
+	"github.com/mmcloughlin/pearl/fork/sha1"
 	"github.com/mmcloughlin/pearl/log"
-	"github.com/mmcloughlin/pearl/sha1"
 	"github.com/mmcloughlin/pearl/torcrypto"
 	"github.com/pkg/errors"
 )
