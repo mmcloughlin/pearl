@@ -88,6 +88,7 @@ type Connection struct {
 	router      *Router
 	tlsCtx      *TLSContext
 	tlsConn     *tls.Conn
+	connID      ConnID
 	fingerprint []byte
 	outbound    bool
 
@@ -126,10 +127,12 @@ func NewClient(r *Router, conn net.Conn, logger log.Logger) (*Connection, error)
 
 func newConnection(r *Router, tlsCtx *TLSContext, tlsConn *tls.Conn, logger log.Logger) *Connection {
 	rw := tlsConn // TODO(mbm): use bufio
+	connID := NewConnID()
 	return &Connection{
 		router:      r,
 		tlsCtx:      tlsCtx,
 		tlsConn:     tlsConn,
+		connID:      connID,
 		fingerprint: nil,
 
 		channels: NewChannelManager(),
@@ -138,7 +141,7 @@ func newConnection(r *Router, tlsCtx *TLSContext, tlsConn *tls.Conn, logger log.
 		CellReceiver: NewCellReader(rw, logger),
 		CellSender:   NewCellWriter(rw, logger),
 
-		logger: log.ForConn(logger, tlsConn),
+		logger: log.ForConn(logger, tlsConn).With("conn_id", connID),
 	}
 }
 
@@ -150,6 +153,10 @@ func (c *Connection) newHandshake() *Handshake {
 		IdentityKey: &c.router.idKey.PublicKey,
 		logger:      c.logger,
 	}
+}
+
+func (c *Connection) ConnID() ConnID {
+	return c.connID
 }
 
 // Fingerprint returns the fingerprint of the connected peer.

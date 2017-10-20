@@ -4,6 +4,7 @@ import (
 	"errors"
 	"net"
 	"sync"
+	"sync/atomic"
 )
 
 // ConnectionHint specifies how to connect to a relay.
@@ -15,16 +16,24 @@ type ConnectionHint interface {
 	Addresses() ([]net.Addr, error)
 }
 
+type ConnID uint64
+
+var globalConnID uint64
+
+func NewConnID() ConnID {
+	return ConnID(atomic.AddUint64(&globalConnID, 1))
+}
+
 // ConnectionManager manages a collection of Connections.
 type ConnectionManager struct {
-	connections map[Fingerprint]*Connection
+	connections map[Fingerprint]map[ConnID]*Connection
 
 	sync.RWMutex
 }
 
 func NewConnectionManager() *ConnectionManager {
 	return &ConnectionManager{
-		connections: make(map[Fingerprint]*Connection),
+		connections: make(map[Fingerprint]map[ConnID]*Connection),
 	}
 }
 
@@ -35,18 +44,24 @@ func (m *ConnectionManager) AddConnection(c *Connection) error {
 	if err != nil {
 		return errors.New("unknown connection fingerprint")
 	}
-
 	_, exists := m.connections[fp]
-	if exists {
-		return errors.New("cannot override existing fingerprint")
+	if !exists {
+		m.connections[fp] = make(map[ConnID]*Connection)
 	}
-	m.connections[fp] = c
+	m.connections[fp][c.ConnID()] = c
 	return nil
 }
 
 func (m *ConnectionManager) Connection(fp Fingerprint) (*Connection, bool) {
 	m.RLock()
 	defer m.RUnlock()
-	c, ok := m.connections[fp]
-	return c, ok
+	conns, ok := m.connections[fp]
+	if !ok {
+		return nil, false
+	}
+	// REVIEW(mbm): return random connection when we have more than one?
+	for _, conn := range conns {
+		return conn, true
+	}
+	panic("unreachable")
 }
