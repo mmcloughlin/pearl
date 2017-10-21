@@ -12,6 +12,10 @@ import (
 	"github.com/pkg/errors"
 )
 
+const (
+	defaultCircuitChannelBuffer = 16
+)
+
 // CellSender can send a Cell.
 type CellSender interface {
 	SendCell(Cell) error
@@ -56,7 +60,7 @@ func (ch CellChan) SendCell(cell Cell) error {
 func (ch CellChan) ReceiveCell() (Cell, error) {
 	cell, ok := <-ch
 	if !ok {
-		return nil, nil
+		return nil, io.EOF
 	}
 	return cell, nil
 }
@@ -136,7 +140,7 @@ func newConnection(r *Router, tlsCtx *TLSContext, tlsConn *tls.Conn, logger log.
 		connID:      connID,
 		fingerprint: nil,
 
-		channels: NewChannelManager(),
+		channels: NewChannelManager(defaultCircuitChannelBuffer),
 
 		rw:           rw,
 		CellReceiver: NewCellReader(rw, logger),
@@ -306,14 +310,16 @@ func CellLogger(l log.Logger, cell Cell) log.Logger {
 
 // ChannelManager manages a collection of cell channels.
 type ChannelManager struct {
-	channels map[CircID]chan Cell
+	channels   map[CircID]chan Cell
+	bufferSize int
 
 	sync.RWMutex
 }
 
-func NewChannelManager() *ChannelManager {
+func NewChannelManager(n int) *ChannelManager {
 	return &ChannelManager{
-		channels: make(map[CircID]chan Cell),
+		channels:   make(map[CircID]chan Cell),
+		bufferSize: n,
 	}
 }
 
@@ -359,7 +365,7 @@ func (m *ChannelManager) NewWithID(id CircID) (chan Cell, error) {
 }
 
 func (m *ChannelManager) newWithID(id CircID) chan Cell {
-	ch := make(chan Cell)
+	ch := make(chan Cell, m.bufferSize)
 	m.channels[id] = ch
 	return ch
 }

@@ -116,9 +116,6 @@ func (t *TransverseCircuit) ProcessForward() {
 			log.Err(t.logger, err, "failed to receive cell")
 			break
 		}
-		if cell == nil {
-			break
-		}
 
 		switch cell.Command() {
 		case Relay, RelayEarly:
