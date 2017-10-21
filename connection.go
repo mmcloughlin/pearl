@@ -5,6 +5,7 @@ import (
 	"net"
 	"sync"
 
+	multierror "github.com/hashicorp/go-multierror"
 	"github.com/mmcloughlin/pearl/fork/tls"
 
 	"github.com/mmcloughlin/pearl/log"
@@ -211,10 +212,15 @@ func (c *Connection) StartClient() error {
 func (c *Connection) readLoop() {
 	var err error
 	var cell Cell
+
 	for {
 		cell, err = c.ReceiveCell()
+		if errors.Cause(err) == io.EOF {
+			c.logger.Debug("EOF")
+			err = c.cleanup()
+			break
+		}
 		if err != nil {
-			log.Err(c.logger, err, "receive cell failed")
 			break
 		}
 
@@ -246,11 +252,41 @@ func (c *Connection) readLoop() {
 			logger.Error("no handler registered")
 		}
 	}
+
+	if err != nil {
+		log.Err(c.logger, err, "receive cell error")
+	}
+	c.logger.Debug("exit read loop")
+}
+
+// cleanup cleans up resources related to the connection.
+func (c *Connection) cleanup() error {
+	c.logger.Info("cleaning up connection")
+
+	// Close all circuit channels.
+	c.channels.CloseAll()
+
+	// BUG(mbm): waitgroup to make sure circuits complete any writes?
+
+	// Unregister the connection.
+	return c.router.connections.RemoveConnection(c)
+}
+
+// Close the connection.
+func (c *Connection) Close() error {
+	// BUG(mbm): graceful stop to runloop
+	var result error
+	if err := c.cleanup(); err != nil {
+		result = multierror.Append(result, err)
+	}
+	if err := c.tlsConn.Close(); err != nil {
+		result = multierror.Append(result, err)
+	}
+	return result
 }
 
 // GenerateCircuitLink
 func (c *Connection) GenerateCircuitLink() CircuitLink {
-	// BUG(mbm): what if c.proto has not been established
 	id, ch := c.channels.New(c.outbound)
 	return NewCircuitLink(id, NewLink(c, CellChan(ch)), c.channels)
 }
@@ -346,6 +382,19 @@ func (m *ChannelManager) Close(id CircID) error {
 
 	close(ch)
 	delete(m.channels, id)
+
+	return nil
+}
+
+func (m *ChannelManager) CloseAll() error {
+	m.Lock()
+	defer m.Unlock()
+
+	for _, ch := range m.channels {
+		close(ch)
+	}
+
+	m.channels = make(map[CircID]chan Cell)
 
 	return nil
 }

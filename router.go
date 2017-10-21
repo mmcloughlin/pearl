@@ -6,7 +6,6 @@ import (
 	"net"
 	"time"
 
-	"github.com/mmcloughlin/pearl/checked"
 	"github.com/mmcloughlin/pearl/log"
 	"github.com/mmcloughlin/pearl/meta"
 	"github.com/mmcloughlin/pearl/torconfig"
@@ -102,7 +101,6 @@ func (r *Router) Serve() error {
 			if err := c.Serve(); err != nil {
 				log.Err(r.logger, err, "error serving connection")
 			}
-			checked.Close(r.logger, conn)
 		}()
 	}
 }
