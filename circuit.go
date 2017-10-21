@@ -12,6 +12,11 @@ import (
 	"github.com/pkg/errors"
 )
 
+type CircuitError interface {
+	error
+	Reason() CircuitErrorCode
+}
+
 // GenerateCircID generates a 4-byte circuit ID with the given most significant bit.
 func GenerateCircID(msb uint32) CircID {
 	b := torcrypto.Rand(4)

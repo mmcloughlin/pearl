@@ -392,7 +392,7 @@ func (m *ChannelManager) Close(id CircID) error {
 	return nil
 }
 
-func (m *ChannelManager) CloseAll() error {
+func (m *ChannelManager) CloseAll() {
 	m.Lock()
 	defer m.Unlock()
 
@@ -401,6 +401,4 @@ func (m *ChannelManager) CloseAll() error {
 	}
 
 	m.channels = make(map[CircID]chan Cell)
-
-	return nil
 }
