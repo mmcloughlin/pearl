@@ -15,7 +15,7 @@ import (
 
 	"github.com/pkg/errors"
 
-	"github.com/mmcloughlin/pearl/checked"
+	"github.com/mmcloughlin/pearl/check"
 	"github.com/mmcloughlin/pearl/protover"
 	"github.com/mmcloughlin/pearl/torcrypto"
 	"github.com/mmcloughlin/pearl/torexitpolicy"
@@ -441,7 +441,7 @@ func (d *ServerDescriptor) PublishToAuthority(addr string) error {
 	if err != nil {
 		return err
 	}
-	defer checked.MustClose(resp.Body)
+	defer check.MustClose(resp.Body)
 
 	// Reference: https://github.com/torproject/torspec/blob/master/dir-spec.txt#L3434-L3458
 	//

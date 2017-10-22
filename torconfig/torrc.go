@@ -7,7 +7,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/mmcloughlin/pearl/checked"
+	"github.com/mmcloughlin/pearl/check"
 	"github.com/pkg/errors"
 )
 
@@ -74,7 +74,7 @@ func ParseTorrcFile(path string) (*Config, error) {
 	if err != nil {
 		return nil, errors.Wrap(err, "could not open torrc")
 	}
-	defer checked.MustClose(f)
+	defer check.MustClose(f)
 
 	return ParseTorrc(f)
 }
