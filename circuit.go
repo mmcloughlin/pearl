@@ -95,11 +95,15 @@ type TransverseCircuit struct {
 
 // ProcessForward executes a runloop processing cells intended for this circuit.
 func (t *TransverseCircuit) ProcessForward() {
+	t.receiveLoop(t.Prev, t.Next, t.handleForwardRelay)
+}
+
+func (t *TransverseCircuit) receiveLoop(src, dst CircuitLink, handler func(Cell) error) {
 	var err error
 
 	for {
 		var cell Cell
-		cell, err = t.Prev.ReceiveCell()
+		cell, err = src.ReceiveCell()
 		if err != nil {
 			break
 		}
@@ -107,9 +111,9 @@ func (t *TransverseCircuit) ProcessForward() {
 		switch cell.Command() {
 		case Relay, RelayEarly:
 			// TODO(mbm): count relay early cells
-			err = t.handleForwardRelay(cell)
+			err = handler(cell)
 		case Destroy:
-			err = t.handleDestroy(cell, t.Next)
+			err = t.handleDestroy(cell, dst)
 		default:
 			t.logger.Error("unrecognized cell")
 			err = t.destroy(CircuitErrorProtocol)
@@ -124,7 +128,7 @@ func (t *TransverseCircuit) ProcessForward() {
 		log.Err(t.logger, err, "error in circuit handling")
 	}
 
-	t.logger.Info("process forward loop exit")
+	t.logger.Debug("receive loop exit")
 }
 
 func (t *TransverseCircuit) handleForwardRelay(c Cell) error {
@@ -318,39 +322,7 @@ func (t *TransverseCircuit) free() error {
 // ProcessBackward executes a runloop processing cells to be sent back in the
 // direction of the originator of the circuit.
 func (t *TransverseCircuit) ProcessBackward() {
-	// TODO(mbm): duped code from forward processing loop
-	t.logger.Debug("starting process backward loop")
-
-	var err error
-
-	for {
-		var cell Cell
-		cell, err = t.Next.ReceiveCell()
-		if err != nil {
-			break
-		}
-
-		switch cell.Command() {
-		case Relay, RelayEarly:
-			// TODO(mbm): count relay early cells
-			err = t.handleBackwardRelay(cell)
-		case Destroy:
-			err = t.handleDestroy(cell, t.Prev)
-		default:
-			t.logger.Error("unrecognized cell")
-			err = t.destroy(CircuitErrorProtocol)
-		}
-
-		if err != nil {
-			break
-		}
-	}
-
-	if err != nil && !check.EOF(err) {
-		log.Err(t.logger, err, "error in circuit handling")
-	}
-
-	t.logger.Info("process backward loop exit")
+	t.receiveLoop(t.Next, t.Prev, t.handleBackwardRelay)
 }
 
 func (t *TransverseCircuit) handleBackwardRelay(c Cell) error {
