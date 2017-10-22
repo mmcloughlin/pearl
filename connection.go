@@ -5,7 +5,8 @@ import (
 	"net"
 	"sync"
 
-	multierror "github.com/hashicorp/go-multierror"
+	"go.uber.org/multierr"
+
 	"github.com/mmcloughlin/pearl/fork/tls"
 
 	"github.com/mmcloughlin/pearl/log"
@@ -279,14 +280,10 @@ func (c *Connection) cleanup() error {
 // Close the connection.
 func (c *Connection) Close() error {
 	// BUG(mbm): graceful stop to runloop
-	var result error
-	if err := c.cleanup(); err != nil {
-		result = multierror.Append(result, err)
-	}
-	if err := c.tlsConn.Close(); err != nil {
-		result = multierror.Append(result, err)
-	}
-	return result
+	return multierr.Combine(
+		c.cleanup(),
+		c.tlsConn.Close(),
+	)
 }
 
 // GenerateCircuitLink
