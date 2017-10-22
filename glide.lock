@@ -1,5 +1,5 @@
 hash: f711a09d95a3dc558e5a8ca0596f5b5237865807813dc4da91ced134f8ee5104
-updated: 2017-10-16T22:32:51.666967317-07:00
+updated: 2017-10-22T13:57:16.57452179-07:00
 imports:
 - name: github.com/davecgh/go-spew
   version: 6d212800a42e8ab5c146b8ace3490ee17e5225f9
@@ -9,12 +9,12 @@ imports:
   version: cbf36867527f94681035fbdc84e384627dcd2eb3
 - name: github.com/go-stack/stack
   version: 817915b46b97fd7bb80e8ab6b69f01a53ac3eebf
+- name: github.com/hashicorp/errwrap
+  version: 7554cd9344cec97297fa6649b055a8c98c2a1e55
 - name: github.com/hashicorp/go-multierror
   version: 83588e72410abfbe4df460eeb6f30841ae47d4c4
 - name: github.com/inconshreveable/log15
-  version: 0e4443bab83dd915f5a6d36d8c650b180744b8ce
-  subpackages:
-  - term
+  version: 0decfc6c20d9ca0ad143b0e89dcaa20f810b4fb3
 - name: github.com/inconshreveable/mousetrap
   version: 76626ae9c91c4f2a10f34cad8ce83ea42c93bb75
 - name: github.com/jarcoal/httpmock
@@ -32,7 +32,7 @@ imports:
 - name: github.com/spf13/cobra
   version: 7b2c5ac9fc04fc5efafb60700713d4fa609b777b
 - name: github.com/spf13/pflag
-  version: 1f33b80956cde38911d1f23d764deb8d77a649ce
+  version: 97afa5e7ca8a08a383cb259e06636b5e2cc7897f
 - name: github.com/stretchr/objx
   version: cbeaeb16a013161a98496fad62933b1d21786672
 - name: github.com/stretchr/testify
@@ -42,7 +42,7 @@ imports:
   - mock
   - require
 - name: golang.org/x/crypto
-  version: 9419663f5a44be8b34ca85f08abc5fe1be11f8a3
+  version: edd5e9b0879d13ee6970a50153d85b8fec9f7686
   subpackages:
   - chacha20poly1305
   - chacha20poly1305/internal/chacha20
@@ -50,7 +50,7 @@ imports:
   - hkdf
   - poly1305
 - name: golang.org/x/sys
-  version: 686000749eaec0b8855b8eef5336cf63899fe51d
+  version: 8dbc5d05d6edcc104950cc299a1ce6641235bc86
   subpackages:
   - unix
 testImports: []
