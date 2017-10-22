@@ -5,17 +5,13 @@ import (
 	"encoding/binary"
 	"io"
 
-	multierror "github.com/hashicorp/go-multierror"
+	"go.uber.org/multierr"
+
 	"github.com/mmcloughlin/pearl/fork/sha1"
 	"github.com/mmcloughlin/pearl/log"
 	"github.com/mmcloughlin/pearl/torcrypto"
 	"github.com/pkg/errors"
 )
-
-type CircuitError interface {
-	error
-	Reason() CircuitErrorCode
-}
 
 // GenerateCircID generates a 4-byte circuit ID with the given most significant bit.
 func GenerateCircID(msb uint32) CircID {
@@ -105,7 +101,7 @@ func (t *TransverseCircuit) free() error {
 			continue
 		}
 		if err := c.Close(); err != nil {
-			result = multierror.Append(result, err)
+			result = multierr.Append(result, err)
 		}
 	}
 
@@ -348,7 +344,7 @@ func announceDestroy(reason CircuitErrorCode, hops ...CircuitLink) error {
 		}
 		d := NewDestroyCell(hop.CircID(), reason)
 		if err := hop.SendCell(d.Cell()); err != nil {
-			result = multierror.Append(result, err)
+			result = multierr.Append(result, err)
 		}
 	}
 	return result
