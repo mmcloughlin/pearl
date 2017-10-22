@@ -7,10 +7,10 @@ import (
 
 	"go.uber.org/multierr"
 
+	"github.com/mmcloughlin/pearl/check"
 	"github.com/mmcloughlin/pearl/fork/sha1"
 	"github.com/mmcloughlin/pearl/log"
 	"github.com/mmcloughlin/pearl/torcrypto"
-	"github.com/pkg/errors"
 )
 
 // GenerateCircID generates a 4-byte circuit ID with the given most significant bit.
@@ -93,28 +93,14 @@ type TransverseCircuit struct {
 	logger   log.Logger
 }
 
-func (t *TransverseCircuit) free() error {
-	var result error
-
-	for _, c := range []io.Closer{t.Prev, t.Next} {
-		if c == nil {
-			continue
-		}
-		if err := c.Close(); err != nil {
-			result = multierr.Append(result, err)
-		}
-	}
-
-	return result
-}
-
 // ProcessForward executes a runloop processing cells intended for this circuit.
 func (t *TransverseCircuit) ProcessForward() {
+	var err error
+
 	for {
-		var err error
-		cell, err := t.Prev.ReceiveCell()
+		var cell Cell
+		cell, err = t.Prev.ReceiveCell()
 		if err != nil {
-			log.Err(t.logger, err, "failed to receive cell")
 			break
 		}
 
@@ -126,12 +112,16 @@ func (t *TransverseCircuit) ProcessForward() {
 			err = t.handleDestroy(cell, t.Next)
 		default:
 			t.logger.Error("unrecognized cell")
+			err = t.destroy(CircuitErrorProtocol)
 		}
 
-		// TODO(mbm): error handling, send destroy?
 		if err != nil {
-			log.Err(t.logger, err, "circuit handling failed")
+			break
 		}
+	}
+
+	if err != nil && !check.EOF(err) {
+		log.Err(t.logger, err, "error in circuit handling")
 	}
 
 	t.logger.Info("process forward loop exit")
@@ -175,8 +165,8 @@ func (t *TransverseCircuit) handleForwardRelay(c Cell) error {
 // handleUnrecognizedCell passes an unrecognized cell onto the next hop.
 func (t *TransverseCircuit) handleUnrecognizedCell(c Cell) error {
 	if t.Next == nil {
-		// TODO(mbm): send DESTROY cell for unrecognized cell with no next hop
-		return errors.New("no next hop configured")
+		t.logger.Warn("no next hop")
+		return t.destroyWithHops(CircuitErrorProtocol, t.Prev)
 	}
 
 	// Clone the cell but swap out the circuit ID.
@@ -185,7 +175,13 @@ func (t *TransverseCircuit) handleUnrecognizedCell(c Cell) error {
 	f := NewFixedCell(t.Next.CircID(), c.Command())
 	copy(f.Payload(), c.Payload())
 
-	return t.Next.SendCell(f)
+	err := t.Next.SendCell(f)
+	if err != nil {
+		t.logger.Warn("could not forward cell")
+		return t.destroy(CircuitErrorConnectfailed)
+	}
+
+	return nil
 }
 
 func (t *TransverseCircuit) handleRelayExtend2(r RelayCell) error {
@@ -202,24 +198,28 @@ func (t *TransverseCircuit) handleRelayExtend2(r RelayCell) error {
 	//
 
 	if t.Next != nil {
-		return errors.New("circuit already has a next hop established")
+		t.logger.Warn("extend cell on circuit that already has next hop")
+		return t.destroy(CircuitErrorProtocol)
 	}
 
 	// Parse payload
 	ext := &Extend2Payload{}
 	d, err := r.RelayData()
 	if err != nil {
-		return errors.Wrap(err, "error extracting relay data")
+		log.Err(t.logger, err, "could not extract relay data")
+		return t.destroy(CircuitErrorProtocol)
 	}
 	err = ext.UnmarshalBinary(d)
 	if err != nil {
-		return errors.Wrap(err, "bad EXTEND2 payload")
+		log.Err(t.logger, err, "bad extend2 playload")
+		return t.destroy(CircuitErrorProtocol)
 	}
 
 	// Obtain connection to referenced node.
 	nextConn, err := t.Router.Connection(ext)
 	if err != nil {
-		return errors.Wrap(err, "could not obtain connection to extend node")
+		log.Err(t.logger, err, "could not obtain connection to extend node")
+		return t.destroy(CircuitErrorConnectfailed)
 	}
 
 	// Initialize circuit on the next connection
@@ -231,23 +231,27 @@ func (t *TransverseCircuit) handleRelayExtend2(r RelayCell) error {
 
 	err = t.Next.SendCell(cell)
 	if err != nil {
-		return errors.Wrap(err, "failed to send create cell")
+		log.Err(t.logger, err, "failed to send create cell")
+		return t.destroy(CircuitErrorConnectfailed)
 	}
 
 	// Wait for CREATED2 cell
 	t.logger.Debug("waiting for CREATED2")
 	cell, err = t.Next.ReceiveCell()
 	if err != nil {
-		return errors.Wrap(err, "failed to receive cell")
+		log.Err(t.logger, err, "failed to receive cell")
+		return t.destroy(CircuitErrorConnectfailed)
 	}
 
 	if cell.Command() != Created2 {
-		return ErrUnexpectedCommand
+		t.logger.Error("expected create2 cell")
+		return t.destroy(CircuitErrorProtocol)
 	}
 
 	created2, err := ParseCreated2Cell(cell)
 	if err != nil {
-		return errors.Wrap(err, "failed to parse created2 cell")
+		log.Err(t.logger, err, "failed to parse created2 cell")
+		return t.destroy(CircuitErrorProtocol)
 	}
 
 	// Reply with EXTENDED2
@@ -258,7 +262,8 @@ func (t *TransverseCircuit) handleRelayExtend2(r RelayCell) error {
 
 	err = t.Prev.SendCell(cell)
 	if err != nil {
-		return errors.Wrap(err, "failed to send relay extend cell")
+		log.Err(t.logger, err, "failed to send relay extend cell")
+		return t.destroy(CircuitErrorConnectfailed)
 	}
 
 	// TODO(mbm): better goroutine management
@@ -271,19 +276,43 @@ func (t *TransverseCircuit) handleRelayExtend2(r RelayCell) error {
 }
 
 func (t *TransverseCircuit) handleDestroy(c Cell, other CircuitLink) error {
-	t.logger.Info("destroying circuit")
-
+	var reason CircuitErrorCode
 	d, err := ParseDestroyCell(c)
 	if err != nil {
-		return err
+		log.Err(t.logger, err, "failed to parse destroy cell")
+		reason = CircuitErrorNone
+	} else if d != nil {
+		reason = d.Reason
 	}
 
-	err = announceDestroy(d.Reason, other)
-	if err != nil {
-		return err
+	return t.destroyWithHops(reason, other)
+}
+
+func (t *TransverseCircuit) destroyWithHops(reason CircuitErrorCode, hops ...CircuitLink) error {
+	t.logger.With("reason", reason).Info("destroying circuit")
+	return multierr.Combine(
+		t.free(),
+		announceDestroy(reason, hops...),
+	)
+}
+
+func (t *TransverseCircuit) destroy(reason CircuitErrorCode) error {
+	return t.destroyWithHops(reason, t.Prev, t.Next)
+}
+
+func (t *TransverseCircuit) free() error {
+	var result error
+
+	for _, c := range []io.Closer{t.Prev, t.Next} {
+		if c == nil {
+			continue
+		}
+		if err := c.Close(); err != nil {
+			result = multierr.Append(result, err)
+		}
 	}
 
-	return t.free()
+	return result
 }
 
 // ProcessBackward executes a runloop processing cells to be sent back in the
@@ -292,34 +321,36 @@ func (t *TransverseCircuit) ProcessBackward() {
 	// TODO(mbm): duped code from forward processing loop
 	t.logger.Debug("starting process backward loop")
 
-	for {
-		var err error
+	var err error
 
-		cell, err := t.Next.ReceiveCell()
+	for {
+		var cell Cell
+		cell, err = t.Next.ReceiveCell()
 		if err != nil {
-			log.Err(t.logger, err, "receive cell failed")
-		}
-		if cell == nil {
 			break
 		}
 
 		switch cell.Command() {
 		case Relay, RelayEarly:
 			// TODO(mbm): count relay early cells
-			// XXX error handling
 			err = t.handleBackwardRelay(cell)
 		case Destroy:
 			err = t.handleDestroy(cell, t.Prev)
 		default:
 			t.logger.Error("unrecognized cell")
+			err = t.destroy(CircuitErrorProtocol)
 		}
 
 		if err != nil {
-			log.Err(t.logger, err, "backward relay failed")
+			break
 		}
 	}
 
-	t.logger.Info("ending process backward loop")
+	if err != nil && !check.EOF(err) {
+		log.Err(t.logger, err, "error in circuit handling")
+	}
+
+	t.logger.Info("process backward loop exit")
 }
 
 func (t *TransverseCircuit) handleBackwardRelay(c Cell) error {
@@ -333,7 +364,13 @@ func (t *TransverseCircuit) handleBackwardRelay(c Cell) error {
 	f := NewFixedCell(t.Prev.CircID(), c.Command())
 	copy(f.Payload(), c.Payload())
 
-	return t.Prev.SendCell(f)
+	err := t.Prev.SendCell(f)
+	if err != nil {
+		t.logger.Warn("could not forward cell")
+		return t.destroy(CircuitErrorConnectfailed)
+	}
+
+	return nil
 }
 
 func announceDestroy(reason CircuitErrorCode, hops ...CircuitLink) error {

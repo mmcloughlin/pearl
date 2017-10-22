@@ -234,7 +234,7 @@ func ProcessHandshakeNTOR(conn *Connection, c *Create2Cell) error {
 		Prev:     lk,
 		Forward:  fwd,
 		Backward: back,
-		logger:   conn.logger.With("circid", c.CircID),
+		logger:   log.ForComponent(conn.logger, "transverse_circuit").With("circid", c.CircID),
 	}
 	// TODO(mbm): goroutine management
 	go circ.ProcessForward()

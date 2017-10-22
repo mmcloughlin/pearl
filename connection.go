@@ -7,6 +7,7 @@ import (
 
 	"go.uber.org/multierr"
 
+	"github.com/mmcloughlin/pearl/check"
 	"github.com/mmcloughlin/pearl/fork/tls"
 
 	"github.com/mmcloughlin/pearl/log"
@@ -220,7 +221,7 @@ func (c *Connection) readLoop() {
 
 	for {
 		cell, err = c.ReceiveCell()
-		if errors.Cause(err) == io.EOF {
+		if check.EOF(err) {
 			c.logger.Debug("EOF")
 			err = c.cleanup()
 			break
