@@ -2,9 +2,18 @@ package telemetry
 
 import (
 	"runtime"
+	"time"
 
 	"github.com/uber-go/tally"
 )
+
+// ReportRuntime starts a loop updating runtime metrics once every interval.
+func ReportRuntime(scope tally.Scope, interval time.Duration) {
+	r := NewRuntime(scope)
+	for _ = range time.Tick(interval) {
+		r.Update()
+	}
+}
 
 // Runtime reports goroutine and memory statistics exposed by the runtime package.
 type Runtime struct {
