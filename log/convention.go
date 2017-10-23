@@ -5,6 +5,14 @@ import (
 	"net"
 )
 
+// WithTags adds the tags to the logging context.
+func WithTags(logger Logger, tags map[string]string) Logger {
+	for k, v := range tags {
+		logger = logger.With(k, v)
+	}
+	return logger
+}
+
 // ForComponent adds a tag to the logger labelling the component the logger is
 // for.
 func ForComponent(logger Logger, name string) Logger {
