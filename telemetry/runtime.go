@@ -8,6 +8,7 @@ import (
 )
 
 // ReportRuntime starts a loop updating runtime metrics once every interval.
+// Intended to be launched as a goroutine.
 func ReportRuntime(scope tally.Scope, interval time.Duration) {
 	r := NewRuntime(scope)
 	for _ = range time.Tick(interval) {
@@ -32,7 +33,7 @@ func NewRuntime(scope tally.Scope) *Runtime {
 		return sub.Tagged(map[string]string{"stat": name}).Gauge("memory")
 	}
 	return &Runtime{
-		numGoroutines: sub.Gauge("goroutines"),
+		numGoroutines: sub.Gauge("goroutine_count"),
 		heapAlloc:     memStat("heap_alloc"),
 		heapIdle:      memStat("heap_idle"),
 		heapInuse:     memStat("heap_inuse"),
