@@ -13,6 +13,7 @@ import (
 	"github.com/mmcloughlin/pearl/tordir"
 	"github.com/mmcloughlin/pearl/torexitpolicy"
 	"github.com/pkg/errors"
+	"github.com/uber-go/tally"
 )
 
 // Router is a Tor router.
@@ -26,14 +27,16 @@ type Router struct {
 
 	connections *ConnectionManager
 
-	logger log.Logger
+	metrics *Metrics
+	scope   tally.Scope
+	logger  log.Logger
 }
 
 // TODO(mbm): determine which parts of Router struct are required for client and
 // server. Perhaps a stripped down struct can be used for client-only.
 
 // NewRouter constructs a router based on the given config.
-func NewRouter(config *torconfig.Config, logger log.Logger) (*Router, error) {
+func NewRouter(config *torconfig.Config, scope tally.Scope, logger log.Logger) (*Router, error) {
 	idKey, err := torcrypto.GenerateRSA()
 	if err != nil {
 		return nil, err
@@ -55,7 +58,6 @@ func NewRouter(config *torconfig.Config, logger log.Logger) (*Router, error) {
 	}
 
 	logger = log.ForComponent(logger, "router")
-	logger = log.WithBytes(logger, "fingerprint", fingerprint)
 	return &Router{
 		config:      config,
 		idKey:       idKey,
@@ -63,6 +65,8 @@ func NewRouter(config *torconfig.Config, logger log.Logger) (*Router, error) {
 		ntorKey:     ntorKey,
 		fingerprint: fingerprint,
 		connections: NewConnectionManager(),
+		metrics:     NewMetrics(scope, logger),
+		scope:       scope,
 		logger:      logger,
 	}, nil
 }

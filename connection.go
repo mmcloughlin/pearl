@@ -135,6 +135,7 @@ func NewClient(r *Router, conn net.Conn, logger log.Logger) (*Connection, error)
 func newConnection(r *Router, tlsCtx *TLSContext, tlsConn *tls.Conn, logger log.Logger) *Connection {
 	rw := tlsConn // TODO(mbm): use bufio
 	connID := NewConnID()
+	r.metrics.Connections.Alloc()
 	return &Connection{
 		router:      r,
 		tlsCtx:      tlsCtx,
@@ -268,6 +269,7 @@ func (c *Connection) readLoop() {
 // cleanup cleans up resources related to the connection.
 func (c *Connection) cleanup() error {
 	c.logger.Info("cleaning up connection")
+	c.router.metrics.Connections.Free()
 
 	// Close all circuit channels.
 	c.channels.CloseAll()

@@ -29,16 +29,14 @@ type Runtime struct {
 // NewRuntime constructs runtime metrics from the given scope.
 func NewRuntime(scope tally.Scope) *Runtime {
 	sub := scope.SubScope("runtime")
-	memStat := func(name string) tally.Gauge {
-		return sub.Tagged(map[string]string{"stat": name}).Gauge("memory")
-	}
+	mem := sub.SubScope("memory")
 	return &Runtime{
 		numGoroutines: sub.Gauge("goroutine_count"),
-		heapAlloc:     memStat("heap_alloc"),
-		heapIdle:      memStat("heap_idle"),
-		heapInuse:     memStat("heap_inuse"),
-		heapObjects:   memStat("heap_objects"),
-		stackInuse:    memStat("stack_inuse"),
+		heapAlloc:     mem.Gauge("heap_alloc"),
+		heapIdle:      mem.Gauge("heap_idle"),
+		heapInuse:     mem.Gauge("heap_inuse"),
+		heapObjects:   mem.Gauge("heap_objects"),
+		stackInuse:    mem.Gauge("stack_inuse"),
 	}
 }
 
