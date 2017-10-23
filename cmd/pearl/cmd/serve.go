@@ -12,9 +12,11 @@ import (
 	"github.com/mmcloughlin/pearl/meta"
 	"github.com/mmcloughlin/pearl/telemetry"
 	"github.com/mmcloughlin/pearl/telemetry/expvar"
+	"github.com/mmcloughlin/pearl/telemetry/logging"
 	"github.com/mmcloughlin/pearl/torconfig"
 	"github.com/spf13/cobra"
 	"github.com/uber-go/tally"
+	"github.com/uber-go/tally/multi"
 )
 
 // serveCmd represents the serve command
@@ -56,11 +58,14 @@ func logger(logfile string) (log.Logger, error) {
 	return log.NewLog15(base), nil
 }
 
-func metrics() (tally.Scope, io.Closer) {
+func metrics(l log.Logger) (tally.Scope, io.Closer) {
 	return tally.NewRootScope(tally.ScopeOptions{
-		Prefix:         "pearl",
-		Tags:           map[string]string{},
-		CachedReporter: expvar.NewReporter(),
+		Prefix: "pearl",
+		Tags:   map[string]string{},
+		CachedReporter: multi.NewMultiCachedReporter(
+			expvar.NewReporter(),
+			logging.NewReporter(l),
+		),
 	}, 1*time.Second)
 }
 
@@ -77,7 +82,7 @@ func serve() error {
 		return err
 	}
 
-	scope, closer := metrics()
+	scope, closer := metrics(l)
 	defer check.Close(l, closer)
 
 	r, err := pearl.NewRouter(config, scope, l)
