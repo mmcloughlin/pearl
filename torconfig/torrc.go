@@ -25,6 +25,7 @@ var optionHandlers = map[string]optionHandler{
 	"nickname":    nicknameHandler,
 	"orport":      orPortHandler,
 	"contactinfo": contactInfoHandler,
+	"address":     addressHandler,
 }
 
 // ParseTorrc parses Config from the given reader (in torrc format).
@@ -93,6 +94,12 @@ func orPortHandler(cfg *Config, args string) error {
 		return err
 	}
 	cfg.ORPort = uint16(port)
+	return nil
+}
+
+// addressHandler parses the "Address" line.
+func addressHandler(cfg *Config, args string) error {
+	cfg.Address = args
 	return nil
 }
 

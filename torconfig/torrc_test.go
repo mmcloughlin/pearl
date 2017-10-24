@@ -14,6 +14,7 @@ func TestParseTorrcFile(t *testing.T) {
 
 	expect := &Config{
 		Nickname: "JetpacksPlease",
+		Address:  "noname.example.com",
 		ORPort:   9001,
 		Contact:  "Harm Aarts <XXXX ET XXXX>",
 	}
