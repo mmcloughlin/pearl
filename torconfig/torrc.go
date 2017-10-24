@@ -99,7 +99,7 @@ func orPortHandler(cfg *Config, args string) error {
 
 // addressHandler parses the "Address" line.
 func addressHandler(cfg *Config, args string) error {
-	cfg.Address = args
+	cfg.Host = args
 	return nil
 }
 
