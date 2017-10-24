@@ -93,6 +93,18 @@ type TransverseCircuit struct {
 	logger   log.Logger
 }
 
+func NewTransverseCircuit(r *Router, prev CircuitLink, fwd, back *CircuitCryptoState, l log.Logger) *TransverseCircuit {
+	circ := &TransverseCircuit{
+		Router:   r,
+		Prev:     prev,
+		Forward:  fwd,
+		Backward: back,
+		logger:   log.ForComponent(l, "transverse_circuit").With("circid", prev.CircID()),
+	}
+	r.metrics.Circuits.Alloc()
+	return circ
+}
+
 // ProcessForward executes a runloop processing cells intended for this circuit.
 func (t *TransverseCircuit) ProcessForward() {
 	t.receiveLoop(t.Prev, t.Next, t.handleForwardRelay)
@@ -306,6 +318,8 @@ func (t *TransverseCircuit) destroy(reason CircuitErrorCode) error {
 
 func (t *TransverseCircuit) free() error {
 	var result error
+
+	t.Router.metrics.Circuits.Free()
 
 	for _, c := range []io.Closer{t.Prev, t.Next} {
 		if c == nil {

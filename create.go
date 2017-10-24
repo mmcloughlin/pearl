@@ -229,13 +229,8 @@ func ProcessHandshakeNTOR(conn *Connection, c *Create2Cell) error {
 		return errors.Wrap(err, "failed to build circuit")
 	}
 
-	circ := &TransverseCircuit{
-		Router:   conn.router,
-		Prev:     lk,
-		Forward:  fwd,
-		Backward: back,
-		logger:   log.ForComponent(conn.logger, "transverse_circuit").With("circid", c.CircID),
-	}
+	circ := NewTransverseCircuit(conn.router, lk, fwd, back, conn.logger)
+
 	// TODO(mbm): goroutine management
 	go circ.ProcessForward()
 
