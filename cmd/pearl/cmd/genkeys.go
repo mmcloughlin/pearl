@@ -14,12 +14,8 @@ var genkeysCmd = &cobra.Command{
 	},
 }
 
-var (
-	datadir string
-)
-
 func init() {
-	genkeysCmd.Flags().StringVarP(&datadir, "data-dir", "d", "", "data directory")
+	Register(genkeysCmd.Flags(), relayData)
 
 	rootCmd.AddCommand(genkeysCmd)
 }
@@ -30,6 +26,6 @@ func genkeys() error {
 		return err
 	}
 
-	d := torconfig.NewDataDirectory(datadir)
+	d := relayData.Data()
 	return d.SetKeys(k)
 }

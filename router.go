@@ -2,7 +2,6 @@ package pearl
 
 import (
 	"crypto/rsa"
-	"fmt"
 	"net"
 	"time"
 
@@ -61,7 +60,7 @@ func (r *Router) Fingerprint() []byte {
 
 // Serve starts a listener and enters a main loop handling connections.
 func (r *Router) Serve() error {
-	laddr := fmt.Sprintf("localhost:%d", r.config.ORPort)
+	laddr := r.config.ORAddr()
 	r.logger.With("laddr", laddr).Info("creating listener")
 	ln, err := net.Listen("tcp", laddr)
 	if err != nil {

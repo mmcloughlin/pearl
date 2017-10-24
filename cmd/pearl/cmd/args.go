@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"github.com/mmcloughlin/pearl/meta"
 	"github.com/mmcloughlin/pearl/torconfig"
 	"github.com/mmcloughlin/pearl/tordir"
 	"github.com/spf13/pflag"
@@ -8,6 +9,7 @@ import (
 
 // Defined argument sets.
 var (
+	cfg         = new(Config)
 	relayData   = new(RelayData)
 	authorities = new(DirectoryAuthorities)
 )
@@ -22,6 +24,38 @@ func Register(f *pflag.FlagSet, modules ...Module) {
 	for _, m := range modules {
 		m.Attach(f)
 	}
+}
+
+type Config struct {
+	nickname string
+	host     string
+	port     int
+	contact  string
+	data     RelayData
+}
+
+func (c *Config) Attach(f *pflag.FlagSet) {
+	f.StringVarP(&c.nickname, "nickname", "n", "pearl", "nickname")
+	f.StringVar(&c.host, "host", "localhost", "relay host ip/fqdn")
+	f.IntVarP(&c.port, "port", "p", 9111, "relay port")
+	f.StringVar(&c.contact, "contact", "https://github.com/mmcloughlin/pearl", "contact information")
+	Register(f, &c.data)
+}
+
+func (c *Config) Config() (*torconfig.Config, error) {
+	d := c.data.Data()
+	k, err := d.Keys()
+	if err != nil {
+		return nil, err
+	}
+	return &torconfig.Config{
+		Nickname: c.nickname,
+		Host:     c.host,
+		ORPort:   uint16(c.port),
+		Platform: meta.Platform.String(),
+		Contact:  c.contact,
+		Keys:     k,
+	}, nil
 }
 
 // RelayData configures relay data directory.

@@ -9,11 +9,9 @@ import (
 	"github.com/mmcloughlin/pearl"
 	"github.com/mmcloughlin/pearl/check"
 	"github.com/mmcloughlin/pearl/log"
-	"github.com/mmcloughlin/pearl/meta"
 	"github.com/mmcloughlin/pearl/telemetry"
 	"github.com/mmcloughlin/pearl/telemetry/expvar"
 	"github.com/mmcloughlin/pearl/telemetry/logging"
-	"github.com/mmcloughlin/pearl/torconfig"
 	"github.com/spf13/cobra"
 	"github.com/uber-go/tally"
 	"github.com/uber-go/tally/multi"
@@ -29,19 +27,15 @@ var serveCmd = &cobra.Command{
 }
 
 var (
-	nickname      string
-	port          int
 	logfile       string
 	telemetryAddr string
 )
 
 func init() {
-	serveCmd.Flags().StringVarP(&nickname, "nickname", "n", "pearl", "nickname")
-	serveCmd.Flags().IntVarP(&port, "port", "p", 9111, "relay port")
 	serveCmd.Flags().StringVarP(&logfile, "logfile", "l", "pearl.json", "log file")
 	serveCmd.Flags().StringVarP(&telemetryAddr, "telemetry", "t", "localhost:7142", "telemetry address")
 
-	Register(serveCmd.Flags(), relayData, authorities)
+	Register(serveCmd.Flags(), cfg, authorities)
 
 	rootCmd.AddCommand(serveCmd)
 }
@@ -73,26 +67,18 @@ func metrics(l log.Logger) (tally.Scope, io.Closer) {
 }
 
 func serve() error {
-	config := &torconfig.Config{
-		Nickname: nickname,
-		ORPort:   uint16(port),
-		Platform: meta.Platform.String(),
-		Contact:  "https://github.com/mmcloughlin/pearl",
-	}
-
 	l, err := logger(logfile)
-	if err != nil {
-		return err
-	}
-
-	d := relayData.Data()
-	config.Keys, err = d.Keys()
 	if err != nil {
 		return err
 	}
 
 	scope, closer := metrics(l)
 	defer check.Close(l, closer)
+
+	config, err := cfg.Config()
+	if err != nil {
+		return err
+	}
 
 	r, err := pearl.NewRouter(config, scope, l)
 	if err != nil {
