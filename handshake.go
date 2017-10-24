@@ -29,11 +29,11 @@ type handshakeLink struct {
 	outboundHash hash.Hash
 }
 
-func NewHandshakeLink(rw io.ReadWriter, l log.Logger) HandshakeLink {
+func NewHandshakeLink(r io.Reader, w io.Writer, l log.Logger) HandshakeLink {
 	inboundHash := sha256.New()
 	outboundHash := sha256.New()
-	r := io.TeeReader(rw, inboundHash)
-	w := io.MultiWriter(rw, outboundHash)
+	r = io.TeeReader(r, inboundHash)
+	w = io.MultiWriter(w, outboundHash)
 	return handshakeLink{
 		CellSender:         NewCellWriter(w, l),
 		LegacyCellReceiver: NewCellReader(r, l),

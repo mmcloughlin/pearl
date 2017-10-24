@@ -101,7 +101,8 @@ type Connection struct {
 
 	channels *ChannelManager
 
-	rw io.ReadWriter
+	r io.Reader
+	w io.Writer
 	CellReceiver
 	CellSender
 
@@ -133,8 +134,10 @@ func NewClient(r *Router, conn net.Conn, logger log.Logger) (*Connection, error)
 }
 
 func newConnection(r *Router, tlsCtx *TLSContext, tlsConn *tls.Conn, logger log.Logger) *Connection {
-	rw := tlsConn // TODO(mbm): use bufio
 	connID := NewConnID()
+	rw := tlsConn // TODO(mbm): use bufio
+	rd := r.metrics.Inbound.WrapReader(rw)
+	wr := r.metrics.Outbound.WrapWriter(rw)
 	r.metrics.Connections.Alloc()
 	return &Connection{
 		router:      r,
@@ -145,9 +148,10 @@ func newConnection(r *Router, tlsCtx *TLSContext, tlsConn *tls.Conn, logger log.
 
 		channels: NewChannelManager(defaultCircuitChannelBuffer),
 
-		rw:           rw,
-		CellReceiver: NewCellReader(rw, logger),
-		CellSender:   NewCellWriter(rw, logger),
+		r:            rd,
+		w:            wr,
+		CellReceiver: NewCellReader(rd, logger),
+		CellSender:   NewCellWriter(wr, logger),
 
 		logger: log.ForConn(logger, tlsConn).With("conn_id", connID),
 	}
@@ -156,7 +160,7 @@ func newConnection(r *Router, tlsCtx *TLSContext, tlsConn *tls.Conn, logger log.
 func (c *Connection) newHandshake() *Handshake {
 	return &Handshake{
 		Conn:        c.tlsConn,
-		Link:        NewHandshakeLink(c.rw, c.logger),
+		Link:        NewHandshakeLink(c.r, c.w, c.logger),
 		TLSContext:  c.tlsCtx,
 		IdentityKey: &c.router.idKey.PublicKey,
 		logger:      c.logger,
