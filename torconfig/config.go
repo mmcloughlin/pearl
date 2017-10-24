@@ -6,4 +6,5 @@ type Config struct {
 	ORPort   uint16
 	Platform string
 	Contact  string
+	Keys     *Keys
 }

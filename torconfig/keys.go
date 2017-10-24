@@ -2,6 +2,7 @@ package torconfig
 
 import (
 	"crypto/rsa"
+	"os"
 	"path/filepath"
 
 	"github.com/mmcloughlin/pearl/torcrypto"
@@ -67,6 +68,12 @@ func LoadKeysFromDirectory(path string) (*Keys, error) {
 }
 
 func (k *Keys) SaveToDirectory(path string) error {
+	if _, err := os.Stat(path); err == nil {
+		return os.ErrExist
+	}
+	if err := os.MkdirAll(path, 0700); err != nil {
+		return err
+	}
 	if err := torcrypto.SaveRSAPrivateKeyToPEMFile(k.Identity, filepath.Join(path, identityKeyFilename)); err != nil {
 		return err
 	}

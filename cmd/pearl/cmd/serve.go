@@ -27,6 +27,7 @@ var serveCmd = &cobra.Command{
 		return serve()
 	},
 }
+
 var (
 	nickname      string
 	port          int
@@ -39,6 +40,7 @@ func init() {
 	serveCmd.Flags().IntVarP(&port, "port", "p", 9111, "relay port")
 	serveCmd.Flags().StringVarP(&logfile, "logfile", "l", "pearl.json", "log file")
 	serveCmd.Flags().StringVarP(&telemetryAddr, "telemetry", "t", "localhost:7142", "telemetry address")
+	serveCmd.Flags().StringVarP(&datadir, "data-dir", "d", "", "data directory")
 
 	rootCmd.AddCommand(serveCmd)
 }
