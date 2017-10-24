@@ -5,11 +5,35 @@ import (
 	"crypto/rsa"
 	"fmt"
 	"io/ioutil"
+	"os"
 
 	"github.com/pkg/errors"
 )
 
+const (
+	privateKeyPermissions os.FileMode = 0600
+	publicKeyPermissions  os.FileMode = 0644
+)
+
+func checkPermissionsAtMost(filename string, allow os.FileMode) error {
+	s, err := os.Stat(filename)
+	if err != nil {
+		return err
+	}
+
+	perm := s.Mode().Perm()
+	if (perm & ^allow) != 0 {
+		return errors.Errorf("permissions must be at most 0%03o", allow)
+	}
+
+	return nil
+}
+
 func LoadRSAPrivateKeyFromPEMFile(filename string) (*rsa.PrivateKey, error) {
+	if err := checkPermissionsAtMost(filename, privateKeyPermissions); err != nil {
+		return nil, err
+	}
+
 	pem, err := ioutil.ReadFile(filename)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to read file")
@@ -25,10 +49,14 @@ func LoadRSAPrivateKeyFromPEMFile(filename string) (*rsa.PrivateKey, error) {
 
 func SaveRSAPrivateKeyToPEMFile(k *rsa.PrivateKey, filename string) error {
 	data := MarshalRSAPrivateKeyPKCS1PEM(k)
-	return ioutil.WriteFile(filename, data, 0600)
+	return ioutil.WriteFile(filename, data, privateKeyPermissions)
 }
 
 func LoadRSAPublicKeyFromPEMFile(filename string) (*rsa.PublicKey, error) {
+	if err := checkPermissionsAtMost(filename, publicKeyPermissions); err != nil {
+		return nil, err
+	}
+
 	pem, err := ioutil.ReadFile(filename)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to read file")
@@ -47,10 +75,14 @@ func SaveRSAPublicKeyToPEMFile(k *rsa.PublicKey, filename string) error {
 	if err != nil {
 		return errors.Wrap(err, "failed to encode public key")
 	}
-	return ioutil.WriteFile(filename, data, 0600)
+	return ioutil.WriteFile(filename, data, publicKeyPermissions)
 }
 
 func LoadCurve25519KeyPairPrivateKeyFromFile(filename, label string) (*Curve25519KeyPair, error) {
+	if err := checkPermissionsAtMost(filename, privateKeyPermissions); err != nil {
+		return nil, err
+	}
+
 	b, err := ioutil.ReadFile(filename)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to read file")
@@ -88,7 +120,7 @@ func SaveCurve25519KeyPairPrivateKeyToFile(k *Curve25519KeyPair, filename, label
 	buf.Write(k.Private[:])
 	buf.Write(k.Public[:])
 
-	return ioutil.WriteFile(filename, buf.Bytes(), 0600)
+	return ioutil.WriteFile(filename, buf.Bytes(), privateKeyPermissions)
 }
 
 func curve25519FileMagic(label string) ([]byte, error) {
