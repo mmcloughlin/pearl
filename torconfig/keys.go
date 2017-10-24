@@ -68,9 +68,6 @@ func LoadKeysFromDirectory(path string) (*Keys, error) {
 }
 
 func (k *Keys) SaveToDirectory(path string) error {
-	if _, err := os.Stat(path); err == nil {
-		return os.ErrExist
-	}
 	if err := os.MkdirAll(path, 0700); err != nil {
 		return err
 	}

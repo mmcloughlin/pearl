@@ -3,6 +3,7 @@ package torconfig
 import (
 	"io/ioutil"
 	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -10,7 +11,13 @@ import (
 )
 
 func TestLoadKeysFromDirectory(t *testing.T) {
-	_, err := LoadKeysFromDirectory("./testdata/keys")
+	dir := "testdata/keys"
+	keyfiles := []string{"secret_id_key", "secret_onion_key", "secret_onion_key_ntor"}
+	for _, name := range keyfiles {
+		err := os.Chmod(filepath.Join(dir, name), 0600)
+		require.NoError(t, err)
+	}
+	_, err := LoadKeysFromDirectory(dir)
 	require.NoError(t, err)
 }
 
