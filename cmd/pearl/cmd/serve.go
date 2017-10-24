@@ -40,7 +40,8 @@ func init() {
 	serveCmd.Flags().IntVarP(&port, "port", "p", 9111, "relay port")
 	serveCmd.Flags().StringVarP(&logfile, "logfile", "l", "pearl.json", "log file")
 	serveCmd.Flags().StringVarP(&telemetryAddr, "telemetry", "t", "localhost:7142", "telemetry address")
-	serveCmd.Flags().StringVarP(&datadir, "data-dir", "d", "", "data directory")
+
+	Register(serveCmd.Flags(), relayData, authorities)
 
 	rootCmd.AddCommand(serveCmd)
 }
@@ -84,7 +85,7 @@ func serve() error {
 		return err
 	}
 
-	d := torconfig.NewDataDirectory(datadir)
+	d := relayData.Data()
 	config.Keys, err = d.Keys()
 	if err != nil {
 		return err
@@ -111,16 +112,20 @@ func serve() error {
 		}
 	}()
 
-	authority := "127.0.0.1:7000"
+	// Publish to directory authorities
 	desc, err := r.Descriptor()
 	if err != nil {
 		return err
 	}
-	err = desc.PublishToAuthority(authority)
-	if err != nil {
-		return err
+	for _, addr := range authorities.Addresses() {
+		err = desc.PublishToAuthority(addr)
+		lg := l.With("authority", addr)
+		if err != nil {
+			log.Err(lg, err, "failed to publish descriptor")
+		} else {
+			lg.Info("published descriptor")
+		}
 	}
-	l.With("authority", authority).Info("published descriptor")
 
 	select {}
 }
