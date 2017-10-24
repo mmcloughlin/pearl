@@ -15,6 +15,7 @@ func TestParseTorrcFile(t *testing.T) {
 	expect := &Config{
 		Nickname: "JetpacksPlease",
 		ORPort:   9001,
+		Contact:  "Harm Aarts <XXXX ET XXXX>",
 	}
 
 	assert.Equal(t, expect, cfg)
