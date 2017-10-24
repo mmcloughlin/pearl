@@ -18,11 +18,7 @@ import (
 
 // Router is a Tor router.
 type Router struct {
-	config *torconfig.Config
-
-	idKey       *rsa.PrivateKey
-	onionKey    *rsa.PrivateKey
-	ntorKey     *torcrypto.Curve25519KeyPair
+	config      *torconfig.Config
 	fingerprint []byte
 
 	connections *ConnectionManager
@@ -37,22 +33,7 @@ type Router struct {
 
 // NewRouter constructs a router based on the given config.
 func NewRouter(config *torconfig.Config, scope tally.Scope, logger log.Logger) (*Router, error) {
-	idKey, err := torcrypto.GenerateRSA()
-	if err != nil {
-		return nil, err
-	}
-
-	onionKey, err := torcrypto.GenerateRSA()
-	if err != nil {
-		return nil, err
-	}
-
-	ntorKey, err := torcrypto.GenerateCurve25519KeyPair()
-	if err != nil {
-		return nil, err
-	}
-
-	fingerprint, err := torcrypto.Fingerprint(&idKey.PublicKey)
+	fingerprint, err := torcrypto.Fingerprint(&config.Keys.Identity.PublicKey)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to compute fingerprint")
 	}
@@ -60,9 +41,6 @@ func NewRouter(config *torconfig.Config, scope tally.Scope, logger log.Logger) (
 	logger = log.ForComponent(logger, "router")
 	return &Router{
 		config:      config,
-		idKey:       idKey,
-		onionKey:    onionKey,
-		ntorKey:     ntorKey,
 		fingerprint: fingerprint,
 		connections: NewConnectionManager(),
 		metrics:     NewMetrics(scope, logger),
@@ -73,7 +51,7 @@ func NewRouter(config *torconfig.Config, scope tally.Scope, logger log.Logger) (
 
 // IdentityKey returns the identity key of the router.
 func (r *Router) IdentityKey() *rsa.PrivateKey {
-	return r.idKey
+	return r.config.Keys.Identity
 }
 
 // Fingerprint returns the router fingerprint.
@@ -169,11 +147,11 @@ func (r *Router) Descriptor() (*tordir.ServerDescriptor, error) {
 	if err := s.SetSigningKey(r.IdentityKey()); err != nil {
 		return nil, err
 	}
-	if err := s.SetOnionKey(&r.onionKey.PublicKey); err != nil {
+	if err := s.SetOnionKey(&r.config.Keys.Onion.PublicKey); err != nil {
 		return nil, err
 	}
 
-	s.SetNtorOnionKey(r.ntorKey)
+	s.SetNtorOnionKey(r.config.Keys.Ntor)
 	s.SetPlatform(r.config.Platform)
 	s.SetContact(r.config.Contact)
 	s.SetBandwidth(1000, 2000, 500) // TODO(mbm): publish real bandwidth values

@@ -162,7 +162,7 @@ func (c *Connection) newHandshake() *Handshake {
 		Conn:        c.tlsConn,
 		Link:        NewHandshakeLink(c.r, c.w, c.logger),
 		TLSContext:  c.tlsCtx,
-		IdentityKey: &c.router.idKey.PublicKey,
+		IdentityKey: &c.router.IdentityKey().PublicKey,
 		logger:      c.logger,
 	}
 }

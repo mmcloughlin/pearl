@@ -40,6 +40,7 @@ func init() {
 	serveCmd.Flags().IntVarP(&port, "port", "p", 9111, "relay port")
 	serveCmd.Flags().StringVarP(&logfile, "logfile", "l", "pearl.json", "log file")
 	serveCmd.Flags().StringVarP(&telemetryAddr, "telemetry", "t", "localhost:7142", "telemetry address")
+	serveCmd.Flags().StringVarP(&datadir, "data-dir", "d", "", "data directory")
 
 	rootCmd.AddCommand(serveCmd)
 }
@@ -79,6 +80,12 @@ func serve() error {
 	}
 
 	l, err := logger(logfile)
+	if err != nil {
+		return err
+	}
+
+	d := torconfig.NewDataDirectory(datadir)
+	config.Keys, err = d.Keys()
 	if err != nil {
 		return err
 	}

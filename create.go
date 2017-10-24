@@ -192,7 +192,8 @@ func ProcessHandshakeNTOR(conn *Connection, c *Create2Cell) error {
 
 	// Verify the NTOR key ID matches.
 	got = clientData.KeyID()
-	expect = conn.router.ntorKey.Public[:]
+	ntorKey := conn.router.config.Keys.Ntor
+	expect = ntorKey.Public[:]
 	ctx = conn.logger
 	ctx = log.WithBytes(ctx, "client_handshake_keyid", got)
 	ctx = log.WithBytes(ctx, "server_keyid", expect)
@@ -212,10 +213,10 @@ func ProcessHandshakeNTOR(conn *Connection, c *Create2Cell) error {
 			ID: conn.router.Fingerprint(),
 			KX: clientData.ClientPK(),
 			KY: serverKeyPair.Public,
-			KB: conn.router.ntorKey.Public,
+			KB: ntorKey.Public,
 		},
 		Ky: serverKeyPair.Private,
-		Kb: conn.router.ntorKey.Private,
+		Kb: ntorKey.Private,
 	}
 
 	// Record results
