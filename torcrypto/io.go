@@ -15,6 +15,17 @@ const (
 	publicKeyPermissions  os.FileMode = 0644
 )
 
+// CheckPrivateKeyPermissions checks whether the given file has appropriate
+// permissions for a private key.
+func CheckPrivateKeyPermissions(filename string) error {
+	return checkPermissionsAtMost(filename, privateKeyPermissions)
+}
+
+// SetPrivateKeyPermissions sets permissions on a private key file.
+func SetPrivateKeyPermissions(filename string) error {
+	return os.Chmod(filename, privateKeyPermissions)
+}
+
 func checkPermissionsAtMost(filename string, allow os.FileMode) error {
 	s, err := os.Stat(filename)
 	if err != nil {
@@ -30,7 +41,7 @@ func checkPermissionsAtMost(filename string, allow os.FileMode) error {
 }
 
 func LoadRSAPrivateKeyFromPEMFile(filename string) (*rsa.PrivateKey, error) {
-	if err := checkPermissionsAtMost(filename, privateKeyPermissions); err != nil {
+	if err := CheckPrivateKeyPermissions(filename); err != nil {
 		return nil, err
 	}
 
@@ -79,7 +90,7 @@ func SaveRSAPublicKeyToPEMFile(k *rsa.PublicKey, filename string) error {
 }
 
 func LoadCurve25519KeyPairPrivateKeyFromFile(filename, label string) (*Curve25519KeyPair, error) {
-	if err := checkPermissionsAtMost(filename, privateKeyPermissions); err != nil {
+	if err := CheckPrivateKeyPermissions(filename); err != nil {
 		return nil, err
 	}
 

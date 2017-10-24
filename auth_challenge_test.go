@@ -55,6 +55,8 @@ func TestAuthenticateCellRoundTrip(t *testing.T) {
 }
 
 func TestAuthRSASHA256TLSSecret(t *testing.T) {
+	err := torcrypto.SetPrivateKeyPermissions("testdata/auth_key")
+	require.NoError(t, err)
 	authKey, err := torcrypto.LoadRSAPrivateKeyFromPEMFile("testdata/auth_key")
 	require.NoError(t, err)
 	clientIdentityKey, err := torcrypto.LoadRSAPublicKeyFromPEMFile("testdata/client_identity_key")

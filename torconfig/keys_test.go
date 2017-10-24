@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/mmcloughlin/pearl/torcrypto"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -14,7 +15,7 @@ func TestLoadKeysFromDirectory(t *testing.T) {
 	dir := "testdata/keys"
 	keyfiles := []string{"secret_id_key", "secret_onion_key", "secret_onion_key_ntor"}
 	for _, name := range keyfiles {
-		err := os.Chmod(filepath.Join(dir, name), 0600)
+		err := torcrypto.SetPrivateKeyPermissions(filepath.Join(dir, name))
 		require.NoError(t, err)
 	}
 	_, err := LoadKeysFromDirectory(dir)
