@@ -14,10 +14,12 @@ func TestParseTorrcFile(t *testing.T) {
 	require.NoError(t, err)
 
 	expect := &Config{
-		Nickname: "JetpacksPlease",
-		IP:       net.IPv4(12, 34, 56, 78),
-		ORPort:   9001,
-		Contact:  "Harm Aarts <XXXX ET XXXX>",
+		Nickname:         "JetpacksPlease",
+		IP:               net.IPv4(12, 34, 56, 78),
+		ORPort:           9001,
+		Contact:          "Harm Aarts <XXXX ET XXXX>",
+		BandwidthAverage: 102400,
+		BandwidthBurst:   26843545600,
 	}
 
 	assert.Equal(t, expect, cfg)

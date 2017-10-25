@@ -153,7 +153,7 @@ func (r *Router) Descriptor() (*tordir.ServerDescriptor, error) {
 	s.SetNtorOnionKey(r.config.Keys.Ntor)
 	s.SetPlatform(r.config.Platform)
 	s.SetContact(r.config.Contact)
-	s.SetBandwidth(1000, 2000, 500) // TODO(mbm): publish real bandwidth values
+	s.SetBandwidth(r.config.BandwidthAverage, r.config.BandwidthBurst, r.config.BandwidthAverage) // TODO(mbm): publish real bandwidth values
 	s.SetPublishedTime(time.Now())
 	s.SetExitPolicy(torexitpolicy.RejectAllPolicy)
 	s.SetProtocols(meta.Protocols)

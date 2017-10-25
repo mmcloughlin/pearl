@@ -33,6 +33,8 @@ type Config struct {
 	ip       net.IP
 	port     int
 	contact  string
+	bwAvg    int
+	bwBurst  int
 	data     RelayData
 }
 
@@ -41,6 +43,8 @@ func (c *Config) Attach(f *pflag.FlagSet) {
 	f.IPVar(&c.ip, "ip", net.IPv4(127, 0, 0, 1), "relay ip")
 	f.IntVarP(&c.port, "port", "p", 9111, "relay port")
 	f.StringVar(&c.contact, "contact", "https://github.com/mmcloughlin/pearl", "contact information")
+	f.IntVar(&c.bwAvg, "bandwidth-average", 75<<10, "bandwidth average (bytes per second)")
+	f.IntVar(&c.bwBurst, "bandwidth-burst", 150<<10, "bandwidth burst (bytes per second)")
 	Register(f, &c.data)
 }
 
@@ -51,13 +55,15 @@ func (c *Config) Config() (*torconfig.Config, error) {
 		return nil, err
 	}
 	return &torconfig.Config{
-		Nickname: c.nickname,
-		IP:       c.ip,
-		ORPort:   uint16(c.port),
-		Platform: meta.Platform.String(),
-		Contact:  c.contact,
-		Keys:     k,
-		Data:     d,
+		Nickname:         c.nickname,
+		IP:               c.ip,
+		ORPort:           uint16(c.port),
+		Platform:         meta.Platform.String(),
+		Contact:          c.contact,
+		BandwidthAverage: c.bwAvg,
+		BandwidthBurst:   c.bwBurst,
+		Keys:             k,
+		Data:             d,
 	}, nil
 }
 
