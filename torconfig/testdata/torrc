@@ -93,7 +93,7 @@ Nickname JetpacksPlease
 
 ## The IP address or full DNS name for your relay. Leave commented out
 ## and Tor will guess.
-Address noname.example.com
+Address 12.34.56.78
 
 ## Define these to limit how much relayed traffic you will allow. Your
 ## own traffic is still unthrottled. Note that RelayBandwidthRate must

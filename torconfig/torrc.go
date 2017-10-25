@@ -3,6 +3,7 @@ package torconfig
 import (
 	"bufio"
 	"io"
+	"net"
 	"os"
 	"strconv"
 	"strings"
@@ -97,9 +98,13 @@ func orPortHandler(cfg *Config, args string) error {
 	return nil
 }
 
-// addressHandler parses the "Address" line.
+// addressHandler parses the "Address" line as an IP address.
 func addressHandler(cfg *Config, args string) error {
-	cfg.Host = args
+	ip := net.ParseIP(args)
+	if ip == nil {
+		return errors.New("could not parse IP")
+	}
+	cfg.IP = ip
 	return nil
 }
 

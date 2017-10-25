@@ -1,21 +1,23 @@
 package torconfig
 
-import (
-	"net"
-	"strconv"
-)
+import "net"
 
 // Config encapsulates configuration options for a Tor relay.
 type Config struct {
 	Nickname string
-	Host     string
+	IP       net.IP
 	ORPort   uint16
 	Platform string
 	Contact  string
 	Keys     *Keys
+	Data     Data
 }
 
 // ORAddr returns the address of the relay.
 func (c Config) ORAddr() string {
-	return net.JoinHostPort(c.Host, strconv.Itoa(int(c.ORPort)))
+	addr := net.TCPAddr{
+		IP:   c.IP,
+		Port: int(c.ORPort),
+	}
+	return addr.String()
 }

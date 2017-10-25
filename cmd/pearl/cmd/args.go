@@ -1,6 +1,8 @@
 package cmd
 
 import (
+	"net"
+
 	"github.com/mmcloughlin/pearl/meta"
 	"github.com/mmcloughlin/pearl/torconfig"
 	"github.com/mmcloughlin/pearl/tordir"
@@ -28,7 +30,7 @@ func Register(f *pflag.FlagSet, modules ...Module) {
 
 type Config struct {
 	nickname string
-	host     string
+	ip       net.IP
 	port     int
 	contact  string
 	data     RelayData
@@ -36,7 +38,7 @@ type Config struct {
 
 func (c *Config) Attach(f *pflag.FlagSet) {
 	f.StringVarP(&c.nickname, "nickname", "n", "pearl", "nickname")
-	f.StringVar(&c.host, "host", "localhost", "relay host ip/fqdn")
+	f.IPVar(&c.ip, "ip", net.IPv4(127, 0, 0, 1), "relay ip")
 	f.IntVarP(&c.port, "port", "p", 9111, "relay port")
 	f.StringVar(&c.contact, "contact", "https://github.com/mmcloughlin/pearl", "contact information")
 	Register(f, &c.data)
@@ -50,11 +52,12 @@ func (c *Config) Config() (*torconfig.Config, error) {
 	}
 	return &torconfig.Config{
 		Nickname: c.nickname,
-		Host:     c.host,
+		IP:       c.ip,
 		ORPort:   uint16(c.port),
 		Platform: meta.Platform.String(),
 		Contact:  c.contact,
 		Keys:     k,
+		Data:     d,
 	}, nil
 }
 

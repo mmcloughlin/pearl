@@ -140,7 +140,7 @@ func (r *Router) Connection(hint ConnectionHint) (*Connection, error) {
 func (r *Router) Descriptor() (*tordir.ServerDescriptor, error) {
 	s := tordir.NewServerDescriptor()
 
-	if err := s.SetRouter(r.config.Nickname, net.IPv4(127, 0, 0, 1), r.config.ORPort, 0); err != nil {
+	if err := s.SetRouter(r.config.Nickname, r.config.IP, r.config.ORPort, 0); err != nil {
 		return nil, err
 	}
 	if err := s.SetSigningKey(r.IdentityKey()); err != nil {

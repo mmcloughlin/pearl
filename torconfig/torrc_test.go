@@ -1,6 +1,7 @@
 package torconfig
 
 import (
+	"net"
 	"strings"
 	"testing"
 
@@ -14,7 +15,7 @@ func TestParseTorrcFile(t *testing.T) {
 
 	expect := &Config{
 		Nickname: "JetpacksPlease",
-		Host:     "noname.example.com",
+		IP:       net.IPv4(12, 34, 56, 78),
 		ORPort:   9001,
 		Contact:  "Harm Aarts <XXXX ET XXXX>",
 	}

@@ -103,6 +103,10 @@ func serve() error {
 	if err != nil {
 		return err
 	}
+	err = config.Data.SetServerDescriptor(desc)
+	if err != nil {
+		return err
+	}
 	for _, addr := range authorities.Addresses() {
 		err = desc.PublishToAuthority(addr)
 		lg := l.With("authority", addr)
