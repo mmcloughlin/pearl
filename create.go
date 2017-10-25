@@ -26,6 +26,18 @@ var (
 	HandshakeTypeNTOR HandshakeType = 2
 )
 
+// Recognized HTAG values.
+//
+// Reference: https://github.com/torproject/torspec/blob/f9eeae509344dcfd1f185d0130a0055b00131cea/tor-spec.txt#L892-L894
+//
+//	   migration. See 5.1.2.1 below. Recognized HTAG values are:
+//	
+//	       ntor -- 'ntorNTORntorNTOR'
+//
+var (
+	HandshakeTagNTOR = "ntorNTORntorNTOR"
+)
+
 // Create2Cell represents a CREATE2 cell.
 type Create2Cell struct {
 	CircID        CircID
@@ -136,6 +148,23 @@ func (c Created2Cell) Cell() (Cell, error) {
 	copy(payload[2:], c.HandshakeData)
 
 	return cell, nil
+}
+
+// CreateRequest
+type CreateRequest struct {
+	CircID        CircID
+	CreateType    Command
+	HandshakeType HandshakeType
+	HandshakeData []byte
+}
+
+// CreateHandler handles a received CREATE cell.
+func CreateHandler(conn *Connection, c Cell) error {
+	if c.Command() != CommandCreate {
+		return ErrUnexpectedCommand
+	}
+
+	return nil
 }
 
 // Create2Handler handles a received CREATE2 cell.
