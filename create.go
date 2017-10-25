@@ -38,6 +38,18 @@ const (
 	HandshakeTagNTOR = "ntorNTORntorNTOR"
 )
 
+// TAP handshake data sizes.
+//
+// Reference: https://github.com/torproject/torspec/blob/f9eeae509344dcfd1f185d0130a0055b00131cea/tor-spec.txt#L1024-L1025
+//
+//	   Define TAP_C_HANDSHAKE_LEN as DH_LEN+KEY_LEN+PK_PAD_LEN.
+//	   Define TAP_S_HANDSHAKE_LEN as DH_LEN+HASH_LEN.
+//
+const (
+	HandshakeTAPClientLength = torcrypto.DiffieHellmanSize + torcrypto.StreamCipherKeySize + torcrypto.PublicKeyPaddingSize
+	HandshakeTAPServerLength = torcrypto.DiffieHellmanSize + torcrypto.HashSize
+)
+
 // Create2Cell represents a CREATE2 cell.
 type Create2Cell struct {
 	CircID        CircID
@@ -173,7 +185,21 @@ func CreateHandler(conn *Connection, c Cell) error {
 	//	       HDATA     (Client Handshake Data)     [TAP_C_HANDSHAKE_LEN-16 bytes]
 	//
 
-	return nil
+	req := CreateRequest{
+		CircID:     c.CircID(),
+		CreateType: CommandCreate,
+	}
+
+	p := c.Payload()
+	if bytes.HasPrefix(p, []byte(HandshakeTagNTOR)) {
+		req.HandshakeType = HandshakeTypeNTOR
+		req.HandshakeData = p[16:HandshakeTAPClientLength]
+	} else {
+		req.HandshakeType = HandshakeTypeTAP
+		req.HandshakeData = p[:HandshakeTAPClientLength]
+	}
+
+	return ProcessHandshake(conn, req)
 }
 
 // Create2Handler handles a received CREATE2 cell.
@@ -183,11 +209,22 @@ func Create2Handler(conn *Connection, c Cell) error {
 		return errors.Wrap(err, "failed to parse create2 cell")
 	}
 
-	if cr.HandshakeType != HandshakeTypeNTOR {
+	req := CreateRequest{
+		CircID:        c.CircID(),
+		CreateType:    CommandCreate,
+		HandshakeType: cr.HandshakeType,
+		HandshakeData: cr.HandshakeData,
+	}
+
+	return ProcessHandshake(conn, req)
+}
+
+func ProcessHandshake(conn *Connection, req CreateRequest) error {
+	if req.HandshakeType != HandshakeTypeNTOR {
 		return errors.New("only support NTOR handshake")
 	}
 
-	return ProcessHandshakeNTOR(conn, cr)
+	return ProcessHandshakeNTOR(conn, req)
 }
 
 // Reference: https://github.com/torproject/torspec/blob/8aaa36d1a062b20ca263b6ac613b77a3ba1eb113/tor-spec.txt#L1075-L1077
@@ -214,7 +251,7 @@ func (h ClientHandshakeDataNTOR) ClientPK() [32]byte {
 	return X
 }
 
-func ProcessHandshakeNTOR(conn *Connection, c *Create2Cell) error {
+func ProcessHandshakeNTOR(conn *Connection, c CreateRequest) error {
 	clientData := ClientHandshakeDataNTOR(c.HandshakeData)
 
 	// Verify the fingerprint matches.
