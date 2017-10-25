@@ -5,7 +5,8 @@ import "net"
 // Config encapsulates configuration options for a Tor relay.
 type Config struct {
 	Nickname         string
-	IP               net.IP
+	IP               net.IP // Relay public IP
+	ORBindIP         net.IP // OR bind address
 	ORPort           uint16
 	Platform         string
 	Contact          string
@@ -15,10 +16,10 @@ type Config struct {
 	Data             Data
 }
 
-// ORAddr returns the address of the relay.
-func (c Config) ORAddr() string {
+// ORBindAddr returns the address the relay should bind to.
+func (c Config) ORBindAddr() string {
 	addr := net.TCPAddr{
-		IP:   c.IP,
+		IP:   c.ORBindIP,
 		Port: int(c.ORPort),
 	}
 	return addr.String()

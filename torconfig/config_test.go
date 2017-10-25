@@ -7,10 +7,10 @@ import (
 
 func ExampleConfig_ORAddr() {
 	c := Config{
-		IP:     net.IPv4(13, 37, 0, 1),
-		ORPort: 9001,
+		ORBindIP: net.IPv4(13, 37, 0, 1),
+		ORPort:   9001,
 	}
-	addr := c.ORAddr()
+	addr := c.ORBindAddr()
 	fmt.Println(addr)
 	// Output:
 	// 13.37.0.1:9001

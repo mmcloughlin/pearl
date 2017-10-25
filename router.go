@@ -60,7 +60,7 @@ func (r *Router) Fingerprint() []byte {
 
 // Serve starts a listener and enters a main loop handling connections.
 func (r *Router) Serve() error {
-	laddr := r.config.ORAddr()
+	laddr := r.config.ORBindAddr()
 	r.logger.With("laddr", laddr).Info("creating listener")
 	ln, err := net.Listen("tcp", laddr)
 	if err != nil {
