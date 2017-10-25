@@ -21,8 +21,8 @@ type HandshakeType uint16
 //	       0x0001  reserved
 //	       0x0002  ntor -- the ntor+curve25519+sha256 handshake; see 5.1.4
 //
-var (
-	HandshakeTypeTAP  HandshakeType
+const (
+	HandshakeTypeTAP  HandshakeType = 0
 	HandshakeTypeNTOR HandshakeType = 2
 )
 
@@ -31,10 +31,10 @@ var (
 // Reference: https://github.com/torproject/torspec/blob/f9eeae509344dcfd1f185d0130a0055b00131cea/tor-spec.txt#L892-L894
 //
 //	   migration. See 5.1.2.1 below. Recognized HTAG values are:
-//	
+//
 //	       ntor -- 'ntorNTORntorNTOR'
 //
-var (
+const (
 	HandshakeTagNTOR = "ntorNTORntorNTOR"
 )
 
@@ -163,6 +163,15 @@ func CreateHandler(conn *Connection, c Cell) error {
 	if c.Command() != CommandCreate {
 		return ErrUnexpectedCommand
 	}
+
+	// Reference: https://github.com/torproject/torspec/blob/f9eeae509344dcfd1f185d0130a0055b00131cea/tor-spec.txt#L883-L887
+	//
+	//	   The format of a CREATE cell is one of the following:
+	//	       HDATA     (Client Handshake Data)     [TAP_C_HANDSHAKE_LEN bytes]
+	//	   or
+	//	       HTAG      (Client Handshake Type Tag) [16 bytes]
+	//	       HDATA     (Client Handshake Data)     [TAP_C_HANDSHAKE_LEN-16 bytes]
+	//
 
 	return nil
 }
