@@ -42,7 +42,7 @@ func ParseCreate2Cell(c Cell) (*Create2Cell, error) {
 	//	       HLEN      (Client Handshake Data Len) [2 bytes]
 	//	       HDATA     (Client Handshake Data)     [HLEN bytes]
 	//
-	if c.Command() != Create2 {
+	if c.Command() != CommandCreate2 {
 		return nil, ErrUnexpectedCommand
 	}
 
@@ -70,7 +70,7 @@ func ParseCreate2Cell(c Cell) (*Create2Cell, error) {
 // Cell builds a cell from the CREATE2 payload.
 func (c Create2Cell) Cell() (Cell, error) {
 	hlen := len(c.HandshakeData)
-	cell := NewFixedCell(c.CircID, Create2)
+	cell := NewFixedCell(c.CircID, CommandCreate2)
 	payload := cell.Payload()
 
 	binary.BigEndian.PutUint16(payload, uint16(c.HandshakeType))
@@ -94,7 +94,7 @@ type Created2Cell struct {
 }
 
 func ParseCreated2Cell(c Cell) (*Created2Cell, error) {
-	if c.Command() != Created2 {
+	if c.Command() != CommandCreated2 {
 		return nil, ErrUnexpectedCommand
 	}
 
@@ -128,7 +128,7 @@ func (c Created2Cell) Payload() []byte {
 
 // Cell builds a cell from the CREATED2 payload.
 func (c Created2Cell) Cell() (Cell, error) {
-	cell := NewFixedCell(c.CircID, Created2)
+	cell := NewFixedCell(c.CircID, CommandCreated2)
 	payload := cell.Payload()
 
 	hlen := len(c.HandshakeData)

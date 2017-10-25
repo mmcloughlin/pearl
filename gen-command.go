@@ -35,24 +35,24 @@ type Command byte
 //	         132 -- AUTHORIZE (Client authorization)    (Not yet used)
 //
 const (
-	Padding          Command = 0
-	Create           Command = 1
-	Created          Command = 2
-	Relay            Command = 3
-	Destroy          Command = 4
-	CreateFast       Command = 5
-	CreatedFast      Command = 6
-	Versions         Command = 7
-	Netinfo          Command = 8
-	RelayEarly       Command = 9
-	Create2          Command = 10
-	Created2         Command = 11
-	PaddingNegotiate Command = 12
-	AuthChallenge    Command = 130
-	Authenticate     Command = 131
-	Authorize        Command = 132
-	Certs            Command = 129
-	Vpadding         Command = 128
+	CommandPadding          Command = 0
+	CommandCreate           Command = 1
+	CommandCreated          Command = 2
+	CommandRelay            Command = 3
+	CommandDestroy          Command = 4
+	CommandCreateFast       Command = 5
+	CommandCreatedFast      Command = 6
+	CommandVersions         Command = 7
+	CommandNetinfo          Command = 8
+	CommandRelayEarly       Command = 9
+	CommandCreate2          Command = 10
+	CommandCreated2         Command = 11
+	CommandPaddingNegotiate Command = 12
+	CommandAuthChallenge    Command = 130
+	CommandAuthenticate     Command = 131
+	CommandAuthorize        Command = 132
+	CommandCerts            Command = 129
+	CommandVpadding         Command = 128
 )
 
 var stringsCommand = map[Command]string{

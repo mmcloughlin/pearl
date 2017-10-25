@@ -64,7 +64,7 @@ var _ CellBuilder = new(VersionsCell)
 
 // ParseVersionsCell parses a Cell into the list of supported versions.
 func ParseVersionsCell(c Cell) (*VersionsCell, error) {
-	if c.Command() != Versions {
+	if c.Command() != CommandVersions {
 		return nil, ErrUnexpectedCommand
 	}
 
@@ -88,7 +88,7 @@ func ParseVersionsCell(c Cell) (*VersionsCell, error) {
 // Cell builds the cell bytes for the versions cell.
 func (v VersionsCell) Cell() (Cell, error) {
 	n := uint16(2 * len(v.SupportedVersions))
-	c := NewCellEmptyPayload(0, Versions, n)
+	c := NewCellEmptyPayload(0, CommandVersions, n)
 	payload := c.Payload()
 	for i, version := range v.SupportedVersions {
 		binary.BigEndian.PutUint16(payload[2*i:2*i+2], uint16(version))

@@ -40,7 +40,7 @@ type CertsCell struct {
 var _ CellBuilder = new(CertsCell)
 
 func ParseCertsCell(c Cell) (*CertsCell, error) {
-	if c.Command() != Certs {
+	if c.Command() != CommandCerts {
 		return nil, ErrUnexpectedCommand
 	}
 
@@ -168,7 +168,7 @@ func (c CertsCell) Cell() (Cell, error) {
 		length += 3 + len(entry.CertDER)
 	}
 
-	cell := NewCellEmptyPayload(0, Certs, uint16(length))
+	cell := NewCellEmptyPayload(0, CommandCerts, uint16(length))
 	payload := cell.Payload()
 
 	payload[0] = byte(N)

@@ -240,13 +240,13 @@ func (c *Connection) readLoop() {
 
 		switch cell.Command() {
 		// Cells to be handled by this Connection
-		case Create2:
+		case CommandCreate2:
 			err = Create2Handler(c, cell) // XXX error return
 			if err != nil {
 				log.Err(logger, err, "failed to handle create2")
 			}
 		// Cells related to a circuit
-		case Created2, Relay, RelayEarly, Destroy:
+		case CommandCreated2, CommandRelay, CommandRelayEarly, CommandDestroy:
 			logger.Trace("directing cell to circuit channel")
 			ch, ok := c.channels.Channel(cell.CircID())
 			if !ok {
@@ -256,7 +256,7 @@ func (c *Connection) readLoop() {
 			}
 			ch <- cell
 		// Cells to be ignored
-		case Padding, Vpadding:
+		case CommandPadding, CommandVpadding:
 			logger.Debug("skipping padding cell")
 		// Something which shouldn't happen
 		default:

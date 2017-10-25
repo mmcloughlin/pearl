@@ -121,10 +121,10 @@ func (t *TransverseCircuit) receiveLoop(src, dst CircuitLink, handler func(Cell)
 		}
 
 		switch cell.Command() {
-		case Relay, RelayEarly:
+		case CommandRelay, CommandRelayEarly:
 			// TODO(mbm): count relay early cells
 			err = handler(cell)
-		case Destroy:
+		case CommandDestroy:
 			err = t.handleDestroy(cell, dst)
 		default:
 			t.logger.Error("unrecognized cell")
@@ -242,7 +242,7 @@ func (t *TransverseCircuit) handleRelayExtend2(r RelayCell) error {
 	t.Next = nextConn.GenerateCircuitLink()
 
 	// Send CREATE2 cell
-	cell := NewFixedCell(t.Next.CircID(), Create2)
+	cell := NewFixedCell(t.Next.CircID(), CommandCreate2)
 	copy(cell.Payload(), ext.HandshakeData) // BUG(mbm): overflow risk
 
 	err = t.Next.SendCell(cell)
@@ -259,7 +259,7 @@ func (t *TransverseCircuit) handleRelayExtend2(r RelayCell) error {
 		return t.destroy(CircuitErrorConnectfailed)
 	}
 
-	if cell.Command() != Created2 {
+	if cell.Command() != CommandCreated2 {
 		t.logger.Error("expected create2 cell")
 		return t.destroy(CircuitErrorProtocol)
 	}
@@ -271,7 +271,7 @@ func (t *TransverseCircuit) handleRelayExtend2(r RelayCell) error {
 	}
 
 	// Reply with EXTENDED2
-	cell = NewFixedCell(t.Prev.CircID(), Relay)
+	cell = NewFixedCell(t.Prev.CircID(), CommandRelay)
 	ext2 := NewRelayCell(RelayExtended2, 0, created2.Payload())
 	copy(cell.Payload(), ext2.Bytes())
 	t.Backward.EncryptOrigin(cell.Payload())

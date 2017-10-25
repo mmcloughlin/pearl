@@ -75,7 +75,7 @@ func NewNetInfoCellFromConn(conn net.Conn) (*NetInfoCell, error) {
 }
 
 func ParseNetInfoCell(c Cell) (*NetInfoCell, error) {
-	if c.Command() != Netinfo {
+	if c.Command() != CommandNetinfo {
 		return nil, ErrUnexpectedCommand
 	}
 
@@ -116,7 +116,7 @@ func ParseNetInfoCell(c Cell) (*NetInfoCell, error) {
 
 // Cell actually constructs the cell.
 func (n NetInfoCell) Cell() (Cell, error) {
-	c := NewFixedCell(0, Netinfo)
+	c := NewFixedCell(0, CommandNetinfo)
 	payload := c.Payload()
 
 	// timestamp

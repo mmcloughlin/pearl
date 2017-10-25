@@ -133,7 +133,7 @@ func TestParseNetInfoCell(t *testing.T) {
 }
 
 func TestParseNetInfoCellBadCommand(t *testing.T) {
-	c := NewFixedCell(0, Destroy)
+	c := NewFixedCell(0, CommandDestroy)
 	_, err := ParseNetInfoCell(c)
 	assert.Error(t, err)
 }
@@ -144,7 +144,7 @@ func TestParseNetInfoCellErrors(t *testing.T) {
 		{1, 2, 3, 4, 4, 4, 127, 0, 0, 1, 2, 0, 0},
 	}
 	for _, b := range cases {
-		c := NewFixedCell(0, Netinfo)
+		c := NewFixedCell(0, CommandNetinfo)
 		copy(c.Payload(), b)
 		_, err := ParseNetInfoCell(c)
 		assert.Error(t, err)

@@ -1,6 +1,7 @@
 pkg: pearl
 doc: Command represents a cell packet command byte.
 name: Command
+prefix: Command
 type: byte
 ref: https://github.com/torproject/torspec/blob/8aaa36d1a062b20ca263b6ac613b77a3ba1eb113/tor-spec.txt#L446-L467
 codes:

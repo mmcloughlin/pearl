@@ -32,7 +32,7 @@ func (c Command) IsVariableLength() bool {
 	//	   higher connection, variable-length cells are indicated by a command
 	//	   byte equal to 7 ("VERSIONS"), or greater than or equal to 128.
 	//
-	return (c == Versions) || (byte(c) >= 128)
+	return (c == CommandVersions) || (byte(c) >= 128)
 }
 
 // PayloadOffset computes the payload offset from the start of cell data for the

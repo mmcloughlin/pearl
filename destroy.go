@@ -34,7 +34,7 @@ func ParseDestroyCell(c Cell) (*DestroyCell, error) {
 }
 
 func (d DestroyCell) Cell() Cell {
-	c := NewFixedCell(d.CircID, Destroy)
+	c := NewFixedCell(d.CircID, CommandDestroy)
 	p := c.Payload()
 	p[0] = byte(d.Reason)
 	return c

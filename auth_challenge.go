@@ -86,7 +86,7 @@ func ParseAuthChallengeCell(c Cell) (*AuthChallengeCell, error) {
 	//	       N_Methods [2 octets]
 	//	       Methods   [2 * N_Methods octets]
 	//
-	if c.Command() != AuthChallenge {
+	if c.Command() != CommandAuthChallenge {
 		return nil, ErrUnexpectedCommand
 	}
 
@@ -127,7 +127,7 @@ func (a AuthChallengeCell) SupportsMethod(m AuthMethod) bool {
 func (a AuthChallengeCell) Cell() (Cell, error) {
 	m := len(a.Methods)
 	n := 32 + 2 + 2*m
-	c := NewCellEmptyPayload(0, AuthChallenge, uint16(n))
+	c := NewCellEmptyPayload(0, CommandAuthChallenge, uint16(n))
 	payload := c.Payload()
 
 	copy(payload, a.Challenge[:])
@@ -149,7 +149,7 @@ type AuthenticateCell struct {
 
 // ParseAuthenticateCell parses Cell c as an AUTHENTICATE cell.
 func ParseAuthenticateCell(c Cell) (*AuthenticateCell, error) {
-	if c.Command() != Authenticate {
+	if c.Command() != CommandAuthenticate {
 		return nil, ErrUnexpectedCommand
 	}
 
@@ -190,7 +190,7 @@ func (a AuthenticateCell) Cell() (Cell, error) {
 	//	        Authentication                        [AuthLen octets]
 	//
 	authLen := len(a.Authentication)
-	c := NewCellEmptyPayload(0, Authenticate, uint16(4+authLen))
+	c := NewCellEmptyPayload(0, CommandAuthenticate, uint16(4+authLen))
 	payload := c.Payload()
 
 	binary.BigEndian.PutUint16(payload, uint16(a.Method))
