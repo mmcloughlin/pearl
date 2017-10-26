@@ -41,13 +41,12 @@ func HybridDecrypt(pk *rsa.PrivateKey, z []byte) ([]byte, error) {
 
 	// Based on the C tor code we need to use RSA_PKCS1_OAEP_PADDING.
 	//
-	// Reference: https://github.com/openssl/openssl/blob/1e3f62a3823f7e3db9d403f724fd9d66f5b04cf8/doc/man3/RSA_public_encrypt.pod#L31-L35
+	// Reference: https://github.com/openssl/openssl/blob/1e3f62a3823f/doc/man3/RSA_public_encrypt.pod#L31-L34
 	//
 	//	=item RSA_PKCS1_OAEP_PADDING
-	//
+	//	
 	//	EME-OAEP as defined in PKCS #1 v2.0 with SHA-1, MGF1 and an empty
 	//	encoding parameter. This mode is recommended for all new applications.
-	//
 	//
 	p, err := rsa.DecryptOAEP(sha1.New(), nil, pk, z1, nil)
 	if err != nil {
