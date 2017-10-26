@@ -46,8 +46,8 @@ const (
 //	   Define TAP_S_HANDSHAKE_LEN as DH_LEN+HASH_LEN.
 //
 const (
-	HandshakeTAPClientLength = torcrypto.DiffieHellmanSize + torcrypto.StreamCipherKeySize + torcrypto.PublicKeyPaddingSize
-	HandshakeTAPServerLength = torcrypto.DiffieHellmanSize + torcrypto.HashSize
+	HandshakeTAPClientLength = torcrypto.DiffieHellmanPublicSize + torcrypto.StreamCipherKeySize + torcrypto.PublicKeyPaddingSize
+	HandshakeTAPServerLength = torcrypto.DiffieHellmanPublicSize + torcrypto.HashSize
 )
 
 // Create2Cell represents a CREATE2 cell.

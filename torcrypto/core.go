@@ -39,11 +39,12 @@ import (
 //	   HASH_LEN=20.
 //
 const (
-	StreamCipherKeySize  = 16
-	DiffieHellmanSize    = 128
-	PublicKeyMessageSize = 128
-	PublicKeyPaddingSize = 42
-	HashSize             = 20
+	StreamCipherKeySize     = 16
+	DiffieHellmanPublicSize = 128
+	DiffieHellmanSecretSize = 40
+	PublicKeyMessageSize    = 128
+	PublicKeyPaddingSize    = 42
+	HashSize                = 20
 )
 
 // Rand generates n bytes of cryptographic random. Panics if the read fails.
