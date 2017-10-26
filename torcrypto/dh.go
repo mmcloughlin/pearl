@@ -106,7 +106,7 @@ var (
 		"A637ED6B0BFF5CB6F406B7EDEE386BFB5A899FA5AE9F24117C4B1FE6" +
 		"49286651ECE65381FFFFFFFFFFFFFFFF"
 	p, _           = new(big.Int).SetString(dhPrimeString, 16)
-	dh             = newDHGroup(big.NewInt(1), p)
+	dh             = newDHGroup(big.NewInt(2), p)
 	privateKeyBits = uint(320)
 )
 
