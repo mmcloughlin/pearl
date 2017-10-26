@@ -5,6 +5,7 @@ import (
 	"encoding/binary"
 	"io"
 
+	"github.com/mmcloughlin/pearl/buf"
 	"github.com/mmcloughlin/pearl/log"
 	"github.com/mmcloughlin/pearl/ntor"
 	"github.com/mmcloughlin/pearl/torcrypto"
@@ -219,12 +220,118 @@ func Create2Handler(conn *Connection, c Cell) error {
 	return ProcessHandshake(conn, req)
 }
 
+// ProcessHandshake directs the creation request to the correct handshake
+// mechanism.
 func ProcessHandshake(conn *Connection, req CreateRequest) error {
-	if req.HandshakeType != HandshakeTypeNTOR {
-		return errors.New("only support NTOR handshake")
+	switch req.HandshakeType {
+	case HandshakeTypeTAP:
+		return ProcessHandshakeTAP(conn, req)
+	case HandshakeTypeNTOR:
+		return ProcessHandshakeNTOR(conn, req)
+	}
+	return errors.New("unknown handshake type")
+}
+
+// ProcessHandshakeTAP handles the "TAP" handshake.
+func ProcessHandshakeTAP(conn *Connection, c CreateRequest) error {
+	// Reference: https://github.com/torproject/torspec/blob/f9eeae509344dcfd1f185d0130a0055b00131cea/tor-spec.txt#L1027-L1037
+	//
+	//	   The payload for a CREATE cell is an 'onion skin', which consists of
+	//	   the first step of the DH handshake data (also known as g^x).  This
+	//	   value is encrypted using the "legacy hybrid encryption" algorithm
+	//	   (see 0.4 above) to the server's onion key, giving a client handshake:
+	//
+	//	       PK-encrypted:
+	//	         Padding                       [PK_PAD_LEN bytes]
+	//	         Symmetric key                 [KEY_LEN bytes]
+	//	         First part of g^x             [PK_ENC_LEN-PK_PAD_LEN-KEY_LEN bytes]
+	//	       Symmetrically encrypted:
+	//	         Second part of g^x            [DH_LEN-(PK_ENC_LEN-PK_PAD_LEN-KEY_LEN)
+	//
+
+	keys := conn.router.config.Keys
+	pub, err := torcrypto.HybridDecrypt(keys.Onion, c.HandshakeData)
+	if err != nil {
+		return errors.Wrap(err, "failed to decrypt TAP handshake data")
 	}
 
-	return ProcessHandshakeNTOR(conn, req)
+	dh, err := torcrypto.GenerateDiffieHellmanKey()
+	if err != nil {
+		return errors.Wrap(err, "failed to generate DH key")
+	}
+
+	s, err := dh.ComputeSharedSecret(pub)
+	if err != nil {
+		return errors.Wrap(err, "could not compute shared secret")
+	}
+
+	// Reference: https://github.com/torproject/torspec/blob/f9eeae509344dcfd1f185d0130a0055b00131cea/tor-spec.txt#L1059-L1060
+	//
+	//	   Once both parties have g^xy, they derive their shared circuit keys
+	//	   and 'derivative key data' value via the KDF-TOR function in 5.2.1.
+	//
+	n := 2*torcrypto.StreamCipherKeySize + 3*torcrypto.HashSize
+	d, err := torcrypto.KDFTOR(s, n)
+	if err != nil {
+		return errors.Wrap(err, "key derivation error")
+	}
+
+	// Reference: https://github.com/torproject/torspec/blob/f9eeae509344dcfd1f185d0130a0055b00131cea/tor-spec.txt#L1181-L1184
+	//
+	//	   The first HASH_LEN bytes of K form KH; the next HASH_LEN form the forward
+	//	   digest Df; the next HASH_LEN 41-60 form the backward digest Db; the next
+	//	   KEY_LEN 61-76 form Kf, and the final KEY_LEN form Kb.  Excess bytes from K
+	//	   are discarded.
+	//
+	kh, d := buf.Consume(d, torcrypto.HashSize)
+	df, d := buf.Consume(d, torcrypto.HashSize)
+	db, d := buf.Consume(d, torcrypto.HashSize)
+	kf, d := buf.Consume(d, torcrypto.StreamCipherKeySize)
+	kb, _ := buf.Consume(d, torcrypto.StreamCipherKeySize)
+
+	fwd := NewCircuitCryptoState(df, kf)
+	back := NewCircuitCryptoState(db, kb)
+
+	err = LaunchCircuit(conn, c.CircID, fwd, back)
+	if err != nil {
+		return errors.Wrap(err, "failed to launch circuit")
+	}
+
+	// Reference: https://github.com/torproject/torspec/blob/f9eeae509344dcfd1f185d0130a0055b00131cea/tor-spec.txt#L1040-L1043
+	//
+	//	   The payload for a CREATED cell, or the relay payload for an
+	//	   EXTENDED cell, contains:
+	//	         DH data (g^y)                 [DH_LEN bytes]
+	//	         Derivative key data (KH)      [HASH_LEN bytes]   <see 5.2 below>
+	//
+
+	cell := NewFixedCell(c.CircID, CommandCreated)
+	p := cell.Payload()
+	copy(p, dh.Public[:])
+	copy(p[torcrypto.DiffieHellmanPublicSize:], kh)
+
+	err = conn.SendCell(cell)
+	if err != nil {
+		return errors.Wrap(err, "could not send created cell")
+	}
+
+	conn.logger.Info("circuit created")
+
+	return nil
+}
+
+func LaunchCircuit(conn *Connection, id CircID, fwd, back *CircuitCryptoState) error {
+	lk, err := conn.NewCircuitLink(id)
+	if err != nil {
+		return errors.Wrap(err, "failed to open circuit link")
+	}
+
+	circ := NewTransverseCircuit(conn.router, lk, fwd, back, conn.logger)
+
+	// TODO(mbm): goroutine management
+	go circ.ProcessForward()
+
+	return nil
 }
 
 // Reference: https://github.com/torproject/torspec/blob/8aaa36d1a062b20ca263b6ac613b77a3ba1eb113/tor-spec.txt#L1075-L1077
@@ -294,21 +401,16 @@ func ProcessHandshakeNTOR(conn *Connection, c CreateRequest) error {
 		Kb: ntorKey.Private,
 	}
 
-	// Record results
-	lk, err := conn.NewCircuitLink(c.CircID)
-	if err != nil {
-		return errors.Wrap(err, "failed to open circuit link")
-	}
-
+	// Launch the circuit
 	fwd, back, err := BuildCircuitKeysNTOR(ntor.KDF(h))
 	if err != nil {
-		return errors.Wrap(err, "failed to build circuit")
+		return errors.Wrap(err, "failed to build circuit keys")
 	}
 
-	circ := NewTransverseCircuit(conn.router, lk, fwd, back, conn.logger)
-
-	// TODO(mbm): goroutine management
-	go circ.ProcessForward()
+	err = LaunchCircuit(conn, c.CircID, fwd, back)
+	if err != nil {
+		return errors.Wrap(err, "failed to launch circuit")
+	}
 
 	// Send reply
 	//
