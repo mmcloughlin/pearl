@@ -51,6 +51,38 @@ const (
 	HandshakeTAPServerLength = torcrypto.DiffieHellmanPublicSize + torcrypto.HashSize
 )
 
+// CreatedCell represents a CREATED cell.
+//
+// Reference: https://github.com/torproject/torspec/blob/0fd44031bfd6c6c822bfb194e54a05118c9625e2/tor-spec.txt#L896-L897
+//
+//	   The format of a CREATED cell is:
+//	       HDATA     (Server Handshake Data)     [TAP_S_HANDSHAKE_LEN bytes]
+//
+type CreatedCell struct {
+	CircID        CircID
+	HandshakeData []byte
+}
+
+func (cell *CreatedCell) UnmarshalCell(c Cell) error {
+	if c.Command() != CommandCreated {
+		return ErrUnexpectedCommand
+	}
+
+	p := c.Payload()
+	if len(p) < HandshakeTAPServerLength {
+		return ErrShortCellPayload
+	}
+
+	cell.CircID = c.CircID()
+	cell.HandshakeData = p[:HandshakeTAPServerLength]
+
+	return nil
+}
+
+func (cell *CreatedCell) Payload() []byte {
+	return cell.HandshakeData
+}
+
 // Create2Cell represents a CREATE2 cell.
 type Create2Cell struct {
 	CircID        CircID
@@ -118,28 +150,28 @@ type Created2Cell struct {
 	HandshakeData []byte
 }
 
-func ParseCreated2Cell(c Cell) (*Created2Cell, error) {
+func (cell *Created2Cell) UnmarshalCell(c Cell) error {
 	if c.Command() != CommandCreated2 {
-		return nil, ErrUnexpectedCommand
+		return ErrUnexpectedCommand
 	}
 
 	p := c.Payload()
 	n := len(p)
 
 	if n < 2 {
-		return nil, errors.New("created2 cell too short")
+		return errors.New("created2 cell too short")
 	}
 
 	hlen := binary.BigEndian.Uint16(p)
 
 	if n < int(2+hlen) {
-		return nil, errors.New("inconsistent created2 cell length")
+		return errors.New("inconsistent created2 cell length")
 	}
 
-	return &Created2Cell{
-		CircID:        c.CircID(),
-		HandshakeData: p[2 : 2+hlen],
-	}, nil
+	cell.CircID = c.CircID()
+	cell.HandshakeData = p[2 : 2+hlen]
+
+	return nil
 }
 
 // Payload returns just the payload part of the CREATED2 cell.
@@ -163,7 +195,7 @@ func (c Created2Cell) Cell() (Cell, error) {
 	return cell, nil
 }
 
-// CreateRequest
+// REVIEW(mbm): CreateRequest as an interface?
 type CreateRequest struct {
 	CircID        CircID
 	CreateType    Command

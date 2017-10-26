@@ -250,8 +250,8 @@ func (c *Connection) readLoop() {
 			if err != nil {
 				log.Err(logger, err, "failed to handle create2")
 			}
-		// Cells related to a circuit
-		case CommandCreated2, CommandRelay, CommandRelayEarly, CommandDestroy:
+			// Cells related to a circuit
+		case CommandCreated, CommandCreated2, CommandRelay, CommandRelayEarly, CommandDestroy:
 			logger.Trace("directing cell to circuit channel")
 			ch, ok := c.channels.Channel(cell.CircID())
 			if !ok {

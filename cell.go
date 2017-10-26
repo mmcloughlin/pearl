@@ -44,17 +44,26 @@ func (c Command) PayloadOffset() int {
 	return 5
 }
 
+type Payloaded interface {
+	Payload() []byte
+}
+
 // Cell represents a cell.
 type Cell interface {
 	CircID() CircID
 	Command() Command
-	Payload() []byte
+	Payloaded
 	Bytes() []byte
 }
 
 // CellBuilder can build a cell.
+// REVIEW(mbm): CellMarshaler?
 type CellBuilder interface {
 	Cell() (Cell, error)
+}
+
+type CellUnmarshaler interface {
+	UnmarshalCell(Cell) error
 }
 
 // cell is an implemenation of Cell backed by a byte array.

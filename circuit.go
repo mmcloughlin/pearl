@@ -2,6 +2,7 @@ package pearl
 
 import (
 	"crypto/cipher"
+	"encoding"
 	"encoding/binary"
 	"io"
 
@@ -169,6 +170,8 @@ func (t *TransverseCircuit) handleForwardRelay(c Cell) error {
 	}
 
 	switch r.RelayCommand() {
+	case RelayExtend:
+		return t.handleRelayExtend(r)
 	case RelayExtend2:
 		return t.handleRelayExtend2(r)
 	default:
@@ -200,7 +203,38 @@ func (t *TransverseCircuit) handleUnrecognizedCell(c Cell) error {
 	return nil
 }
 
+type extendRequest interface {
+	encoding.BinaryUnmarshaler
+	ConnectionHint
+	Handshake() []byte
+}
+
+type createdReply interface {
+	CellUnmarshaler
+	Payloaded
+}
+
+func (t *TransverseCircuit) handleRelayExtend(r RelayCell) error {
+	return t.extendCircuit(
+		r,
+		&ExtendPayload{},
+		CommandCreate,
+		&CreatedCell{},
+		RelayExtended,
+	)
+}
+
 func (t *TransverseCircuit) handleRelayExtend2(r RelayCell) error {
+	return t.extendCircuit(
+		r,
+		&Extend2Payload{},
+		CommandCreate2,
+		&Created2Cell{},
+		RelayExtended2,
+	)
+}
+
+func (t *TransverseCircuit) extendCircuit(r RelayCell, ext extendRequest, createCmd Command, created createdReply, extendedCmd RelayCommand) error {
 	// Reference: https://github.com/torproject/torspec/blob/8aaa36d1a062b20ca263b6ac613b77a3ba1eb113/tor-spec.txt#L1253-L1260
 	//
 	//	   When an onion router receives an EXTEND relay cell, it sends a CREATE
@@ -219,7 +253,6 @@ func (t *TransverseCircuit) handleRelayExtend2(r RelayCell) error {
 	}
 
 	// Parse payload
-	ext := &Extend2Payload{}
 	d, err := r.RelayData()
 	if err != nil {
 		log.Err(t.logger, err, "could not extract relay data")
@@ -242,8 +275,8 @@ func (t *TransverseCircuit) handleRelayExtend2(r RelayCell) error {
 	t.Next = nextConn.GenerateCircuitLink()
 
 	// Send CREATE2 cell
-	cell := NewFixedCell(t.Next.CircID(), CommandCreate2)
-	copy(cell.Payload(), ext.HandshakeData) // BUG(mbm): overflow risk
+	cell := NewFixedCell(t.Next.CircID(), createCmd)
+	copy(cell.Payload(), ext.Handshake()) // BUG(mbm): overflow risk
 
 	err = t.Next.SendCell(cell)
 	if err != nil {
@@ -259,26 +292,21 @@ func (t *TransverseCircuit) handleRelayExtend2(r RelayCell) error {
 		return t.destroy(CircuitErrorConnectfailed)
 	}
 
-	if cell.Command() != CommandCreated2 {
-		t.logger.Error("expected create2 cell")
-		return t.destroy(CircuitErrorProtocol)
-	}
-
-	created2, err := ParseCreated2Cell(cell)
+	err = created.UnmarshalCell(cell)
 	if err != nil {
-		log.Err(t.logger, err, "failed to parse created2 cell")
+		log.Err(t.logger, err, "failed to parse created cell")
 		return t.destroy(CircuitErrorProtocol)
 	}
 
 	// Reply with EXTENDED2
 	cell = NewFixedCell(t.Prev.CircID(), CommandRelay)
-	ext2 := NewRelayCell(RelayExtended2, 0, created2.Payload())
-	copy(cell.Payload(), ext2.Bytes())
+	extended := NewRelayCell(extendedCmd, 0, created.Payload())
+	copy(cell.Payload(), extended.Bytes())
 	t.Backward.EncryptOrigin(cell.Payload())
 
 	err = t.Prev.SendCell(cell)
 	if err != nil {
-		log.Err(t.logger, err, "failed to send relay extend cell")
+		log.Err(t.logger, err, "failed to send relay extended cell")
 		return t.destroy(CircuitErrorConnectfailed)
 	}
 
@@ -290,7 +318,6 @@ func (t *TransverseCircuit) handleRelayExtend2(r RelayCell) error {
 
 	return nil
 }
-
 func (t *TransverseCircuit) handleDestroy(c Cell, other CircuitLink) error {
 	var reason CircuitErrorCode
 	d, err := ParseDestroyCell(c)

@@ -4,7 +4,61 @@ import (
 	"encoding/binary"
 	"errors"
 	"net"
+
+	"github.com/mmcloughlin/pearl/buf"
+	"github.com/mmcloughlin/pearl/torcrypto"
 )
+
+// Reference: https://github.com/torproject/torspec/blob/0fd44031bfd6c6c822bfb194e54a05118c9625e2/tor-spec.txt#L969-L973
+//
+//	   The relay payload for an EXTEND relay cell consists of:
+//	         Address                       [4 bytes]
+//	         Port                          [2 bytes]
+//	         Onion skin                    [TAP_C_HANDSHAKE_LEN bytes]
+//	         Identity fingerprint          [HASH_LEN bytes]
+//
+
+type ExtendPayload struct {
+	IP        net.IP
+	Port      uint16
+	OnionSkin []byte
+	Identity  []byte
+}
+
+var _ ConnectionHint = new(ExtendPayload)
+
+func (e *ExtendPayload) UnmarshalBinary(p []byte) error {
+	n := 4 + 2 + HandshakeTAPClientLength + torcrypto.HashSize
+	if len(p) < n {
+		return ErrShortCellPayload
+	}
+
+	ip, p := buf.Consume(p, 4)
+	port, p := buf.Consume(p, 2)
+	e.OnionSkin, p = buf.Consume(p, HandshakeTAPClientLength)
+	e.Identity, _ = buf.Consume(p, torcrypto.HashSize)
+
+	e.IP = net.IP(ip)
+	e.Port = binary.BigEndian.Uint16(port)
+
+	return nil
+}
+
+func (e *ExtendPayload) Fingerprint() (Fingerprint, error) {
+	return NewFingerprintFromBytes(e.Identity)
+}
+
+func (e *ExtendPayload) Addresses() ([]net.Addr, error) {
+	addr := &net.TCPAddr{
+		IP:   e.IP,
+		Port: int(e.Port),
+	}
+	return []net.Addr{addr}, nil
+}
+
+func (e *ExtendPayload) Handshake() []byte {
+	return e.OnionSkin
+}
 
 // Reference: https://github.com/torproject/torspec/blob/8aaa36d1a062b20ca263b6ac613b77a3ba1eb113/tor-spec.txt#L944-L952
 //
@@ -137,4 +191,8 @@ func (e *Extend2Payload) Addresses() ([]net.Addr, error) {
 		}
 	}
 	return addrs, nil
+}
+
+func (e *Extend2Payload) Handshake() []byte {
+	return e.HandshakeData
 }
