@@ -30,6 +30,8 @@ import (
 //	   never occurs.
 //
 
+// HybridDecrypt decrypts ciphertext z with private key pk accoriding to "legacy
+// hybrid encryption".
 func HybridDecrypt(pk *rsa.PrivateKey, z []byte) ([]byte, error) {
 	if len(z) < PublicKeyMessageSize {
 		return nil, errors.New("cipher too short")
