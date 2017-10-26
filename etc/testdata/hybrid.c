@@ -27,11 +27,18 @@ void print_bytes(char *name, char *data, int n)
 //                                         const char *from, size_t fromlen,
 //                                         int padding, int warnOnFailure);
 
+
+// crypto_pk_private_decrypt(crypto_pk_t *env, char *to,
+//                           size_t tolen,
+//                           const char *from, size_t fromlen,
+//                           int padding, int warnOnFailure)
+
+
 int main(int argc, char **argv)
 {
     crypto_pk_t *pk = NULL;
     char plain[1024], cipher[1024];
-    int n = 128;
+    int n = 140;
 
     // Generate key and save to file
     pk = crypto_pk_new();
@@ -52,4 +59,10 @@ int main(int argc, char **argv)
     // Output test vector
     print_bytes("plain", plain, n);
     print_bytes("cipher", cipher, len);
+
+    // Decrypt
+    char test[1024];
+    len = crypto_pk_private_decrypt(pk, test, sizeof(test), cipher, 128, PK_PKCS1_OAEP_PADDING, 1);
+
+    print_bytes("decrypted", test, len);
 }
