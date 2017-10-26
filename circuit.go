@@ -234,7 +234,8 @@ func (t *TransverseCircuit) handleRelayExtend2(r RelayCell) error {
 	)
 }
 
-func (t *TransverseCircuit) extendCircuit(r RelayCell, ext extendRequest, createCmd Command, created createdReply, extendedCmd RelayCommand) error {
+func (t *TransverseCircuit) extendCircuit(r RelayCell, ext extendRequest,
+	createCmd Command, created createdReply, extendedCmd RelayCommand) error {
 	// Reference: https://github.com/torproject/torspec/blob/8aaa36d1a062b20ca263b6ac613b77a3ba1eb113/tor-spec.txt#L1253-L1260
 	//
 	//	   When an onion router receives an EXTEND relay cell, it sends a CREATE
