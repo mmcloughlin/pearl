@@ -8,7 +8,10 @@ import (
 )
 
 func TestHybridDecrypt(t *testing.T) {
-	k, err := LoadRSAPrivateKeyFromPEMFile("testdata/hybrid_private_key")
+	filename := "testdata/hybrid_private_key"
+	err := SetPrivateKeyPermissions(filename)
+	require.NoError(t, err)
+	k, err := LoadRSAPrivateKeyFromPEMFile(filename)
 	require.NoError(t, err)
 
 	var plain = []byte{
