@@ -240,6 +240,11 @@ func (c *Connection) readLoop() {
 
 		switch cell.Command() {
 		// Cells to be handled by this Connection
+		case CommandCreate:
+			err = CreateHandler(c, cell) // XXX error return
+			if err != nil {
+				log.Err(logger, err, "failed to handle create")
+			}
 		case CommandCreate2:
 			err = Create2Handler(c, cell) // XXX error return
 			if err != nil {
