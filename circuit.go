@@ -362,7 +362,11 @@ func (t *TransverseCircuit) extendCircuit(r RelayCell, ext extendRequest,
 	}
 
 	// Initialize circuit on the next connection
-	nextID := nextConn.circuits.Add(t.BackwardSender())
+	nextID, err := nextConn.circuits.Add(t.BackwardSender())
+	if err != nil {
+		log.Err(t.logger, err, "could not register circuit with next connection")
+		return t.destroy(CircuitErrorOrConnClosed)
+	}
 	t.Next = NewCircuitLink(nextConn, nextID, t.nch)
 
 	// Send CREATE2 cell

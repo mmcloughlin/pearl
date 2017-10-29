@@ -132,7 +132,7 @@ func NewSenderManager(outbound bool) *SenderManager {
 	}
 }
 
-func (m *SenderManager) Add(sc CellSenderCloser) CircID {
+func (m *SenderManager) Add(sc CellSenderCloser) (CircID, error) {
 	m.Lock()
 	defer m.Unlock()
 
@@ -148,6 +148,7 @@ func (m *SenderManager) Add(sc CellSenderCloser) CircID {
 	}
 
 	// BUG(mbm): potential infinite (or at least long) loop to find a new id
+	var id CircID
 	for {
 		id := GenerateCircID(msb)
 		// 0 is reserved
@@ -155,28 +156,35 @@ func (m *SenderManager) Add(sc CellSenderCloser) CircID {
 			continue
 		}
 		_, exists := m.senders[id]
-		if exists {
-			continue
+		if !exists {
+			break
 		}
-		m.senders[id] = sc
-		return id
 	}
+
+	if err := m.add(id, sc); err != nil {
+		return 0, err
+	}
+
+	return id, nil
 }
 
 func (m *SenderManager) AddWithID(id CircID, sc CellSenderCloser) error {
 	m.Lock()
 	defer m.Unlock()
 
-	if m.senders == nil {
-		return errors.New("sender manager closed")
-	}
-
 	_, exists := m.senders[id]
 	if exists {
 		return errors.New("cannot override existing sender id")
 	}
-	m.senders[id] = sc
 
+	return m.add(id, sc)
+}
+
+func (m *SenderManager) add(id CircID, sc CellSenderCloser) error {
+	if m.senders == nil {
+		return errors.New("sender manager closed")
+	}
+	m.senders[id] = sc
 	return nil
 }
 
