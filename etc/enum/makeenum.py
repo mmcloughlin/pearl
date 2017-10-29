@@ -42,10 +42,13 @@ def output(spec):
         '',
         '// All possible {name} values.',
         '//',
-        '// Insert: {ref}',
     ]
     for line in lines:
         print line.format(**spec)
+
+    refs = spec.get('refs', [spec.get('ref')])
+    for ref in refs:
+        print '// Insert: {ref}'.format(ref=ref)
 
     print 'const ('
     output_foreach_code(spec, '\t{prefix}{label_const_name} {name} = {value}')

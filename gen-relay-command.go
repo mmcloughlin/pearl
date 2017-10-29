@@ -30,22 +30,90 @@ type RelayCommand byte
 //
 //	        32..40 -- Used for hidden services; see rend-spec.txt.
 //
+// Reference: https://github.com/torproject/torspec/blob/0fd44031bfd6c6c822bfb194e54a05118c9625e2/rend-spec-v3.txt#L252-L307
+//
+//	0.5. Assigned relay cell types
+//
+//	   These relay cell types are reserved for use in the hidden service
+//	   protocol.
+//
+//	      32 -- RELAY_COMMAND_ESTABLISH_INTRO
+//
+//	            Sent from hidden service host to introduction point;
+//	            establishes introduction point. Discussed in
+//	            [REG_INTRO_POINT].
+//
+//	      33 -- RELAY_COMMAND_ESTABLISH_RENDEZVOUS
+//
+//	            Sent from client to rendezvous point; creates rendezvous
+//	            point. Discussed in [EST_REND_POINT].
+//
+//	      34 -- RELAY_COMMAND_INTRODUCE1
+//
+//	            Sent from client to introduction point; requests
+//	            introduction. Discussed in [SEND_INTRO1]
+//
+//	      35 -- RELAY_COMMAND_INTRODUCE2
+//
+//	            Sent from introduction point to hidden service host; requests
+//	            introduction. Same format as INTRODUCE1. Discussed in
+//	            [FMT_INTRO1] and [PROCESS_INTRO2]
+//
+//	      36 -- RELAY_COMMAND_RENDEZVOUS1
+//
+//	            Sent from hidden service host to rendezvous point;
+//	            attempts to join host's circuit to
+//	            client's circuit. Discussed in [JOIN_REND]
+//
+//	      37 -- RELAY_COMMAND_RENDEZVOUS2
+//
+//	            Sent from rendezvous point to client;
+//	            reports join of host's circuit to
+//	            client's circuit. Discussed in [JOIN_REND]
+//
+//	      38 -- RELAY_COMMAND_INTRO_ESTABLISHED
+//
+//	            Sent from introduction point to hidden service host;
+//	            reports status of attempt to establish introduction
+//	            point. Discussed in [INTRO_ESTABLISHED]
+//
+//	      39 -- RELAY_COMMAND_RENDEZVOUS_ESTABLISHED
+//
+//	            Sent from rendezvous point to client; acknowledges
+//	            receipt of ESTABLISH_RENDEZVOUS cell. Discussed in
+//	            [EST_REND_POINT]
+//
+//	      40 -- RELAY_COMMAND_INTRODUCE_ACK
+//
+//	            Sent from introduction point to client; acknowledges
+//	            receipt of INTRODUCE1 cell and reports success/failure.
+//	            Discussed in [INTRO_ACK]
+//
 const (
-	RelayBegin     RelayCommand = 1
-	RelayData      RelayCommand = 2
-	RelayEnd       RelayCommand = 3
-	RelayConnected RelayCommand = 4
-	RelaySendme    RelayCommand = 5
-	RelayExtend    RelayCommand = 6
-	RelayExtended  RelayCommand = 7
-	RelayTruncate  RelayCommand = 8
-	RelayTruncated RelayCommand = 9
-	RelayDrop      RelayCommand = 10
-	RelayResolve   RelayCommand = 11
-	RelayResolved  RelayCommand = 12
-	RelayBeginDir  RelayCommand = 13
-	RelayExtend2   RelayCommand = 14
-	RelayExtended2 RelayCommand = 15
+	RelayBegin                              RelayCommand = 1
+	RelayData                               RelayCommand = 2
+	RelayEnd                                RelayCommand = 3
+	RelayConnected                          RelayCommand = 4
+	RelaySendme                             RelayCommand = 5
+	RelayExtend                             RelayCommand = 6
+	RelayExtended                           RelayCommand = 7
+	RelayTruncate                           RelayCommand = 8
+	RelayTruncated                          RelayCommand = 9
+	RelayDrop                               RelayCommand = 10
+	RelayResolve                            RelayCommand = 11
+	RelayResolved                           RelayCommand = 12
+	RelayBeginDir                           RelayCommand = 13
+	RelayExtend2                            RelayCommand = 14
+	RelayExtended2                          RelayCommand = 15
+	RelayHiddenServiceEstablishIntro        RelayCommand = 32
+	RelayHiddenServiceEstablishRendezvous   RelayCommand = 33
+	RelayHiddenServiceIntroduce1            RelayCommand = 34
+	RelayHiddenServiceIntroduce2            RelayCommand = 35
+	RelayHiddenServiceRendezvous1           RelayCommand = 36
+	RelayHiddenServiceRendezvous2           RelayCommand = 37
+	RelayHiddenServiceIntroEstablished      RelayCommand = 38
+	RelayHiddenServiceRendezvousEstablished RelayCommand = 39
+	RelayHiddenServiceIntroduceAck          RelayCommand = 40
 )
 
 var stringsRelayCommand = map[RelayCommand]string{
@@ -64,6 +132,15 @@ var stringsRelayCommand = map[RelayCommand]string{
 	13: "RELAY_BEGIN_DIR",
 	14: "RELAY_EXTEND2",
 	15: "RELAY_EXTENDED2",
+	32: "RELAY_HIDDEN_SERVICE_ESTABLISH_INTRO",
+	33: "RELAY_HIDDEN_SERVICE_ESTABLISH_RENDEZVOUS",
+	34: "RELAY_HIDDEN_SERVICE_INTRODUCE1",
+	35: "RELAY_HIDDEN_SERVICE_INTRODUCE2",
+	36: "RELAY_HIDDEN_SERVICE_RENDEZVOUS1",
+	37: "RELAY_HIDDEN_SERVICE_RENDEZVOUS2",
+	38: "RELAY_HIDDEN_SERVICE_INTRO_ESTABLISHED",
+	39: "RELAY_HIDDEN_SERVICE_RENDEZVOUS_ESTABLISHED",
+	40: "RELAY_HIDDEN_SERVICE_INTRODUCE_ACK",
 }
 
 func (r RelayCommand) String() string {

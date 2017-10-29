@@ -2,7 +2,9 @@ pkg: pearl
 doc: RelayCommand represents a relay cell command byte.
 name: RelayCommand
 type: byte
-ref: https://github.com/torproject/torspec/blob/8aaa36d1a062b20ca263b6ac613b77a3ba1eb113/tor-spec.txt#L1422-L1439
+refs:
+    - https://github.com/torproject/torspec/blob/8aaa36d1a062b20ca263b6ac613b77a3ba1eb113/tor-spec.txt#L1422-L1439
+    - https://github.com/torproject/torspec/blob/0fd44031bfd6c6c822bfb194e54a05118c9625e2/rend-spec-v3.txt#L252-L307
 codes:
     1: RELAY_BEGIN
     2: RELAY_DATA
@@ -19,3 +21,13 @@ codes:
     13: RELAY_BEGIN_DIR
     14: RELAY_EXTEND2
     15: RELAY_EXTENDED2
+    # hidden service commands
+    32: RELAY_HIDDEN_SERVICE_ESTABLISH_INTRO
+    33: RELAY_HIDDEN_SERVICE_ESTABLISH_RENDEZVOUS
+    34: RELAY_HIDDEN_SERVICE_INTRODUCE1
+    35: RELAY_HIDDEN_SERVICE_INTRODUCE2
+    36: RELAY_HIDDEN_SERVICE_RENDEZVOUS1
+    37: RELAY_HIDDEN_SERVICE_RENDEZVOUS2
+    38: RELAY_HIDDEN_SERVICE_INTRO_ESTABLISHED
+    39: RELAY_HIDDEN_SERVICE_RENDEZVOUS_ESTABLISHED
+    40: RELAY_HIDDEN_SERVICE_INTRODUCE_ACK
