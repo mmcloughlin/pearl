@@ -1,6 +1,7 @@
 package pearl
 
 import (
+	"bufio"
 	"io"
 	"net"
 
@@ -11,6 +12,11 @@ import (
 
 	"github.com/mmcloughlin/pearl/log"
 	"github.com/pkg/errors"
+)
+
+const (
+	maxTLSRecordSize      = 16384 // 16 KiB
+	defaultReadBufferSize = 2 * maxTLSRecordSize
 )
 
 // Connection encapsulates a router connection.
@@ -55,9 +61,8 @@ func NewClient(r *Router, conn net.Conn, logger log.Logger) (*Connection, error)
 
 func newConnection(r *Router, tlsCtx *TLSContext, tlsConn *tls.Conn, outbound bool, logger log.Logger) *Connection {
 	connID := NewConnID()
-	rw := tlsConn // TODO(mbm): use bufio
-	rd := r.metrics.Inbound.WrapReader(rw)
-	wr := r.metrics.Outbound.WrapWriter(rw)
+	rd := bufio.NewReaderSize(r.metrics.Inbound.WrapReader(tlsConn), defaultReadBufferSize)
+	wr := r.metrics.Outbound.WrapWriter(tlsConn) // TODO(mbm): use bufio
 	r.metrics.Connections.Alloc()
 	return &Connection{
 		router:      r,
