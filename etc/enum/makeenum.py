@@ -59,12 +59,12 @@ def output(spec):
     output_foreach_code(spec, '\t{value}: "{label}",')
     print '}'
 
-
+    spec['str_var'] = 's' if spec['receiver'] != 's' else 'str'
     print '''
     func ({receiver} {name}) String() string {{
-        s, ok := {string_map_var}[{receiver}]
+        {str_var}, ok := {string_map_var}[{receiver}]
         if ok {{
-            return s
+            return {str_var}
         }}
         return fmt.Sprintf("{name}(%d)", {type}({receiver}))
     }}

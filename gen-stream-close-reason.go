@@ -65,9 +65,9 @@ var stringsStreamCloseReason = map[StreamCloseReason]string{
 }
 
 func (s StreamCloseReason) String() string {
-	s, ok := stringsStreamCloseReason[s]
+	str, ok := stringsStreamCloseReason[s]
 	if ok {
-		return s
+		return str
 	}
 	return fmt.Sprintf("StreamCloseReason(%d)", byte(s))
 }
