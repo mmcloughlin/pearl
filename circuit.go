@@ -5,6 +5,7 @@ import (
 	"encoding"
 	"encoding/binary"
 	"io"
+	"sync"
 
 	"go.uber.org/multierr"
 
@@ -12,6 +13,10 @@ import (
 	"github.com/mmcloughlin/pearl/fork/sha1"
 	"github.com/mmcloughlin/pearl/log"
 	"github.com/mmcloughlin/pearl/torcrypto"
+)
+
+const (
+	defaultCircuitChannelBuffer = 16
 )
 
 // GenerateCircID generates a 4-byte circuit ID with the given most significant bit.
@@ -87,61 +92,141 @@ func (c *CircuitCryptoState) Encrypt(b []byte) {
 // TransverseCircuit is a circuit transiting through the relay.
 type TransverseCircuit struct {
 	Router   *Router
-	Prev     CircuitLink
-	Next     CircuitLink
+	Conn     *Connection
 	Forward  *CircuitCryptoState
 	Backward *CircuitCryptoState
-	logger   log.Logger
+
+	Prev   CircuitLink
+	Next   CircuitLink
+	pch    *CellChan
+	nch    *CellChan
+	done   chan struct{}
+	reason CircuitErrorCode
+	once   sync.Once
+	wg     sync.WaitGroup
+
+	logger log.Logger
 }
 
-func NewTransverseCircuit(r *Router, prev CircuitLink, fwd, back *CircuitCryptoState, l log.Logger) *TransverseCircuit {
+func NewTransverseCircuit(conn *Connection, id CircID, fwd, back *CircuitCryptoState, l log.Logger) *TransverseCircuit {
+	done := make(chan struct{})
+	pch := NewCellChan(make(chan Cell, defaultCircuitChannelBuffer), done)
+	nch := NewCellChan(make(chan Cell, defaultCircuitChannelBuffer), done)
+	r := conn.router
 	circ := &TransverseCircuit{
 		Router:   r,
-		Prev:     prev,
+		Conn:     conn,
 		Forward:  fwd,
 		Backward: back,
-		logger:   log.ForComponent(l, "transverse_circuit").With("circid", prev.CircID()),
+
+		Prev:   NewCircuitLink(conn, id, pch),
+		Next:   nil,
+		pch:    pch,
+		nch:    nch,
+		done:   done,
+		reason: CircuitErrorNone,
+
+		logger: log.ForComponent(l, "transverse_circuit").With("circid", id),
 	}
+
 	r.metrics.Circuits.Alloc()
+
+	circ.wg.Add(1)
+	go circ.loop()
+
 	return circ
 }
 
-// ProcessForward executes a runloop processing cells intended for this circuit.
-func (t *TransverseCircuit) ProcessForward() {
-	t.receiveLoop(t.Prev, t.Next, t.handleForwardRelay)
+func (t *TransverseCircuit) Close() error {
+	_ = t.destroy(CircuitErrorOrConnClosed) // XXX error reason
+	t.wg.Wait()
+	return nil
 }
 
-func (t *TransverseCircuit) receiveLoop(src, dst CircuitLink, handler func(Cell) error) {
+func (t *TransverseCircuit) ForwardSender() CellSenderCloser {
+	return NewLink(t.pch, nil, t)
+}
+
+func (t *TransverseCircuit) BackwardSender() CellSenderCloser {
+	return NewLink(t.nch, nil, t)
+}
+
+func (t *TransverseCircuit) loop() {
 	var err error
-
-	for {
-		var cell Cell
-		cell, err = src.ReceiveCell()
-		if err != nil {
-			break
-		}
-
-		switch cell.Command() {
-		case CommandRelay, CommandRelayEarly:
-			// TODO(mbm): count relay early cells
-			err = handler(cell)
-		case CommandDestroy:
-			err = t.handleDestroy(cell, dst)
-		default:
-			t.logger.Error("unrecognized cell")
-			err = t.destroy(CircuitErrorProtocol)
-		}
-
-		if err != nil {
-			break
-		}
+	for err == nil {
+		err = t.oneCell()
 	}
 
 	if err != nil && !check.EOF(err) {
-		log.Err(t.logger, err, "error in circuit handling")
+		log.Err(t.logger, err, "circuit handling error")
 	}
 
-	t.logger.Debug("receive loop exit")
+	if err := t.cleanup(); err != nil {
+		log.WithErr(t.logger, err).Debug("circuit cleanup error")
+	}
+
+	t.wg.Done()
+}
+
+func (t *TransverseCircuit) oneCell() error {
+	select {
+	case <-t.done:
+		return io.EOF
+	default:
+	}
+
+	var cell Cell
+	var handler func(Cell) error
+	var other CircuitLink
+
+	select {
+	case <-t.done:
+		return io.EOF
+	case cell = <-t.pch.C:
+		handler = t.handleForwardRelay
+		other = t.Next
+	case cell = <-t.nch.C:
+		handler = t.handleBackwardRelay
+		other = t.Prev
+	}
+
+	switch cell.Command() {
+	case CommandRelay, CommandRelayEarly:
+		// TODO(mbm): count relay early cells
+		return handler(cell)
+	case CommandDestroy:
+		return t.handleDestroy(cell, other)
+	default:
+		t.logger.Error("unrecognized cell")
+		return t.destroy(CircuitErrorProtocol)
+	}
+}
+
+func (t *TransverseCircuit) cleanup() error {
+	var result error
+
+	for _, c := range []CircuitLink{t.Prev, t.Next} {
+		if c == nil {
+			continue
+		}
+		err := c.Destroy(t.reason)
+		if err != nil {
+			result = multierr.Append(result, err)
+		}
+	}
+
+	t.logger.Info("cleanup circuit")
+	t.Router.metrics.Circuits.Free()
+
+	return result
+}
+
+func (t *TransverseCircuit) destroy(reason CircuitErrorCode) error {
+	t.once.Do(func() {
+		t.reason = reason
+		close(t.done)
+	})
+	return io.EOF
 }
 
 func (t *TransverseCircuit) handleForwardRelay(c Cell) error {
@@ -185,7 +270,7 @@ func (t *TransverseCircuit) handleForwardRelay(c Cell) error {
 func (t *TransverseCircuit) handleUnrecognizedCell(c Cell) error {
 	if t.Next == nil {
 		t.logger.Warn("no next hop")
-		return t.destroyWithHops(CircuitErrorProtocol, t.Prev)
+		return t.destroy(CircuitErrorProtocol)
 	}
 
 	// Clone the cell but swap out the circuit ID.
@@ -273,7 +358,8 @@ func (t *TransverseCircuit) extendCircuit(r RelayCell, ext extendRequest,
 	}
 
 	// Initialize circuit on the next connection
-	t.Next = nextConn.GenerateCircuitLink()
+	nextID := nextConn.circuits.Add(t.BackwardSender())
+	t.Next = NewCircuitLink(nextConn, nextID, t.nch)
 
 	// Send CREATE2 cell
 	cell := NewFixedCell(t.Next.CircID(), createCmd)
@@ -311,10 +397,6 @@ func (t *TransverseCircuit) extendCircuit(r RelayCell, ext extendRequest,
 		return t.destroy(CircuitErrorConnectfailed)
 	}
 
-	// TODO(mbm): better goroutine management
-	// Process cells received from the next hop
-	go t.ProcessBackward()
-
 	t.logger.Info("circuit extended")
 
 	return nil
@@ -329,42 +411,7 @@ func (t *TransverseCircuit) handleDestroy(c Cell, other CircuitLink) error {
 		reason = d.Reason
 	}
 
-	return t.destroyWithHops(reason, other)
-}
-
-func (t *TransverseCircuit) destroyWithHops(reason CircuitErrorCode, hops ...CircuitLink) error {
-	t.logger.With("reason", reason).Info("destroying circuit")
-	return multierr.Combine(
-		t.free(),
-		announceDestroy(reason, hops...),
-	)
-}
-
-func (t *TransverseCircuit) destroy(reason CircuitErrorCode) error {
-	return t.destroyWithHops(reason, t.Prev, t.Next)
-}
-
-func (t *TransverseCircuit) free() error {
-	var result error
-
-	t.Router.metrics.Circuits.Free()
-
-	for _, c := range []io.Closer{t.Prev, t.Next} {
-		if c == nil {
-			continue
-		}
-		if err := c.Close(); err != nil {
-			result = multierr.Append(result, err)
-		}
-	}
-
-	return result
-}
-
-// ProcessBackward executes a runloop processing cells to be sent back in the
-// direction of the originator of the circuit.
-func (t *TransverseCircuit) ProcessBackward() {
-	t.receiveLoop(t.Next, t.Prev, t.handleBackwardRelay)
+	return t.destroy(reason)
 }
 
 func (t *TransverseCircuit) handleBackwardRelay(c Cell) error {
@@ -385,20 +432,6 @@ func (t *TransverseCircuit) handleBackwardRelay(c Cell) error {
 	}
 
 	return nil
-}
-
-func announceDestroy(reason CircuitErrorCode, hops ...CircuitLink) error {
-	var result error
-	for _, hop := range hops {
-		if hop == nil {
-			continue
-		}
-		d := NewDestroyCell(hop.CircID(), reason)
-		if err := hop.SendCell(d.Cell()); err != nil {
-			result = multierr.Append(result, err)
-		}
-	}
-	return result
 }
 
 func relayCellIsRecogized(r RelayCell, cs *CircuitCryptoState) bool {

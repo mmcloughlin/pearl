@@ -6,6 +6,7 @@ import (
 	"io"
 
 	"github.com/mmcloughlin/pearl/buf"
+	"github.com/mmcloughlin/pearl/check"
 	"github.com/mmcloughlin/pearl/log"
 	"github.com/mmcloughlin/pearl/ntor"
 	"github.com/mmcloughlin/pearl/torcrypto"
@@ -353,15 +354,13 @@ func ProcessHandshakeTAP(conn *Connection, c CreateRequest) error {
 }
 
 func LaunchCircuit(conn *Connection, id CircID, fwd, back *CircuitCryptoState) error {
-	lk, err := conn.NewCircuitLink(id)
+	circ := NewTransverseCircuit(conn, id, fwd, back, conn.logger)
+
+	err := conn.circuits.AddWithID(id, circ.ForwardSender())
 	if err != nil {
-		return errors.Wrap(err, "failed to open circuit link")
+		check.Close(conn.logger, circ)
+		return errors.Wrap(err, "failed to register circuit link")
 	}
-
-	circ := NewTransverseCircuit(conn.router, lk, fwd, back, conn.logger)
-
-	// TODO(mbm): goroutine management
-	go circ.ProcessForward()
 
 	return nil
 }
