@@ -7,18 +7,18 @@ import (
 )
 
 type Bandwidth struct {
-	c tally.Counter
+	tally.Counter
 }
 
 func NewBandwidth(c tally.Counter) *Bandwidth {
 	return &Bandwidth{
-		c: c,
+		Counter: c,
 	}
 }
 
 func (b *Bandwidth) Write(d []byte) (int, error) {
 	n := len(d)
-	b.c.Inc(int64(n))
+	b.Inc(int64(n))
 	return n, nil
 }
 

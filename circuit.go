@@ -93,6 +93,7 @@ func (c *CircuitCryptoState) Encrypt(b []byte) {
 type TransverseCircuit struct {
 	Router   *Router
 	Conn     *Connection
+	Metrics  *Metrics
 	Forward  *CircuitCryptoState
 	Backward *CircuitCryptoState
 
@@ -116,6 +117,7 @@ func NewTransverseCircuit(conn *Connection, id CircID, fwd, back *CircuitCryptoS
 	circ := &TransverseCircuit{
 		Router:   r,
 		Conn:     conn,
+		Metrics:  r.metrics,
 		Forward:  fwd,
 		Backward: back,
 
@@ -129,7 +131,7 @@ func NewTransverseCircuit(conn *Connection, id CircID, fwd, back *CircuitCryptoS
 		logger: log.ForComponent(l, "transverse_circuit").With("circid", id),
 	}
 
-	r.metrics.Circuits.Alloc()
+	circ.Metrics.Circuits.Alloc()
 
 	circ.wg.Add(1)
 	go circ.loop()
@@ -216,7 +218,7 @@ func (t *TransverseCircuit) cleanup() error {
 	}
 
 	t.logger.Info("cleanup circuit")
-	t.Router.metrics.Circuits.Free()
+	t.Metrics.Circuits.Free()
 
 	return result
 }
@@ -284,6 +286,8 @@ func (t *TransverseCircuit) handleUnrecognizedCell(c Cell) error {
 		t.logger.Warn("could not forward cell")
 		return t.destroy(CircuitErrorConnectfailed)
 	}
+
+	t.Metrics.RelayForward.Inc(int64(len(c.Payload())))
 
 	return nil
 }
@@ -430,6 +434,8 @@ func (t *TransverseCircuit) handleBackwardRelay(c Cell) error {
 		t.logger.Warn("could not forward cell")
 		return t.destroy(CircuitErrorConnectfailed)
 	}
+
+	t.Metrics.RelayBackward.Inc(int64(len(c.Payload())))
 
 	return nil
 }
