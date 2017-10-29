@@ -166,11 +166,17 @@ func (m *SenderManager) Add(sc CellSenderCloser) CircID {
 func (m *SenderManager) AddWithID(id CircID, sc CellSenderCloser) error {
 	m.Lock()
 	defer m.Unlock()
+
+	if m.senders == nil {
+		return errors.New("sender manager closed")
+	}
+
 	_, exists := m.senders[id]
 	if exists {
 		return errors.New("cannot override existing sender id")
 	}
 	m.senders[id] = sc
+
 	return nil
 }
 
