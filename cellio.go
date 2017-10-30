@@ -150,7 +150,7 @@ func (m *SenderManager) Add(sc CellSenderCloser) (CircID, error) {
 	// BUG(mbm): potential infinite (or at least long) loop to find a new id
 	var id CircID
 	for {
-		id := GenerateCircID(msb)
+		id = GenerateCircID(msb)
 		// 0 is reserved
 		if id == 0 {
 			continue
