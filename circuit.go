@@ -225,6 +225,7 @@ func (t *TransverseCircuit) cleanup() error {
 
 func (t *TransverseCircuit) destroy(reason CircuitErrorCode) error {
 	t.once.Do(func() {
+		t.logger.With("reason", reason).Info("marking circuit for destruction")
 		t.reason = reason
 		close(t.done)
 	})
@@ -417,6 +418,7 @@ func (t *TransverseCircuit) handleDestroy(c Cell, other CircuitLink) error {
 		reason = CircuitErrorNone
 	} else if d != nil {
 		reason = d.Reason
+		t.logger.With("reason", reason).Debug("received destroy cell")
 	}
 
 	return t.destroy(reason)
