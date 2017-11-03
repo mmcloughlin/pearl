@@ -99,23 +99,13 @@ func serve() error {
 	}()
 
 	// Publish to directory authorities
-	desc, err := r.Descriptor()
-	if err != nil {
-		return err
+	p := &pearl.Publisher{
+		Router:      r,
+		Interval:    16 * time.Hour,
+		Authorities: authorities.Addresses(),
+		Logger:      l,
 	}
-	err = config.Data.SetServerDescriptor(desc)
-	if err != nil {
-		return err
-	}
-	for _, addr := range authorities.Addresses() {
-		err = desc.PublishToAuthority(addr)
-		lg := l.With("authority", addr)
-		if err != nil {
-			log.Err(lg, err, "failed to publish descriptor")
-		} else {
-			lg.Info("published descriptor")
-		}
-	}
+	go p.Start()
 
 	select {}
 }
