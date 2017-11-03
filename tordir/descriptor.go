@@ -25,6 +25,7 @@ const (
 	routerKeyword          = "router"
 	bandwidthKeyword       = "bandwidth"
 	publishedKeyword       = "published"
+	uptimeKeyword          = "uptime"
 	onionKeyKeyword        = "onion-key"
 	signingKeyKeyword      = "signing-key"
 	fingerprintKeyword     = "fingerprint"
@@ -185,6 +186,22 @@ func (d *ServerDescriptor) SetPublishedTime(t time.Time) {
 		t.In(time.UTC).Format("2006-01-02 15:04:05"),
 	}
 	d.addItem(NewItem(publishedKeyword, args))
+}
+
+// SetUptime sets the uptime of the server.
+//
+// Reference: https://github.com/torproject/torspec/blob/f66d1826c0b32d307898bba081dbf8ef598d4037/dir-spec.txt#L471-L475
+//
+//	    "uptime" number NL
+//	
+//	       [At most once]
+//	
+//	       The number of seconds that this OR process has been running.
+//
+func (d *ServerDescriptor) SetUptime(dur time.Duration) {
+	d.addItem(NewItem(uptimeKeyword, []string{
+		strconv.Itoa(int(dur.Seconds())),
+	}))
 }
 
 // SetExitPolicy adds a specification of the given exit policy to the
