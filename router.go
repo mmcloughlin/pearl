@@ -18,6 +18,7 @@ import (
 // Router is a Tor router.
 type Router struct {
 	config      *torconfig.Config
+	startTime   time.Time
 	fingerprint []byte
 
 	connections *ConnectionManager
@@ -40,6 +41,7 @@ func NewRouter(config *torconfig.Config, scope tally.Scope, logger log.Logger) (
 	logger = log.ForComponent(logger, "router")
 	return &Router{
 		config:      config,
+		startTime:   time.Now(),
 		fingerprint: fingerprint,
 		connections: NewConnectionManager(),
 		metrics:     NewMetrics(scope, logger),
@@ -156,6 +158,7 @@ func (r *Router) Descriptor() (*tordir.ServerDescriptor, error) {
 	// TODO(mbm): publish real bandwidth values
 	s.SetBandwidth(r.config.BandwidthAverage, r.config.BandwidthBurst, r.config.BandwidthAverage)
 	s.SetPublishedTime(time.Now())
+	s.SetUptime(time.Since(r.startTime))
 	s.SetExitPolicy(torexitpolicy.RejectAllPolicy)
 	s.SetProtocols(meta.Protocols)
 
