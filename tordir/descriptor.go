@@ -193,9 +193,9 @@ func (d *ServerDescriptor) SetPublishedTime(t time.Time) {
 // Reference: https://github.com/torproject/torspec/blob/f66d1826c0b32d307898bba081dbf8ef598d4037/dir-spec.txt#L471-L475
 //
 //	    "uptime" number NL
-//	
+//
 //	       [At most once]
-//	
+//
 //	       The number of seconds that this OR process has been running.
 //
 func (d *ServerDescriptor) SetUptime(dur time.Duration) {
