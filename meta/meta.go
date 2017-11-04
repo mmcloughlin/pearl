@@ -31,6 +31,6 @@ var Protocols = protover.SupportedProtocols{
 		protover.SingleVersion(1),
 	},
 	protover.Relay: []protover.VersionRange{
-		protover.SingleVersion(2),
+		protover.NewVersionRange(1, 2),
 	},
 }
