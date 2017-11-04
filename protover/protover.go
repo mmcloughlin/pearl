@@ -8,6 +8,54 @@ import (
 	"strings"
 )
 
+// Reference: https://github.com/torproject/torspec/blob/f66d1826c0b32d307898bba081dbf8ef598d4037/tor-spec.txt#L1842-L1854
+//
+//	   Starting in version 0.2.9.4-alpha, the initial required protocols for
+//	   clients that we will Recommend and Require are:
+//
+//	      Cons=1-2 Desc=1-2 DirCache=1 HSDir=2 HSIntro=3 HSRend=1 Link=4
+//	      LinkAuth=1 Microdesc=1-2 Relay=2
+//
+//	   For relays we will Require:
+//
+//	      Cons=1 Desc=1 DirCache=1 HSDir=2 HSIntro=3 HSRend=1 Link=3-4
+//	      LinkAuth=1 Microdesc=1 Relay=1-2
+//
+//	   For relays, we will additionally Recommend all protocols which we
+//	   recommend for clients.
+//
+
+// Expectations for client and relay implementations.
+var (
+	ClientRequired = SupportedProtocols{
+		Cons:      {NewVersionRange(1, 2)},
+		Desc:      {NewVersionRange(1, 2)},
+		DirCache:  {SingleVersion(1)},
+		HSDir:     {SingleVersion(2)},
+		HSIntro:   {SingleVersion(3)},
+		HSRend:    {SingleVersion(1)},
+		Link:      {SingleVersion(4)},
+		LinkAuth:  {SingleVersion(1)},
+		Microdesc: {NewVersionRange(1, 2)},
+		Relay:     {SingleVersion(2)},
+	}
+	ClientRecommended = ClientRequired
+
+	RelayRequired = SupportedProtocols{
+		Cons:      {SingleVersion(1)},
+		Desc:      {SingleVersion(1)},
+		DirCache:  {SingleVersion(1)},
+		HSDir:     {SingleVersion(2)},
+		HSIntro:   {SingleVersion(3)},
+		HSRend:    {SingleVersion(1)},
+		Link:      {NewVersionRange(3, 4)},
+		LinkAuth:  {SingleVersion(1)},
+		Microdesc: {SingleVersion(1)},
+		Relay:     {NewVersionRange(1, 2)},
+	}
+	RelayRecommended = ClientRecommended
+)
+
 // Reference: https://github.com/torproject/tor/blob/d8604b8729b24f964d78d188b89493098d3eb92b/src/or/protover.c#L34-L49
 //
 //	/** Mapping between protocol type string and protocol type. */
