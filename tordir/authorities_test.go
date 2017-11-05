@@ -3,6 +3,7 @@ package tordir
 import (
 	"io/ioutil"
 	"net/http"
+	"sort"
 	"testing"
 
 	"github.com/jarcoal/httpmock"
@@ -38,4 +39,13 @@ func TestSearchAuthorityDirectoryAddressesError(t *testing.T) {
 	responder := httpmock.NewStringResponder(200, "bad json")
 	_, err := SearchWithResponder(responder)
 	assert.Error(t, err)
+}
+
+func TestAuthoritiesListIsUpToDate(t *testing.T) {
+	t.Skip()
+	addrs, err := SearchAuthorityDirectoryAddresses()
+	require.NoError(t, err)
+	sort.Strings(Authorities)
+	sort.Strings(addrs)
+	assert.Equal(t, Authorities, addrs)
 }
