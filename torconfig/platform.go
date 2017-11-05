@@ -30,6 +30,12 @@ func NewPlatformHostOS(software, version string) Platform {
 	return NewPlatform(software, version, runtime.GOOS)
 }
 
+// NewOfficialPlatform constructs a new Platform object for official Tor of the
+// given version.
+func NewOfficialPlatform(version string) Platform {
+	return NewPlatformHostOS("Tor", version)
+}
+
 // String converts Platform to the standard string representation seen in
 // server descriptors.
 func (p Platform) String() string {
