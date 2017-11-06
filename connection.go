@@ -96,6 +96,10 @@ func (c *Connection) ConnID() ConnID {
 	return c.connID
 }
 
+func (c *Connection) PeerAuthenticated() bool {
+	return c.fingerprint != nil
+}
+
 // Fingerprint returns the fingerprint of the connected peer.
 func (c *Connection) Fingerprint() (Fingerprint, error) {
 	if c.fingerprint == nil {
@@ -116,8 +120,10 @@ func (c *Connection) Serve() error {
 	c.fingerprint = h.PeerFingerprint
 	c.logger.Info("handshake complete")
 
-	if err := c.router.connections.AddConnection(c); err != nil {
-		return err
+	if c.PeerAuthenticated() {
+		if err := c.router.connections.AddConnection(c); err != nil {
+			return err
+		}
 	}
 
 	c.loop()

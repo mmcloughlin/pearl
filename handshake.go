@@ -105,10 +105,29 @@ func (c *Handshake) Server() error {
 		return errors.Wrap(err, "could not send auth challenge cell")
 	}
 
-	// Receive CERTS cell
+	// Save digest prior to NETINFO
+	outboundDigest := c.Link.OutboundDigest()
+
+	// Send NETINFO
+	err = c.sendNetInfoCell()
+	if err != nil {
+		return errors.Wrap(err, "failed to send net info")
+	}
+
+	// Receive next cell
 	cell, err := c.Link.ReceiveCell()
 	if err != nil {
 		return errors.Wrap(err, "could not read cell")
+	}
+
+	// Reference: https://github.com/torproject/torspec/blob/f66d1826c0b32d307898bba081dbf8ef598d4037/tor-spec.txt#L262-L263
+	//
+	//	   cell to the initiator, which may send either CERTS, AUTHENTICATE,
+	//	   NETINFO if it wants to authenticate, or just NETINFO if it does not.
+	//
+
+	if cell.Command() == CommandNetinfo {
+		return c.processNetInfo(cell)
 	}
 
 	peerCertsCell, err := ParseCertsCell(cell)
@@ -138,7 +157,7 @@ func (c *Handshake) Server() error {
 	a := AuthRSASHA256TLSSecret{
 		ClientIdentityKey: clientIdentityKey,
 		ServerIdentityKey: c.IdentityKey,
-		ServerLogHash:     c.Link.OutboundDigest(),
+		ServerLogHash:     outboundDigest,
 		ClientLogHash:     c.Link.InboundDigest(),
 		ServerLinkCert:    c.TLSContext.LinkCert.Raw,
 		TLSMasterSecret:   cs.MasterSecret,
@@ -186,27 +205,13 @@ func (c *Handshake) Server() error {
 		return errors.Wrap(err, "bad authenticate signature")
 	}
 
-	// Send NETINFO
-	err = c.sendNetInfoCell()
-	if err != nil {
-		return errors.Wrap(err, "failed to send net info")
-	}
-
 	// Receive NETINFO cell
 	cell, err = c.Link.ReceiveCell()
 	if err != nil {
 		return errors.Wrap(err, "could not read cell")
 	}
 
-	netInfoCell, err := ParseNetInfoCell(cell)
-	if err != nil {
-		return errors.Wrap(err, "could not parse netinfo cell")
-	}
-
-	c.logger.With("receiver_addr", netInfoCell.ReceiverAddress).Debug("received net info cell")
-	c.logger.Warn("net info processing not implemented")
-
-	return nil
+	return c.processNetInfo(cell)
 }
 
 func (c *Handshake) Client() error {
@@ -359,15 +364,7 @@ func (c *Handshake) Client() error {
 		return errors.Wrap(err, "could not read cell")
 	}
 
-	netInfoCell, err := ParseNetInfoCell(cell)
-	if err != nil {
-		return errors.Wrap(err, "could not parse netinfo cell")
-	}
-
-	c.logger.With("receiver_addr", netInfoCell.ReceiverAddress).Debug("received net info cell")
-	c.logger.Warn("net info processing not implemented")
-
-	return nil
+	return c.processNetInfo(cell)
 }
 
 // receiveVersions expects a VERSIONS cell and returns the contained
@@ -433,6 +430,18 @@ func (c *Handshake) sendNetInfoCell() error {
 	}
 
 	return c.sendCell(netInfoCell)
+}
+
+func (c *Handshake) processNetInfo(cell Cell) error {
+	ni, err := ParseNetInfoCell(cell)
+	if err != nil {
+		return errors.Wrap(err, "could not parse netinfo cell")
+	}
+
+	c.logger.With("receiver_addr", ni.ReceiverAddress).Debug("received net info cell")
+	c.logger.Warn("net info processing not implemented")
+
+	return nil
 }
 
 // TODO(mbm): kill this function
