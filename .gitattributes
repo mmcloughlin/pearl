@@ -1,2 +1,3 @@
 fork/* linguist-vendored=true
+vendor/* linguist-vendored=true
 gen-*.go linguist-generated=true
