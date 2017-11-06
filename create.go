@@ -204,6 +204,69 @@ type CreateRequest struct {
 	HandshakeData []byte
 }
 
+// CreateFastHandler handles a received CREATE_FAST cell.
+func CreateFastHandler(conn *Connection, c Cell) error {
+	if c.Command() != CommandCreateFast {
+		return ErrUnexpectedCommand
+	}
+
+	// Reference: https://github.com/torproject/torspec/blob/f66d1826c0b32d307898bba081dbf8ef598d4037/tor-spec.txt#L1139-L1141
+	//
+	//	   A CREATE_FAST cell contains:
+	//
+	//	       Key material (X)    [HASH_LEN bytes]
+	//
+
+	p := c.Payload()
+	if len(p) < torcrypto.HashSize {
+		return ErrShortCellPayload
+	}
+	X := p[:torcrypto.HashSize]
+
+	// Reference: https://github.com/torproject/torspec/blob/f66d1826c0b32d307898bba081dbf8ef598d4037/tor-spec.txt#L1174-L1175
+	//
+	//	   If CREATE_FAST is used, both parties base their key material on
+	//	   K0=X|Y.
+	//
+
+	Y := torcrypto.Rand(torcrypto.HashSize)
+	s := append(X, Y...)
+
+	k, err := BuildCircuitKeysKDFTOR(s)
+	if err != nil {
+		return errors.Wrap(err, "failed to build circuit keys")
+	}
+
+	err = LaunchCircuit(conn, c.CircID(), k)
+	if err != nil {
+		return errors.Wrap(err, "failed to launch circuit")
+	}
+
+	// Reference: https://github.com/torproject/torspec/blob/f66d1826c0b32d307898bba081dbf8ef598d4037/tor-spec.txt#L1143-L1148
+	//
+	//	   A CREATED_FAST cell contains:
+	//
+	//	       Key material (Y)    [HASH_LEN bytes]
+	//	       Derivative key data [HASH_LEN bytes] (See 5.2.1 below)
+	//
+	//	   The values of X and Y must be generated randomly.
+	//
+
+	cell := NewFixedCell(c.CircID(), CommandCreatedFast)
+	p = cell.Payload()
+	copy(p, Y)
+	copy(p[torcrypto.HashSize:], k.KH)
+
+	err = conn.SendCell(cell)
+	if err != nil {
+		return errors.Wrap(err, "could not send created cell")
+	}
+
+	conn.logger.Info("circuit created")
+
+	return nil
+}
+
 // CreateHandler handles a received CREATE cell.
 func CreateHandler(conn *Connection, c Cell) error {
 	if c.Command() != CommandCreate {
@@ -303,29 +366,12 @@ func ProcessHandshakeTAP(conn *Connection, c CreateRequest) error {
 	//	   Once both parties have g^xy, they derive their shared circuit keys
 	//	   and 'derivative key data' value via the KDF-TOR function in 5.2.1.
 	//
-	n := 2*torcrypto.StreamCipherKeySize + 3*torcrypto.HashSize
-	d, err := torcrypto.KDFTOR(s, n)
+	k, err := BuildCircuitKeysKDFTOR(s)
 	if err != nil {
-		return errors.Wrap(err, "key derivation error")
+		return errors.Wrap(err, "failed to build circuit keys")
 	}
 
-	// Reference: https://github.com/torproject/torspec/blob/f9eeae509344dcfd1f185d0130a0055b00131cea/tor-spec.txt#L1181-L1184
-	//
-	//	   The first HASH_LEN bytes of K form KH; the next HASH_LEN form the forward
-	//	   digest Df; the next HASH_LEN 41-60 form the backward digest Db; the next
-	//	   KEY_LEN 61-76 form Kf, and the final KEY_LEN form Kb.  Excess bytes from K
-	//	   are discarded.
-	//
-	kh, d := buf.Consume(d, torcrypto.HashSize)
-	df, d := buf.Consume(d, torcrypto.HashSize)
-	db, d := buf.Consume(d, torcrypto.HashSize)
-	kf, d := buf.Consume(d, torcrypto.StreamCipherKeySize)
-	kb, _ := buf.Consume(d, torcrypto.StreamCipherKeySize)
-
-	fwd := NewCircuitCryptoState(df, kf)
-	back := NewCircuitCryptoState(db, kb)
-
-	err = LaunchCircuit(conn, c.CircID, fwd, back)
+	err = LaunchCircuit(conn, c.CircID, k)
 	if err != nil {
 		return errors.Wrap(err, "failed to launch circuit")
 	}
@@ -341,7 +387,7 @@ func ProcessHandshakeTAP(conn *Connection, c CreateRequest) error {
 	cell := NewFixedCell(c.CircID, CommandCreated)
 	p := cell.Payload()
 	copy(p, dh.Public[:])
-	copy(p[torcrypto.DiffieHellmanPublicSize:], kh)
+	copy(p[torcrypto.DiffieHellmanPublicSize:], k.KH)
 
 	err = conn.SendCell(cell)
 	if err != nil {
@@ -353,7 +399,9 @@ func ProcessHandshakeTAP(conn *Connection, c CreateRequest) error {
 	return nil
 }
 
-func LaunchCircuit(conn *Connection, id CircID, fwd, back *CircuitCryptoState) error {
+func LaunchCircuit(conn *Connection, id CircID, k *CircuitKeys) error {
+	fwd := k.ForwardCryptoState()
+	back := k.BackwardCryptoState()
 	circ := NewTransverseCircuit(conn, id, fwd, back, conn.logger)
 
 	err := conn.circuits.AddWithID(id, circ.ForwardSender())
@@ -433,12 +481,12 @@ func ProcessHandshakeNTOR(conn *Connection, c CreateRequest) error {
 	}
 
 	// Launch the circuit
-	fwd, back, err := BuildCircuitKeysNTOR(ntor.KDF(h))
+	keys, err := BuildCircuitKeysNTOR(ntor.KDF(h))
 	if err != nil {
 		return errors.Wrap(err, "failed to build circuit keys")
 	}
 
-	err = LaunchCircuit(conn, c.CircID, fwd, back)
+	err = LaunchCircuit(conn, c.CircID, keys)
 	if err != nil {
 		return errors.Wrap(err, "failed to launch circuit")
 	}
@@ -467,8 +515,52 @@ func ProcessHandshakeNTOR(conn *Connection, c CreateRequest) error {
 	return nil
 }
 
+type CircuitKeys struct {
+	KH []byte // Derivative key data
+	Df []byte // Forward digest
+	Db []byte // Backward digest
+	Kf []byte // Forward key
+	Kb []byte // Backward key
+}
+
+func (k *CircuitKeys) ForwardCryptoState() *CircuitCryptoState {
+	return NewCircuitCryptoState(k.Df, k.Kf)
+}
+
+func (k *CircuitKeys) BackwardCryptoState() *CircuitCryptoState {
+	return NewCircuitCryptoState(k.Db, k.Kb)
+}
+
+// circuitKeySize is the number of bytes of key required for circuit keys.
+const circuitKeySize = 2*torcrypto.StreamCipherKeySize + 3*torcrypto.HashSize
+
+// BuildCircuitKeysKDFTOR builds circuit keys via the KDF-TOR method from a
+// shared secret s.
+func BuildCircuitKeysKDFTOR(s []byte) (*CircuitKeys, error) {
+	d, err := torcrypto.KDFTOR(s, circuitKeySize)
+	if err != nil {
+		return nil, errors.Wrap(err, "key derivation error")
+	}
+
+	// Reference: https://github.com/torproject/torspec/blob/f9eeae509344dcfd1f185d0130a0055b00131cea/tor-spec.txt#L1181-L1184
+	//
+	//	   The first HASH_LEN bytes of K form KH; the next HASH_LEN form the forward
+	//	   digest Df; the next HASH_LEN 41-60 form the backward digest Db; the next
+	//	   KEY_LEN 61-76 form Kf, and the final KEY_LEN form Kb.  Excess bytes from K
+	//	   are discarded.
+	//
+	k := &CircuitKeys{}
+	k.KH, d = buf.Consume(d, torcrypto.HashSize)
+	k.Df, d = buf.Consume(d, torcrypto.HashSize)
+	k.Db, d = buf.Consume(d, torcrypto.HashSize)
+	k.Kf, d = buf.Consume(d, torcrypto.StreamCipherKeySize)
+	k.Kb, _ = buf.Consume(d, torcrypto.StreamCipherKeySize)
+
+	return k, nil
+}
+
 // BuildCircuitKeysNTOR generates Circuit key material from r.
-func BuildCircuitKeysNTOR(r io.Reader) (*CircuitCryptoState, *CircuitCryptoState, error) {
+func BuildCircuitKeysNTOR(r io.Reader) (*CircuitKeys, error) {
 	// Reference: https://github.com/torproject/torspec/blob/8aaa36d1a062b20ca263b6ac613b77a3ba1eb113/tor-spec.txt#L1210-L1214
 	//
 	//	   When used in the ntor handshake, the first HASH_LEN bytes form the
@@ -477,16 +569,20 @@ func BuildCircuitKeysNTOR(r io.Reader) (*CircuitCryptoState, *CircuitCryptoState
 	//	   DIGEST_LEN bytes are taken as a nonce to use in the place of KH in the
 	//	   hidden service protocol.  Excess bytes from K are discarded.
 	//
-	var k [72]byte
-	_, err := io.ReadFull(r, k[:])
+	d := make([]byte, circuitKeySize)
+	_, err := io.ReadFull(r, d[:])
 	if err != nil {
-		return nil, nil, errors.Wrap(err, "short read for circuit key material")
+		return nil, errors.Wrap(err, "short read for circuit key material")
 	}
 
-	forward := NewCircuitCryptoState(k[:20], k[40:56])
-	backward := NewCircuitCryptoState(k[20:40], k[56:72])
+	k := &CircuitKeys{}
+	k.Df, d = buf.Consume(d, torcrypto.HashSize)
+	k.Db, d = buf.Consume(d, torcrypto.HashSize)
+	k.Kf, d = buf.Consume(d, torcrypto.StreamCipherKeySize)
+	k.Kb, d = buf.Consume(d, torcrypto.StreamCipherKeySize)
+	k.KH, _ = buf.Consume(d, torcrypto.HashSize)
 
-	return forward, backward, nil
+	return k, nil
 }
 
 // ServerHandshakeDataNTOR represents server handshake data for the NTOR handshake.

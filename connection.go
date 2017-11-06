@@ -176,6 +176,11 @@ func (c *Connection) oneCell() error {
 
 	switch cell.Command() {
 	// Cells to be handled by this Connection
+	case CommandCreateFast:
+		err = CreateFastHandler(c, cell) // XXX error return
+		if err != nil {
+			log.Err(logger, err, "failed to handle create fast")
+		}
 	case CommandCreate:
 		err = CreateHandler(c, cell) // XXX error return
 		if err != nil {
