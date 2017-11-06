@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/mmcloughlin/pearl/log"
-	"github.com/mmcloughlin/pearl/protover"
+	"github.com/mmcloughlin/pearl/meta"
 	"github.com/mmcloughlin/pearl/torconfig"
 	"github.com/mmcloughlin/pearl/torcrypto"
 	"github.com/mmcloughlin/pearl/tordir"
@@ -160,7 +160,7 @@ func (r *Router) Descriptor() (*tordir.ServerDescriptor, error) {
 	s.SetPublishedTime(time.Now())
 	s.SetUptime(time.Since(r.startTime))
 	s.SetExitPolicy(torexitpolicy.RejectAllPolicy)
-	s.SetProtocols(protover.RelayRequired)
+	s.SetProtocols(meta.Protocols)
 
 	return s, nil
 }

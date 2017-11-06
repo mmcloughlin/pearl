@@ -3,6 +3,7 @@ package cmd
 import (
 	"net"
 
+	"github.com/mmcloughlin/pearl/meta"
 	"github.com/mmcloughlin/pearl/torconfig"
 	"github.com/mmcloughlin/pearl/tordir"
 	"github.com/spf13/pflag"
@@ -57,7 +58,7 @@ func (c *Config) Config() (*torconfig.Config, error) {
 		Nickname:         c.nickname,
 		IP:               c.ip,
 		ORPort:           uint16(c.port),
-		Platform:         torconfig.NewOfficialPlatform("0.2.9.11").String(),
+		Platform:         meta.Platform.String(),
 		Contact:          c.contact,
 		BandwidthAverage: c.bwAvg,
 		BandwidthBurst:   c.bwBurst,
