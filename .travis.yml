@@ -1,16 +1,17 @@
 language: go
 sudo: false
 go:
-  - 1.8.x
-  - 1.9.x
-  - tip
+- 1.x
+- 1.9.x
+- 1.10.x
+- 1.11.x
 install:
-  - go get github.com/go-playground/overalls
-  - go get github.com/mattn/goveralls
-  - go get github.com/alecthomas/gometalinter
-  - gometalinter --install
+- go get github.com/go-playground/overalls
+- go get github.com/mattn/goveralls
+- go get github.com/alecthomas/gometalinter
+- gometalinter --install
 script:
-  - gometalinter --vendor --config=gometalinter.json ./...
-  - go install github.com/mmcloughlin/pearl/cmd/...
-  - overalls -project=github.com/mmcloughlin/pearl -ignore .git,vendor,fork -- -v
-  - goveralls -coverprofile=overalls.coverprofile -service=travis-ci
+- gometalinter --vendor --config=gometalinter.json ./...
+- go install github.com/mmcloughlin/pearl/cmd/...
+- overalls -project=github.com/mmcloughlin/pearl -ignore .git,vendor,fork -- -v
+- goveralls -coverprofile=overalls.coverprofile -service=travis-ci
