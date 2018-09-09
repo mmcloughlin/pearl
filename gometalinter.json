@@ -4,7 +4,6 @@
     "goimports",
     "ineffassign",
     "deadcode",
-    "gas",
     "lll",
     "misspell",
     "goconst",
