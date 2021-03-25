@@ -1,2 +1,2 @@
-PyYAML==3.12
+PyYAML==5.4
 stringcase==1.2.0
